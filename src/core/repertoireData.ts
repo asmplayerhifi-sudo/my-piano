@@ -98,7 +98,7 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
     tonality: 'Dó Maior (C)',
     description: 'O tema universal da fraternidade da 9ª Sinfonia de Beethoven. Melodia completa em 8 compassos com harmonia de tônica e dominante.',
     historicalContext: 'Composta por Beethoven em 1824 com base no poema de Friedrich Schiller quando o compositor já estava completamente surdo.',
-    biomechanicsTip: 'Mantenha os 5 dedos apoiados sobre C4 a G4 com formato curvo de maçã. Firmeza no toque sem rigidez de pulso.',
+    biomechanicsTip: 'Mantenha os 5 dedos apoiados sobre C3 a G3 com formato curvo de maçã. Firmeza no toque sem rigidez de pulso.',
     chords: ['C', 'G'],
     scoreTrack: [
       // Compasso 1 (E E F G)

@@ -33,7 +33,7 @@ const CHORD_CHALLENGES: ChordChallenge[] = [
     quality: 'major',
     inversion: 2,
     instruction: 'Troque de C para F sem pular a mão! Mantenha o Dedo 1 no Dó (Dedo Âncora).',
-    pivotHint: '⚓ Dedo Âncora: Polegar permanece firme no Dó (C4)!',
+    pivotHint: '⚓ Dedo Âncora: Polegar permanece firme no Dó (C3)!',
     timeLimitSec: 4,
   },
   {
@@ -42,7 +42,7 @@ const CHORD_CHALLENGES: ChordChallenge[] = [
     root: 'G',
     quality: 'major',
     inversion: 1,
-    instruction: 'Conecte suavemente para Sol Maior em 1ª Inversão (B3 - D4 - G4).',
+    instruction: 'Conecte suavemente para Sol Maior em 1ª Inversão (B2 - D3 - G3).',
     pivotHint: '⚓ Dedo Âncora: O Mínimo (5) já está no Sol!',
     timeLimitSec: 4,
   },
@@ -52,7 +52,7 @@ const CHORD_CHALLENGES: ChordChallenge[] = [
     root: 'A',
     quality: 'minor',
     inversion: 0,
-    instruction: 'Monte Lá Menor (A3 - C4 - E4). Repare que C e E são notas do acorde de C!',
+    instruction: 'Monte Lá Menor (A2 - C3 - E3). Repare que C e E são notas do acorde de C!',
     pivotHint: '⚓ Dupla Âncora: O Dó e o Mi já estão sob os seus dedos!',
     timeLimitSec: 4,
   },
@@ -62,7 +62,7 @@ const CHORD_CHALLENGES: ChordChallenge[] = [
     root: 'C',
     quality: 'major',
     inversion: 1,
-    instruction: 'Dó Maior com o Mi no baixo (E4 - G4 - C5). Dedos 1 - 2 - 5.',
+    instruction: 'Dó Maior com o Mi no baixo (E3 - G3 - C4). Dedos 1 - 2 - 5.',
     timeLimitSec: 3,
   },
 ];
@@ -213,7 +213,7 @@ export const FastChordTrainer: React.FC = () => {
       {/* Teclado Virtual com o Acorde e Dedilhado Mapeado */}
       <div className="pt-2">
         <PianoKeyboard
-          startOctave={3}
+          startOctave={2}
           octaveCount={3}
           allowOctaveControls={true}
           highlightedKeys={highlightedKeys}

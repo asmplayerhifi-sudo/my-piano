@@ -75,10 +75,10 @@ export const KEYBOARD_COURSE_MODULES: CourseModule[] = [
           bulletPoints: [
             'A nota Dó (C) SEMPRE fica imediatamente à esquerda de qualquer grupo de 2 teclas pretas.',
             'A nota Fá (F) SEMPRE fica imediatamente à esquerda de qualquer grupo de 3 teclas pretas.',
-            'O Dó Central (C4) fica no centro do teclado, em frente à marca do fabricante ou na altura do umbigo.',
+            'O Dó Central (C3) fica no centro do teclado, em frente à marca do fabricante ou na altura do umbigo.',
             'Identifique visualmente as notas Dó, Ré e Mi no grupo de duas pretas sem hesitar.',
           ],
-          fingeringTip: 'Use o dedo 1 (polegar) da mão direita no Dó Central (C4).',
+          fingeringTip: 'Use o dedo 1 (polegar) da mão direita no Dó Central (C3).',
           postureAlert: 'Mantenha os ombros relaxados e os antebraços nivelados com a altura das teclas brancas.',
         },
         scoreTrack: [
@@ -274,11 +274,11 @@ export const KEYBOARD_COURSE_MODULES: CourseModule[] = [
         durationMinutes: 12,
         instructions: {
           heading: 'O Mapa dos Graves',
-          text: 'Os dois pontos da Clave de Fá abraçam a 4ª linha de baixo para cima, definindo a nota Fá3 (F3).',
+          text: 'Os dois pontos da Clave de Fá abraçam a 4ª linha de baixo para cima, definindo a nota Fá2 (F2).',
           bulletPoints: [
-            'Linhas (de baixo para cima): 1ª Sol (G2), 2ª Si (B2), 3ª Ré (D3), 4ª Fá (F3), 5ª Lá (A3).',
-            'Espaços: 1º Lá (A2), 2º Dó (C3), 3º Mi (E3), 4º Sol (G3).',
-            'Dó Central (C4) fica na linha suplementar superior da Clave de Fá.',
+            'Linhas (de baixo para cima): 1ª Sol (G1), 2ª Si (B1), 3ª Ré (D2), 4ª Fá (F2), 5ª Lá (A2).',
+            'Espaços: 1º Lá (A1), 2º Dó (C2), 3º Mi (E2), 4º Sol (G2).',
+            'Dó Central (C3) fica na linha suplementar superior da Clave de Fá.',
           ],
           fingeringTip: 'O dedo 5 (mínimo) da mão esquerda é a âncora natural nas notas mais graves.',
         },
@@ -330,7 +330,7 @@ export const KEYBOARD_COURSE_MODULES: CourseModule[] = [
             'Terceiro passo: junte as mãos bem devagar, em 50% do andamento original.',
             'Sinta o "peso sincronizado" nos tempos 1 onde as duas mãos descem simultaneamente.',
           ],
-          fingeringTip: 'Mão Esquerda no Dedo 5 (C3), Mão Direita no Dedo 1 (C4).',
+          fingeringTip: 'Mão Esquerda no Dedo 5 (C2), Mão Direita no Dedo 1 (C3).',
         },
         scoreTrack: [
           { midi: 48, clef: 'bass', duration: 2, beat: 1, measure: 1, fingerLeftHand: 5, noteName: 'C3' },
@@ -539,7 +539,7 @@ export const KEYBOARD_COURSE_MODULES: CourseModule[] = [
           bulletPoints: [
             'C (C-E-G) ➔ G (B-D-G) ➔ Am (C-E-A) ➔ F (C-F-A).',
             'A mão esquerda toca os baixos fundamentais em oitavas.',
-            'O Dó Central (C4) atua como linha condutora melódica que ancora o ouvido.',
+            'O Dó Central (C3) atua como linha condutora melódica que ancora o ouvido.',
           ],
           fingeringTip: 'Dedos 1-3-5 no C ➔ 1-2-5 no G ➔ 1-3-5 no Am ➔ 1-3-5 no F.',
         },

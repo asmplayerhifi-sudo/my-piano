@@ -26,7 +26,7 @@ export const RHYTHM_EXERCISES: RhythmExercise[] = [
     id: 'k-pulse-5fingers',
     instrument: 'keyboard',
     title: 'Pulso Fundamental de 5 Dedos',
-    subtitle: 'Semínimas na Região do Dó Central (C4–G4)',
+    subtitle: 'Semínimas na Região do Dó Central (C3–G3)',
     category: 'Pulso Fundamental',
     difficulty: 'Iniciante',
     timeSignature: '4/4',
@@ -34,7 +34,7 @@ export const RHYTHM_EXERCISES: RhythmExercise[] = [
     description: 'Desenvolva o pulso interno estável tocando uma semínima em cada batida do metrônomo. Mantenha a mão direita em formato de cúpula com o polegar relaxado sobre o Dó Central.',
     pedagogicalFocus: 'Isocronia métrica, postura da mão curvada e independência individual de cada um dos 5 dedos.',
     techniqueTips: [
-      'Posicione o dedo 1 (polegar) exatamente no Dó Central (C4).',
+      'Posicione o dedo 1 (polegar) exatamente no Dó Central (C3).',
       'Articule a tecla com a polpa do dedo, sem deixar a mão "cair" para os lados.',
       'Sincronize o impacto exato do dedo com o clique audível do metrônomo.',
     ],
@@ -392,7 +392,7 @@ export const RHYTHM_EXERCISES: RhythmExercise[] = [
     chordsSummary: 'Am  |  Dm  |  E7  |  Am',
     strumPattern: 'P - I - M - A',
     scoreTrack: [
-      // Compasso 1 (Am): P(A2), I(A3), M(C4), A(E4) x 2 vezes
+      // Compasso 1 (Am): P(A1), I(A2), M(C3), A(E3) x 2 vezes
       { midi: 45, clef: 'bass', duration: 0.5, beat: 1, measure: 1, noteName: 'A2', chordName: 'Am' },
       { midi: 57, clef: 'treble', duration: 0.5, beat: 1.5, measure: 1, noteName: 'A3', chordName: 'Am' },
       { midi: 60, clef: 'treble', duration: 0.5, beat: 2, measure: 1, noteName: 'C4', chordName: 'Am' },

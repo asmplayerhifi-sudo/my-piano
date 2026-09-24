@@ -6,8 +6,8 @@ export interface NoteInfo {
   name: string;              // ex: 'C', 'F#', 'Bb'
   letter: string;            // ex: 'C', 'F', 'B'
   accidental: Accidental;    // '', '#', 'b'
-  midi: number;              // MIDI number (ex: 60 = C4)
-  octave: number;            // ex: 4
+  midi: number;              // MIDI number (ex: 60 = C3 / Dó Central)
+  octave: number;            // ex: 3
   frequency: number;         // ex: 261.63 Hz
 }
 

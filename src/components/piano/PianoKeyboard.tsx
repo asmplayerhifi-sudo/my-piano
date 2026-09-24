@@ -159,12 +159,12 @@ export const PianoKeyboard: React.FC<Props> = ({
       if (highlight.degreeName?.includes('5')) return 5;
     }
 
-    // Posição de 5 dedos padrão na mão direita (C4–G4)
+    // Posição de 5 dedos padrão na mão direita no Dó Central (C3–G3)
     if (midi >= 60 && midi <= 67) {
       const map: Record<number, number> = { 60: 1, 62: 2, 64: 3, 65: 4, 67: 5 };
       if (map[midi]) return map[midi];
     }
-    // Posição de 5 dedos padrão na mão esquerda (C3–G3)
+    // Posição de 5 dedos padrão na mão esquerda (C2–G2)
     if (midi >= 48 && midi <= 55) {
       const map: Record<number, number> = { 48: 5, 50: 4, 52: 3, 53: 2, 55: 1 };
       if (map[midi]) return map[midi];
@@ -383,7 +383,7 @@ export const PianoKeyboard: React.FC<Props> = ({
       <div className="flex flex-wrap items-center justify-center gap-4 text-xs">
         <div className="flex items-center gap-1.5 bg-cyan-950/40 px-2.5 py-0.5 rounded-lg border border-cyan-500/20">
           <Sparkles className="w-3 h-3 text-cyan-400" />
-          <span className="text-cyan-200 font-bold text-[10px]">C4 = Dó Central (Marcador Ciano)</span>
+          <span className="text-cyan-200 font-bold text-[10px]">C3 = Dó Central (Marcador Ciano)</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm" />
@@ -446,7 +446,7 @@ export const PianoKeyboard: React.FC<Props> = ({
               {/* 1. Camada de Teclas Brancas */}
               {Array.from({ length: octaveCount }).map((_, octIdx) => {
                 const currentOctave = startOctave + octIdx;
-                const baseMidi = (currentOctave + 1) * 12;
+                const baseMidi = (currentOctave + 2) * 12;
 
                 return naturalOffsets.map((offset, noteIdx) => {
                   const midi = baseMidi + offset;
@@ -488,7 +488,7 @@ export const PianoKeyboard: React.FC<Props> = ({
                         className="transition-all duration-100"
                       />
 
-                      {/* Destaque visual inconfundível para o Dó Central (C4) */}
+                      {/* Destaque visual inconfundível para o Dó Central (C3) */}
                       {isMiddleC && (
                         <g>
                           <rect
@@ -508,7 +508,7 @@ export const PianoKeyboard: React.FC<Props> = ({
                             fontWeight="black"
                             fontFamily="Outfit, sans-serif"
                           >
-                            {whiteKeyWidth > 38 ? 'DÓ CENTRAL' : 'C4'}
+                            {whiteKeyWidth > 38 ? 'DÓ CENTRAL' : 'C3'}
                           </text>
                         </g>
                       )}
@@ -582,7 +582,7 @@ export const PianoKeyboard: React.FC<Props> = ({
               {/* 2. Camada de Teclas Pretas (Acima das brancas) */}
               {Array.from({ length: octaveCount }).map((_, octIdx) => {
                 const currentOctave = startOctave + octIdx;
-                const baseMidi = (currentOctave + 1) * 12;
+                const baseMidi = (currentOctave + 2) * 12;
 
                 return accidentalOffsets.map((acc) => {
                   const midi = baseMidi + acc.semitones;

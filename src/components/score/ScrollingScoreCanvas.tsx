@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { soundEngine } from '../../core/soundEngine';
+import { getNoteInfo } from '../../core/musicTheory';
 import type { ScoreNote } from '../../core/coursesData';
 import { Play, Pause, RotateCcw, Sparkles, Flame, Award, Clock, Headphones } from 'lucide-react';
 
@@ -266,30 +267,30 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
   const lastTimeRef = useRef<number>(performance.now());
 
   // Mapeamento diatônico preciso para posições verticais (Y) com separação ampla entre pautas
-  const trebleBaseY = 94;    // Linha 1 da Clave de Sol (E4), Linha 5 (F5) em Y = 54
+  const trebleBaseY = 94;    // Linha 1 da Clave de Sol (E3), Linha 5 (F4) em Y = 54
   const trebleLineStep = 10; // Espaçamento entre linhas da pauta
-  const middleCY = 154;      // Linha suplementar de Dó Central (C4)
-  const bassBaseY = 230;     // Linha 1 da Clave de Fá (G2)
+  const middleCY = 154;      // Linha suplementar de Dó Central (C3 = MIDI 60)
+  const bassBaseY = 230;     // Linha 1 da Clave de Fá (G1)
   const bassLineStep = 10;
-  const bassTopY = 190;      // Linha 5 da Clave de Fá (A3)
+  const bassTopY = 190;      // Linha 5 da Clave de Fá (A2)
   const attackLineX = 140;   // Posição horizontal fixa da barra de ataque
   const pixelsPerBeat = 120; // Espaçamento horizontal por tempo
 
   const getNoteY = (midi: number, clef: 'treble' | 'bass' = 'treble'): number => {
     const SEMITONE_TO_DIATONIC = [0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6];
     const semitone = ((midi % 12) + 12) % 12;
-    const octave = Math.floor(midi / 12) - 1;
+    const octave = Math.floor(midi / 12) - 2; // Padrão Solfejo Latino / Brasileiro / Yamaha: Dó Central = C3 (MIDI 60)
     const diatonicStep = octave * 7 + SEMITONE_TO_DIATONIC[semitone];
 
-    // Dó Central (C4 = MIDI 60, diatonicStep = 28)
+    // Dó Central (C3 = MIDI 60, diatonicStep = 3 * 7 + 0 = 21)
     if (midi === 60) return middleCY;
 
     if (clef === 'treble' || midi > 60) {
-      // E4 tem diatonicStep = 30 e fica exatamente em Y = trebleBaseY (Linha 1 do Treble)
-      return trebleBaseY - (diatonicStep - 30) * 5;
+      // E3 tem diatonicStep = 23 e fica exatamente em Y = trebleBaseY (Linha 1 do Treble)
+      return trebleBaseY - (diatonicStep - 23) * 5;
     } else {
-      // A3 tem diatonicStep = 26 e fica exatamente em Y = bassTopY (Linha 5 do Bass)
-      return bassTopY + (26 - diatonicStep) * 5;
+      // A2 tem diatonicStep = 19 e fica exatamente em Y = bassTopY (Linha 5 do Bass)
+      return bassTopY + (19 - diatonicStep) * 5;
     }
   };
 
@@ -515,7 +516,7 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
       ctx.fillStyle = '#38bdf8';
       ctx.font = 'bold 8.5px JetBrains Mono, monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('DÓ CENTRAL (C4)', 139, middleCY + 3.5);
+      ctx.fillText('DÓ CENTRAL (C3)', 139, middleCY + 3.5);
       ctx.restore();
 
       // 3. Desenha o Pentagrama de Fá (Bass Staff - 5 Linhas: 160, 150, 140, 130, 120)
@@ -998,7 +999,9 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
             ctx.fillStyle = isCurrentTarget ? '#fbbf24' : isMiddleC ? '#38bdf8' : '#94a3b8';
             ctx.font = isMiddleC ? 'bold 11px Outfit, sans-serif' : 'bold 10.5px Outfit, sans-serif';
             ctx.textAlign = 'center';
-            const labelText = isMiddleC ? `${note.noteName} (Dó Central)` : note.noteName;
+            const noteInfo = getNoteInfo(note.midi);
+            const dynamicName = `${noteInfo.name}${noteInfo.octave}`;
+            const labelText = isMiddleC ? `${dynamicName} (Dó Central)` : dynamicName;
             const nameY = isMiddleC
               ? middleCY + 18
               : isBass

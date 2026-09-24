@@ -57,7 +57,7 @@ export function getKeyPosition(
   whiteKeyWidth: number,
   blackKeyWidth: number
 ): { x: number; width: number; isBlack: boolean; noteName: string } | null {
-  const octave = Math.floor(midi / 12) - 1;
+  const octave = Math.floor(midi / 12) - 2;
   const semitone = ((midi % 12) + 12) % 12;
   const octIdx = octave - startOctave;
 
@@ -492,7 +492,7 @@ export const PianoWaterfallCanvas: React.FC<Props> = ({
             // Checa pretas primeiro (ficam por cima)
             const blackSemis = [1, 3, 6, 8, 10];
             for (const semi of blackSemis) {
-              const midi = (startOctave + oct + 1) * 12 + semi;
+              const midi = (startOctave + oct + 2) * 12 + semi;
               const geo = getKeyPosition(midi, startOctave, whiteKeyWidth, blackKeyWidth);
               if (geo && clickX >= geo.x && clickX <= geo.x + geo.width) {
                 onKeyClick(midi);
@@ -502,7 +502,7 @@ export const PianoWaterfallCanvas: React.FC<Props> = ({
             // Checa brancas
             const whiteSemis = [0, 2, 4, 5, 7, 9, 11];
             for (const semi of whiteSemis) {
-              const midi = (startOctave + oct + 1) * 12 + semi;
+              const midi = (startOctave + oct + 2) * 12 + semi;
               const geo = getKeyPosition(midi, startOctave, whiteKeyWidth, blackKeyWidth);
               if (geo && clickX >= geo.x && clickX <= geo.x + geo.width) {
                 onKeyClick(midi);

@@ -19,9 +19,9 @@ export function midiToFrequency(midi: number): number {
   return 440 * Math.pow(2, (midi - 69) / 12);
 }
 
-// Constrói objeto NoteInfo completo
+// Constrói objeto NoteInfo completo (Padrão Solfejo Latino / Brasileiro / Yamaha: Dó Central = C3, Lá 3 = 440 Hz)
 export function getNoteInfo(midi: number, preferFlat = false): NoteInfo {
-  const octave = Math.floor(midi / 12) - 1;
+  const octave = Math.floor(midi / 12) - 2;
   const noteIndex = ((midi % 12) + 12) % 12;
   const name = preferFlat ? CHROMATIC_NOTES_FLAT[noteIndex] : CHROMATIC_NOTES_SHARP[noteIndex];
   const letter = name[0];
@@ -199,7 +199,7 @@ export function getKeyboardInversions(root: string, isMinor = false): {
   const rootIdx = CHROMATIC_NOTES_SHARP.indexOf(root) !== -1 
     ? CHROMATIC_NOTES_SHARP.indexOf(root) 
     : CHROMATIC_NOTES_FLAT.indexOf(root);
-  const baseMidi = 60 + (rootIdx >= 0 ? rootIdx : 0); // Oitava 4 (C4 = 60)
+  const baseMidi = 60 + (rootIdx >= 0 ? rootIdx : 0); // Região do Dó Central C3 (MIDI 60)
   const thirdInterval = isMinor ? 3 : 4;
   const fifthInterval = 7;
 
@@ -229,14 +229,14 @@ export function getKeyboardInversions(root: string, isMinor = false): {
   };
 }
 
-// Afinação padrão do violão: E2, A2, D3, G3, B3, E4
+// Afinação padrão do violão: E1, A1, D2, G2, B2, E3 (Padrão Solfejo Latino / Yamaha)
 export const GUITAR_TUNING_MIDI = [
-  { string: 6, name: 'E2', midi: 40 }, // E grave
-  { string: 5, name: 'A2', midi: 45 }, // A
-  { string: 4, name: 'D3', midi: 50 }, // D
-  { string: 3, name: 'G3', midi: 55 }, // G
-  { string: 2, name: 'B3', midi: 59 }, // B (Salto de 3ª Maior!)
-  { string: 1, name: 'E4', midi: 64 }, // E agudo
+  { string: 6, name: 'E1', midi: 40 }, // E grave
+  { string: 5, name: 'A1', midi: 45 }, // A
+  { string: 4, name: 'D2', midi: 50 }, // D
+  { string: 3, name: 'G2', midi: 55 }, // G
+  { string: 2, name: 'B2', midi: 59 }, // B (Salto de 3ª Maior!)
+  { string: 1, name: 'E3', midi: 64 }, // E agudo
 ];
 
 // Retorna nota no braço do violão dada a corda (1-6) e casa (0-15)
