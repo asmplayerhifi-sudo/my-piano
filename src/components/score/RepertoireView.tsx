@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { REPERTOIRE_SONGS } from '../../core/repertoireData';
 import type { RepertoireSong } from '../../core/repertoireData';
+import type { ScoreNote } from '../../core/coursesData';
 import { ScrollingScoreCanvas } from './ScrollingScoreCanvas';
 import { PianoKeyboard } from '../piano/PianoKeyboard';
 import { MicrophonePitchBar } from '../audio/MicrophonePitchBar';
@@ -16,6 +17,46 @@ import {
   Gauge,
   ChevronDown,
 } from 'lucide-react';
+
+function computeNoteOffsets(notes: ScoreNote[], timeSignature = '4/4'): number[] {
+  const parts = timeSignature.split('/');
+  const num = parseInt(parts[0], 10) || 4;
+  const den = parseInt(parts[1], 10) || 4;
+  let beatsPerMeasure = num;
+  if (den === 8 && num >= 6) {
+    beatsPerMeasure = num / 3;
+  }
+
+  const noteOffsets: number[] = [];
+  if (!notes || notes.length === 0) return noteOffsets;
+
+  let currentMeasure = notes[0]?.measure || 1;
+  let currentMeasureStart = 0;
+  let maxBeatInCurrentMeasure = 0;
+  let prevNoteMeasure = currentMeasure;
+
+  for (let i = 0; i < notes.length; i++) {
+    const note = notes[i];
+    const m = note.measure || 1;
+    const b = (note.beat !== undefined ? Math.max(0, note.beat - 1) : 0);
+
+    if (m !== prevNoteMeasure) {
+      currentMeasureStart += Math.max(beatsPerMeasure, maxBeatInCurrentMeasure);
+      maxBeatInCurrentMeasure = 0;
+      prevNoteMeasure = m;
+    }
+
+    const noteOffset = currentMeasureStart + b;
+    noteOffsets.push(noteOffset);
+
+    const noteEnd = b + (note.duration || 1);
+    if (noteEnd > maxBeatInCurrentMeasure) {
+      maxBeatInCurrentMeasure = noteEnd;
+    }
+  }
+
+  return noteOffsets;
+}
 
 export const RepertoireView: React.FC = () => {
   const [activeSong, setActiveSong] = useState<RepertoireSong>(REPERTOIRE_SONGS[0]);
@@ -51,13 +92,21 @@ export const RepertoireView: React.FC = () => {
     setLastMidiEvent({ midi, timestamp: performance.now() });
   };
 
-  // Motor de Reprodução em Áudio da Melodia Sincronizada com Partitura e Teclado
+  // Pré-computa os tempos métricos exatos das notas para sincronização polifônica precisa
+  const noteOffsets = useMemo(() => {
+    return computeNoteOffsets(activeSong.scoreTrack, activeSong.timeSignature);
+  }, [activeSong]);
+  const noteOffsetsRef = useRef<number[]>(noteOffsets);
+  noteOffsetsRef.current = noteOffsets;
+
+  // Motor de Reprodução em Áudio Fiel à Partitura (Polifonia, Baixo e Melodia Sincronizados)
   const playNextNote = (noteIndex: number) => {
     if (!isPlayingRef.current) return;
 
     const track = activeSong.scoreTrack;
+    const offsets = noteOffsetsRef.current;
     if (noteIndex >= track.length) {
-      // Fim da obra: reinicia do começo após uma pausa
+      // Fim da obra: reinicia do começo após uma pausa elegante
       playbackTimeoutRef.current = window.setTimeout(() => {
         if (isPlayingRef.current) {
           setCurrentNoteIdx(0);
@@ -67,23 +116,39 @@ export const RepertoireView: React.FC = () => {
       return;
     }
 
-    const currentNote = track[noteIndex];
+    // Toca a nota atual e todas as notas simultâneas (mesmo tempo métrico / acordes e ambas as mãos)
+    const currentOffset = offsets[noteIndex] ?? 0;
+    let nextIndex = noteIndex;
 
-    // Toca a nota no sintetizador de piano
-    soundEngine.playPianoNote(currentNote.midi, 1.4);
+    while (nextIndex < track.length && Math.abs((offsets[nextIndex] ?? 0) - currentOffset) < 0.02) {
+      const noteToPlay = track[nextIndex];
+      soundEngine.playPianoNote(noteToPlay.midi, 1.4);
+      handleNoteInput(noteToPlay.midi);
+      nextIndex++;
+    }
 
-    // Notifica teclado e rastro Synthesia
-    handleNoteInput(currentNote.midi);
+    setCurrentNoteIdx(nextIndex);
 
-    setCurrentNoteIdx(noteIndex + 1);
+    // Calcula tempo exato até o próximo evento musical
+    if (nextIndex < track.length) {
+      const nextOffset = offsets[nextIndex] ?? currentOffset + 1;
+      const deltaBeats = Math.max(0.1, nextOffset - currentOffset);
+      const noteDurationMs = (60 / tempoRef.current) * 1000 * deltaBeats;
 
-    // Calcula duração da nota no andamento (BPM) atual
-    const duration = currentNote.duration || 1;
-    const noteDurationMs = (60 / tempoRef.current) * 1000 * duration;
-
-    playbackTimeoutRef.current = window.setTimeout(() => {
-      playNextNote(noteIndex + 1);
-    }, noteDurationMs);
+      playbackTimeoutRef.current = window.setTimeout(() => {
+        playNextNote(nextIndex);
+      }, noteDurationMs);
+    } else {
+      // Última nota da partitura: aguarda sua duração antes de reiniciar
+      const lastDuration = track[noteIndex]?.duration || 2;
+      const finalWaitMs = (60 / tempoRef.current) * 1000 * lastDuration;
+      playbackTimeoutRef.current = window.setTimeout(() => {
+        if (isPlayingRef.current) {
+          setCurrentNoteIdx(0);
+          playNextNote(0);
+        }
+      }, finalWaitMs);
+    }
   };
 
   const handleTogglePlayPause = () => {
