@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { KEYBOARD_COURSE_MODULES } from '../../core/coursesData';
 import type { CourseLesson, CourseModule, ScoreNote } from '../../core/coursesData';
+import { getNoteInfo } from '../../core/musicTheory';
 import { ScrollingScoreCanvas } from '../score/ScrollingScoreCanvas';
 import { FastChordTrainer } from '../piano/FastChordTrainer';
 import { PianoKeyboard } from '../piano/PianoKeyboard';
@@ -137,11 +138,14 @@ export const KeyboardCourseView: React.FC = () => {
   // Teclas destacadas e dedilhado orientativo para a lição ativa
   const highlightedLessonKeys = useMemo(() => {
     if (activeLesson.scoreTrack && activeLesson.scoreTrack.length > 0) {
-      return activeLesson.scoreTrack.map(n => ({
-        midi: n.midi,
-        finger: n.fingerRightHand || n.fingerLeftHand,
-        degreeName: n.noteName,
-      }));
+      return activeLesson.scoreTrack.map(n => {
+        const nInfo = getNoteInfo(n.midi);
+        return {
+          midi: n.midi,
+          finger: n.fingerRightHand || n.fingerLeftHand,
+          degreeName: `${nInfo.name}${nInfo.octave}`,
+        };
+      });
     }
     return [];
   }, [activeLesson]);
@@ -154,11 +158,12 @@ export const KeyboardCourseView: React.FC = () => {
       const names = ['', 'Polegar', 'Indicador', 'Médio', 'Anelar', 'Mínimo'];
       const colors = ['', '#f59e0b', '#38bdf8', '#10b981', '#c084fc', '#f43f5e'];
       const f = fingerNum || (hand === 'MD' ? (firstNote.midi === 60 ? 1 : 2) : 5);
+      const nInfo = getNoteInfo(firstNote.midi);
       return {
         finger: f,
         label: `${f}`,
         fingerName: names[f] || `D${f}`,
-        noteName: firstNote.noteName,
+        noteName: `${nInfo.name}${nInfo.octave}`,
         color: colors[f] || '#38bdf8',
       };
     }

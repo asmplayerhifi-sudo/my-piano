@@ -103,70 +103,70 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
     scoreTrack: [
       // --- PARTE A (Compassos 1 a 4) ---
       // Compasso 1 (E E F G)
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 1, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 1, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 64, clef: 'treble', duration: 1, beat: 1, measure: 1, fingerRightHand: 3, noteName: 'E3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 1, fingerRightHand: 3, noteName: 'E3' },
       { midi: 65, clef: 'treble', duration: 1, beat: 3, measure: 1, fingerRightHand: 4, noteName: 'F3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 4, measure: 1, fingerRightHand: 5, noteName: 'G3' },
 
       // Compasso 2 (G F E D)
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 2, fingerLeftHand: 5, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 2, fingerLeftHand: 5, noteName: 'G1', chordName: 'G' },
       { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 2, fingerRightHand: 5, noteName: 'G3' },
       { midi: 65, clef: 'treble', duration: 1, beat: 2, measure: 2, fingerRightHand: 4, noteName: 'F3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 3, measure: 2, fingerRightHand: 3, noteName: 'E3' },
       { midi: 62, clef: 'treble', duration: 1, beat: 4, measure: 2, fingerRightHand: 2, noteName: 'D3' },
 
       // Compasso 3 (C C D E)
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 3, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 3, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 60, clef: 'treble', duration: 1, beat: 1, measure: 3, fingerRightHand: 1, noteName: 'C3' },
       { midi: 60, clef: 'treble', duration: 1, beat: 2, measure: 3, fingerRightHand: 1, noteName: 'C3' },
       { midi: 62, clef: 'treble', duration: 1, beat: 3, measure: 3, fingerRightHand: 2, noteName: 'D3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 4, measure: 3, fingerRightHand: 3, noteName: 'E3' },
 
       // Compasso 4 (E. D D-)
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 4, fingerLeftHand: 5, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 4, fingerLeftHand: 5, noteName: 'G1', chordName: 'G' },
       { midi: 64, clef: 'treble', duration: 1.5, beat: 1, measure: 4, fingerRightHand: 3, noteName: 'E3' },
       { midi: 62, clef: 'treble', duration: 0.5, beat: 2.5, measure: 4, fingerRightHand: 2, noteName: 'D3' },
       { midi: 62, clef: 'treble', duration: 2, beat: 3, measure: 4, fingerRightHand: 2, noteName: 'D3' },
 
       // --- PARTE A' (Compassos 5 a 8) ---
       // Compasso 5 (E E F G)
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 5, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 5, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 64, clef: 'treble', duration: 1, beat: 1, measure: 5, fingerRightHand: 3, noteName: 'E3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 5, fingerRightHand: 3, noteName: 'E3' },
       { midi: 65, clef: 'treble', duration: 1, beat: 3, measure: 5, fingerRightHand: 4, noteName: 'F3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 4, measure: 5, fingerRightHand: 5, noteName: 'G3' },
 
       // Compasso 6 (G F E D)
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 6, fingerLeftHand: 5, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 6, fingerLeftHand: 5, noteName: 'G1', chordName: 'G' },
       { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 6, fingerRightHand: 5, noteName: 'G3' },
       { midi: 65, clef: 'treble', duration: 1, beat: 2, measure: 6, fingerRightHand: 4, noteName: 'F3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 3, measure: 6, fingerRightHand: 3, noteName: 'E3' },
       { midi: 62, clef: 'treble', duration: 1, beat: 4, measure: 6, fingerRightHand: 2, noteName: 'D3' },
 
       // Compasso 7 (C C D E)
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 7, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 7, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 60, clef: 'treble', duration: 1, beat: 1, measure: 7, fingerRightHand: 1, noteName: 'C3' },
       { midi: 60, clef: 'treble', duration: 1, beat: 2, measure: 7, fingerRightHand: 1, noteName: 'C3' },
       { midi: 62, clef: 'treble', duration: 1, beat: 3, measure: 7, fingerRightHand: 2, noteName: 'D3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 4, measure: 7, fingerRightHand: 3, noteName: 'E3' },
 
       // Compasso 8 (D. C C-)
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 8, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 8, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 62, clef: 'treble', duration: 1.5, beat: 1, measure: 8, fingerRightHand: 2, noteName: 'D3' },
       { midi: 60, clef: 'treble', duration: 0.5, beat: 2.5, measure: 8, fingerRightHand: 1, noteName: 'C3' },
       { midi: 60, clef: 'treble', duration: 2, beat: 3, measure: 8, fingerRightHand: 1, noteName: 'C3' },
 
       // --- PARTE B: PONTE CENTRAL (Compassos 9 a 12) ---
       // Compasso 9 (D D E C)
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 9, fingerLeftHand: 5, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 9, fingerLeftHand: 5, noteName: 'G1', chordName: 'G' },
       { midi: 62, clef: 'treble', duration: 1, beat: 1, measure: 9, fingerRightHand: 2, noteName: 'D3' },
       { midi: 62, clef: 'treble', duration: 1, beat: 2, measure: 9, fingerRightHand: 2, noteName: 'D3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 3, measure: 9, fingerRightHand: 3, noteName: 'E3' },
       { midi: 60, clef: 'treble', duration: 1, beat: 4, measure: 9, fingerRightHand: 1, noteName: 'C3' },
 
       // Compasso 10 (D E F E C)
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 10, fingerLeftHand: 5, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 10, fingerLeftHand: 5, noteName: 'G1', chordName: 'G' },
       { midi: 62, clef: 'treble', duration: 1, beat: 1, measure: 10, fingerRightHand: 2, noteName: 'D3' },
       { midi: 64, clef: 'treble', duration: 0.5, beat: 2, measure: 10, fingerRightHand: 3, noteName: 'E3' },
       { midi: 65, clef: 'treble', duration: 0.5, beat: 2.5, measure: 10, fingerRightHand: 4, noteName: 'F3' },
@@ -174,7 +174,7 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       { midi: 60, clef: 'treble', duration: 1, beat: 4, measure: 10, fingerRightHand: 1, noteName: 'C3' },
 
       // Compasso 11 (D E F E D)
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 11, fingerLeftHand: 5, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 11, fingerLeftHand: 5, noteName: 'G1', chordName: 'G' },
       { midi: 62, clef: 'treble', duration: 1, beat: 1, measure: 11, fingerRightHand: 2, noteName: 'D3' },
       { midi: 64, clef: 'treble', duration: 0.5, beat: 2, measure: 11, fingerRightHand: 3, noteName: 'E3' },
       { midi: 65, clef: 'treble', duration: 0.5, beat: 2.5, measure: 11, fingerRightHand: 4, noteName: 'F3' },
@@ -182,35 +182,35 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       { midi: 62, clef: 'treble', duration: 1, beat: 4, measure: 11, fingerRightHand: 2, noteName: 'D3' },
 
       // Compasso 12 (C D G dominante preparando a reexposição)
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 12, fingerLeftHand: 5, noteName: 'G2', chordName: 'G7' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 12, fingerLeftHand: 5, noteName: 'G1', chordName: 'G7' },
       { midi: 60, clef: 'treble', duration: 1, beat: 1, measure: 12, fingerRightHand: 1, noteName: 'C3' },
       { midi: 62, clef: 'treble', duration: 1, beat: 2, measure: 12, fingerRightHand: 2, noteName: 'D3' },
       { midi: 55, clef: 'treble', duration: 2, beat: 3, measure: 12, fingerRightHand: 1, noteName: 'G2' },
 
       // --- PARTE A'': REEXPOSIÇÃO E CADÊNCIA FINAL TRIUNFAL (Compassos 13 a 16) ---
       // Compasso 13 (E E F G)
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 13, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 13, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 64, clef: 'treble', duration: 1, beat: 1, measure: 13, fingerRightHand: 3, noteName: 'E3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 13, fingerRightHand: 3, noteName: 'E3' },
       { midi: 65, clef: 'treble', duration: 1, beat: 3, measure: 13, fingerRightHand: 4, noteName: 'F3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 4, measure: 13, fingerRightHand: 5, noteName: 'G3' },
 
       // Compasso 14 (G F E D)
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 14, fingerLeftHand: 5, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 14, fingerLeftHand: 5, noteName: 'G1', chordName: 'G' },
       { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 14, fingerRightHand: 5, noteName: 'G3' },
       { midi: 65, clef: 'treble', duration: 1, beat: 2, measure: 14, fingerRightHand: 4, noteName: 'F3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 3, measure: 14, fingerRightHand: 3, noteName: 'E3' },
       { midi: 62, clef: 'treble', duration: 1, beat: 4, measure: 14, fingerRightHand: 2, noteName: 'D3' },
 
       // Compasso 15 (C C D E)
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 15, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 15, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 60, clef: 'treble', duration: 1, beat: 1, measure: 15, fingerRightHand: 1, noteName: 'C3' },
       { midi: 60, clef: 'treble', duration: 1, beat: 2, measure: 15, fingerRightHand: 1, noteName: 'C3' },
       { midi: 62, clef: 'treble', duration: 1, beat: 3, measure: 15, fingerRightHand: 2, noteName: 'D3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 4, measure: 15, fingerRightHand: 3, noteName: 'E3' },
 
       // Compasso 16 (D. C C - Resolução Majestosa)
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 16, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 16, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 62, clef: 'treble', duration: 1.5, beat: 1, measure: 16, fingerRightHand: 2, noteName: 'D3' },
       { midi: 60, clef: 'treble', duration: 0.5, beat: 2.5, measure: 16, fingerRightHand: 1, noteName: 'C3' },
       { midi: 60, clef: 'treble', duration: 2, beat: 3, measure: 16, fingerRightHand: 1, noteName: 'C3' },
@@ -295,35 +295,35 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
 
       // --- SEÇÃO B: TRANSIÇÃO LÍRICA EM DÓ MAIOR (Compassos 9 a 16) ---
       // Compasso 9 (B3 C4 D4 E4 - C Maior)
-      { midi: 48, clef: 'bass', duration: 3, beat: 1, measure: 9, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 3, beat: 1, measure: 9, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 71, clef: 'treble', duration: 0.5, beat: 1, measure: 9, fingerRightHand: 1, noteName: 'B3' },
       { midi: 72, clef: 'treble', duration: 0.5, beat: 1.5, measure: 9, fingerRightHand: 2, noteName: 'C4' },
       { midi: 74, clef: 'treble', duration: 0.5, beat: 2, measure: 9, fingerRightHand: 3, noteName: 'D4' },
       { midi: 76, clef: 'treble', duration: 1.5, beat: 2.5, measure: 9, fingerRightHand: 5, noteName: 'E4' },
 
       // Compasso 10 (G3 F4 E4 D4 - G Maior)
-      { midi: 43, clef: 'bass', duration: 3, beat: 1, measure: 10, fingerLeftHand: 5, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 3, beat: 1, measure: 10, fingerLeftHand: 5, noteName: 'G1', chordName: 'G' },
       { midi: 67, clef: 'treble', duration: 0.5, beat: 1, measure: 10, fingerRightHand: 1, noteName: 'G3' },
       { midi: 77, clef: 'treble', duration: 0.5, beat: 1.5, measure: 10, fingerRightHand: 5, noteName: 'F4' },
       { midi: 76, clef: 'treble', duration: 0.5, beat: 2, measure: 10, fingerRightHand: 4, noteName: 'E4' },
       { midi: 74, clef: 'treble', duration: 1.5, beat: 2.5, measure: 10, fingerRightHand: 3, noteName: 'D4' },
 
       // Compasso 11 (F3 E4 D4 C4 - Am)
-      { midi: 45, clef: 'bass', duration: 3, beat: 1, measure: 11, fingerLeftHand: 4, noteName: 'A2', chordName: 'Am' },
+      { midi: 45, clef: 'bass', duration: 3, beat: 1, measure: 11, fingerLeftHand: 4, noteName: 'A1', chordName: 'Am' },
       { midi: 65, clef: 'treble', duration: 0.5, beat: 1, measure: 11, fingerRightHand: 1, noteName: 'F3' },
       { midi: 76, clef: 'treble', duration: 0.5, beat: 1.5, measure: 11, fingerRightHand: 5, noteName: 'E4' },
       { midi: 74, clef: 'treble', duration: 0.5, beat: 2, measure: 11, fingerRightHand: 4, noteName: 'D4' },
       { midi: 72, clef: 'treble', duration: 1.5, beat: 2.5, measure: 11, fingerRightHand: 3, noteName: 'C4' },
 
       // Compasso 12 (E3 D4 C4 B3 - E7)
-      { midi: 40, clef: 'bass', duration: 3, beat: 1, measure: 12, fingerLeftHand: 5, noteName: 'E2', chordName: 'E7' },
+      { midi: 40, clef: 'bass', duration: 3, beat: 1, measure: 12, fingerLeftHand: 5, noteName: 'E1', chordName: 'E7' },
       { midi: 64, clef: 'treble', duration: 0.5, beat: 1, measure: 12, fingerRightHand: 1, noteName: 'E3' },
       { midi: 74, clef: 'treble', duration: 0.5, beat: 1.5, measure: 12, fingerRightHand: 4, noteName: 'D4' },
       { midi: 72, clef: 'treble', duration: 0.5, beat: 2, measure: 12, fingerRightHand: 3, noteName: 'C4' },
       { midi: 71, clef: 'treble', duration: 1.5, beat: 2.5, measure: 12, fingerRightHand: 2, noteName: 'B3' },
 
       // Compasso 13 (Transição Cromática de E4)
-      { midi: 40, clef: 'bass', duration: 3, beat: 1, measure: 13, fingerLeftHand: 5, noteName: 'E2', chordName: 'E7' },
+      { midi: 40, clef: 'bass', duration: 3, beat: 1, measure: 13, fingerLeftHand: 5, noteName: 'E1', chordName: 'E7' },
       { midi: 76, clef: 'treble', duration: 0.5, beat: 1, measure: 13, fingerRightHand: 5, noteName: 'E4' },
       { midi: 75, clef: 'treble', duration: 0.5, beat: 1.5, measure: 13, fingerRightHand: 4, noteName: 'D#4' },
       { midi: 76, clef: 'treble', duration: 0.5, beat: 2, measure: 13, fingerRightHand: 5, noteName: 'E4' },
@@ -337,14 +337,14 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       { midi: 69, clef: 'treble', duration: 1.5, beat: 2.5, measure: 14, fingerRightHand: 2, noteName: 'A3' },
 
       // Compasso 15 (Preparação do Retorno)
-      { midi: 40, clef: 'bass', duration: 3, beat: 1, measure: 15, fingerLeftHand: 5, noteName: 'E2', chordName: 'E7' },
+      { midi: 40, clef: 'bass', duration: 3, beat: 1, measure: 15, fingerLeftHand: 5, noteName: 'E1', chordName: 'E7' },
       { midi: 60, clef: 'treble', duration: 0.5, beat: 1, measure: 15, fingerRightHand: 1, noteName: 'C3' },
       { midi: 64, clef: 'treble', duration: 0.5, beat: 1.5, measure: 15, fingerRightHand: 2, noteName: 'E3' },
       { midi: 68, clef: 'treble', duration: 0.5, beat: 2, measure: 15, fingerRightHand: 3, noteName: 'G#3' },
       { midi: 71, clef: 'treble', duration: 1.5, beat: 2.5, measure: 15, fingerRightHand: 4, noteName: 'B3' },
 
       // Compasso 16 (Pausa de Tensão no Ar)
-      { midi: 40, clef: 'bass', duration: 3, beat: 1, measure: 16, fingerLeftHand: 5, noteName: 'E2', chordName: 'E7' },
+      { midi: 40, clef: 'bass', duration: 3, beat: 1, measure: 16, fingerLeftHand: 5, noteName: 'E1', chordName: 'E7' },
       { midi: 76, clef: 'treble', duration: 1.5, beat: 1, measure: 16, fingerRightHand: 5, noteName: 'E4' },
       { midi: 75, clef: 'treble', duration: 1.5, beat: 2.5, measure: 16, fingerRightHand: 4, noteName: 'D#4' },
 
@@ -430,106 +430,106 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
     scoreTrack: [
       // --- VARIAÇÃO 1: TEMA EM MÍNIMAS (Compassos 1 a 4) ---
       // Compasso 1 (C -> G)
-      { midi: 48, clef: 'bass', duration: 2, beat: 1, measure: 1, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 2, beat: 1, measure: 1, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 76, clef: 'treble', duration: 2, beat: 1, measure: 1, fingerRightHand: 5, noteName: 'E4' },
-      { midi: 43, clef: 'bass', duration: 2, beat: 3, measure: 1, fingerLeftHand: 1, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 2, beat: 3, measure: 1, fingerLeftHand: 1, noteName: 'G1', chordName: 'G' },
       { midi: 74, clef: 'treble', duration: 2, beat: 3, measure: 1, fingerRightHand: 4, noteName: 'D4' },
 
       // Compasso 2 (Am -> Em)
-      { midi: 45, clef: 'bass', duration: 2, beat: 1, measure: 2, fingerLeftHand: 4, noteName: 'A2', chordName: 'Am' },
+      { midi: 45, clef: 'bass', duration: 2, beat: 1, measure: 2, fingerLeftHand: 4, noteName: 'A1', chordName: 'Am' },
       { midi: 72, clef: 'treble', duration: 2, beat: 1, measure: 2, fingerRightHand: 3, noteName: 'C4' },
-      { midi: 40, clef: 'bass', duration: 2, beat: 3, measure: 2, fingerLeftHand: 5, noteName: 'E2', chordName: 'Em' },
+      { midi: 40, clef: 'bass', duration: 2, beat: 3, measure: 2, fingerLeftHand: 5, noteName: 'E1', chordName: 'Em' },
       { midi: 71, clef: 'treble', duration: 2, beat: 3, measure: 2, fingerRightHand: 2, noteName: 'B3' },
 
       // Compasso 3 (F -> C)
-      { midi: 41, clef: 'bass', duration: 2, beat: 1, measure: 3, fingerLeftHand: 3, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 2, beat: 1, measure: 3, fingerLeftHand: 3, noteName: 'F1', chordName: 'F' },
       { midi: 69, clef: 'treble', duration: 2, beat: 1, measure: 3, fingerRightHand: 1, noteName: 'A3' },
-      { midi: 48, clef: 'bass', duration: 2, beat: 3, measure: 3, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 2, beat: 3, measure: 3, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 67, clef: 'treble', duration: 2, beat: 3, measure: 3, fingerRightHand: 1, noteName: 'G3' },
 
       // Compasso 4 (F -> G)
-      { midi: 41, clef: 'bass', duration: 2, beat: 1, measure: 4, fingerLeftHand: 3, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 2, beat: 1, measure: 4, fingerLeftHand: 3, noteName: 'F1', chordName: 'F' },
       { midi: 69, clef: 'treble', duration: 2, beat: 1, measure: 4, fingerRightHand: 2, noteName: 'A3' },
-      { midi: 43, clef: 'bass', duration: 2, beat: 3, measure: 4, fingerLeftHand: 1, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 2, beat: 3, measure: 4, fingerLeftHand: 1, noteName: 'G1', chordName: 'G' },
       { midi: 71, clef: 'treble', duration: 2, beat: 3, measure: 4, fingerRightHand: 3, noteName: 'B3' },
 
       // --- VARIAÇÃO 2: MELODIA EM SEMÍNIMAS DESCENDENTES (Compassos 5 a 8) ---
       // Compasso 5 (C5 B4 A4 G4)
-      { midi: 48, clef: 'bass', duration: 2, beat: 1, measure: 5, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 2, beat: 1, measure: 5, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 72, clef: 'treble', duration: 1, beat: 1, measure: 5, fingerRightHand: 4, noteName: 'C4' },
       { midi: 71, clef: 'treble', duration: 1, beat: 2, measure: 5, fingerRightHand: 3, noteName: 'B3' },
-      { midi: 43, clef: 'bass', duration: 2, beat: 3, measure: 5, fingerLeftHand: 1, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 2, beat: 3, measure: 5, fingerLeftHand: 1, noteName: 'G1', chordName: 'G' },
       { midi: 69, clef: 'treble', duration: 1, beat: 3, measure: 5, fingerRightHand: 2, noteName: 'A3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 4, measure: 5, fingerRightHand: 1, noteName: 'G3' },
 
       // Compasso 6 (F4 E4 F4 D4)
-      { midi: 45, clef: 'bass', duration: 2, beat: 1, measure: 6, fingerLeftHand: 4, noteName: 'A2', chordName: 'Am' },
+      { midi: 45, clef: 'bass', duration: 2, beat: 1, measure: 6, fingerLeftHand: 4, noteName: 'A1', chordName: 'Am' },
       { midi: 65, clef: 'treble', duration: 1, beat: 1, measure: 6, fingerRightHand: 3, noteName: 'F3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 6, fingerRightHand: 2, noteName: 'E3' },
-      { midi: 40, clef: 'bass', duration: 2, beat: 3, measure: 6, fingerLeftHand: 5, noteName: 'E2', chordName: 'Em' },
+      { midi: 40, clef: 'bass', duration: 2, beat: 3, measure: 6, fingerLeftHand: 5, noteName: 'E1', chordName: 'Em' },
       { midi: 65, clef: 'treble', duration: 1, beat: 3, measure: 6, fingerRightHand: 3, noteName: 'F3' },
       { midi: 62, clef: 'treble', duration: 1, beat: 4, measure: 6, fingerRightHand: 1, noteName: 'D3' },
 
       // Compasso 7 (E4 G4 C4 B3)
-      { midi: 41, clef: 'bass', duration: 2, beat: 1, measure: 7, fingerLeftHand: 3, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 2, beat: 1, measure: 7, fingerLeftHand: 3, noteName: 'F1', chordName: 'F' },
       { midi: 64, clef: 'treble', duration: 1, beat: 1, measure: 7, fingerRightHand: 2, noteName: 'E3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 2, measure: 7, fingerRightHand: 4, noteName: 'G3' },
-      { midi: 48, clef: 'bass', duration: 2, beat: 3, measure: 7, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 2, beat: 3, measure: 7, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 60, clef: 'treble', duration: 1, beat: 3, measure: 7, fingerRightHand: 1, noteName: 'C3' },
       { midi: 71, clef: 'treble', duration: 1, beat: 4, measure: 7, fingerRightHand: 5, noteName: 'B3' },
 
       // Compasso 8 (A3 G3 F3 G3)
-      { midi: 41, clef: 'bass', duration: 2, beat: 1, measure: 8, fingerLeftHand: 3, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 2, beat: 1, measure: 8, fingerLeftHand: 3, noteName: 'F1', chordName: 'F' },
       { midi: 69, clef: 'treble', duration: 1, beat: 1, measure: 8, fingerRightHand: 3, noteName: 'A3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 2, measure: 8, fingerRightHand: 2, noteName: 'G3' },
-      { midi: 43, clef: 'bass', duration: 2, beat: 3, measure: 8, fingerLeftHand: 1, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 2, beat: 3, measure: 8, fingerLeftHand: 1, noteName: 'G1', chordName: 'G' },
       { midi: 65, clef: 'treble', duration: 1, beat: 3, measure: 8, fingerRightHand: 1, noteName: 'F3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 4, measure: 8, fingerRightHand: 2, noteName: 'G3' },
 
       // --- VARIAÇÃO 3: FLUXO DE COLCHEIAS EM ARPEJOS (Compassos 9 a 12) ---
       // Compasso 9 (C4 E4 G4 E4 | D4 G4 B4 G4)
-      { midi: 48, clef: 'bass', duration: 2, beat: 1, measure: 9, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 2, beat: 1, measure: 9, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 60, clef: 'treble', duration: 0.5, beat: 1, measure: 9, fingerRightHand: 1, noteName: 'C3' },
       { midi: 64, clef: 'treble', duration: 0.5, beat: 1.5, measure: 9, fingerRightHand: 2, noteName: 'E3' },
       { midi: 67, clef: 'treble', duration: 0.5, beat: 2, measure: 9, fingerRightHand: 4, noteName: 'G3' },
       { midi: 64, clef: 'treble', duration: 0.5, beat: 2.5, measure: 9, fingerRightHand: 2, noteName: 'E3' },
-      { midi: 43, clef: 'bass', duration: 2, beat: 3, measure: 9, fingerLeftHand: 1, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 2, beat: 3, measure: 9, fingerLeftHand: 1, noteName: 'G1', chordName: 'G' },
       { midi: 62, clef: 'treble', duration: 0.5, beat: 3, measure: 9, fingerRightHand: 1, noteName: 'D3' },
       { midi: 67, clef: 'treble', duration: 0.5, beat: 3.5, measure: 9, fingerRightHand: 3, noteName: 'G3' },
       { midi: 71, clef: 'treble', duration: 0.5, beat: 4, measure: 9, fingerRightHand: 5, noteName: 'B3' },
       { midi: 67, clef: 'treble', duration: 0.5, beat: 4.5, measure: 9, fingerRightHand: 3, noteName: 'G3' },
 
       // Compasso 10 (C4 E4 A4 E4 | B3 E4 G4 E4)
-      { midi: 45, clef: 'bass', duration: 2, beat: 1, measure: 10, fingerLeftHand: 4, noteName: 'A2', chordName: 'Am' },
+      { midi: 45, clef: 'bass', duration: 2, beat: 1, measure: 10, fingerLeftHand: 4, noteName: 'A1', chordName: 'Am' },
       { midi: 60, clef: 'treble', duration: 0.5, beat: 1, measure: 10, fingerRightHand: 1, noteName: 'C3' },
       { midi: 64, clef: 'treble', duration: 0.5, beat: 1.5, measure: 10, fingerRightHand: 2, noteName: 'E3' },
       { midi: 69, clef: 'treble', duration: 0.5, beat: 2, measure: 10, fingerRightHand: 5, noteName: 'A3' },
       { midi: 64, clef: 'treble', duration: 0.5, beat: 2.5, measure: 10, fingerRightHand: 2, noteName: 'E3' },
-      { midi: 40, clef: 'bass', duration: 2, beat: 3, measure: 10, fingerLeftHand: 5, noteName: 'E2', chordName: 'Em' },
+      { midi: 40, clef: 'bass', duration: 2, beat: 3, measure: 10, fingerLeftHand: 5, noteName: 'E1', chordName: 'Em' },
       { midi: 59, clef: 'treble', duration: 0.5, beat: 3, measure: 10, fingerRightHand: 1, noteName: 'B2' },
       { midi: 64, clef: 'treble', duration: 0.5, beat: 3.5, measure: 10, fingerRightHand: 3, noteName: 'E3' },
       { midi: 67, clef: 'treble', duration: 0.5, beat: 4, measure: 10, fingerRightHand: 4, noteName: 'G3' },
       { midi: 64, clef: 'treble', duration: 0.5, beat: 4.5, measure: 10, fingerRightHand: 3, noteName: 'E3' },
 
       // Compasso 11 (A3 C4 F4 C4 | G3 C4 E4 C4)
-      { midi: 41, clef: 'bass', duration: 2, beat: 1, measure: 11, fingerLeftHand: 3, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 2, beat: 1, measure: 11, fingerLeftHand: 3, noteName: 'F1', chordName: 'F' },
       { midi: 57, clef: 'treble', duration: 0.5, beat: 1, measure: 11, fingerRightHand: 1, noteName: 'A2' },
       { midi: 60, clef: 'treble', duration: 0.5, beat: 1.5, measure: 11, fingerRightHand: 2, noteName: 'C3' },
       { midi: 65, clef: 'treble', duration: 0.5, beat: 2, measure: 11, fingerRightHand: 4, noteName: 'F3' },
       { midi: 60, clef: 'treble', duration: 0.5, beat: 2.5, measure: 11, fingerRightHand: 2, noteName: 'C3' },
-      { midi: 48, clef: 'bass', duration: 2, beat: 3, measure: 11, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 2, beat: 3, measure: 11, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 55, clef: 'treble', duration: 0.5, beat: 3, measure: 11, fingerRightHand: 1, noteName: 'G2' },
       { midi: 60, clef: 'treble', duration: 0.5, beat: 3.5, measure: 11, fingerRightHand: 2, noteName: 'C3' },
       { midi: 64, clef: 'treble', duration: 0.5, beat: 4, measure: 11, fingerRightHand: 3, noteName: 'E3' },
       { midi: 60, clef: 'treble', duration: 0.5, beat: 4.5, measure: 11, fingerRightHand: 2, noteName: 'C3' },
 
       // Compasso 12 (A3 C4 F4 C4 | B3 D4 G4 D4)
-      { midi: 41, clef: 'bass', duration: 2, beat: 1, measure: 12, fingerLeftHand: 3, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 2, beat: 1, measure: 12, fingerLeftHand: 3, noteName: 'F1', chordName: 'F' },
       { midi: 57, clef: 'treble', duration: 0.5, beat: 1, measure: 12, fingerRightHand: 1, noteName: 'A2' },
       { midi: 60, clef: 'treble', duration: 0.5, beat: 1.5, measure: 12, fingerRightHand: 2, noteName: 'C3' },
       { midi: 65, clef: 'treble', duration: 0.5, beat: 2, measure: 12, fingerRightHand: 4, noteName: 'F3' },
       { midi: 60, clef: 'treble', duration: 0.5, beat: 2.5, measure: 12, fingerRightHand: 2, noteName: 'C3' },
-      { midi: 43, clef: 'bass', duration: 2, beat: 3, measure: 12, fingerLeftHand: 1, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 2, beat: 3, measure: 12, fingerLeftHand: 1, noteName: 'G1', chordName: 'G' },
       { midi: 59, clef: 'treble', duration: 0.5, beat: 3, measure: 12, fingerRightHand: 1, noteName: 'B2' },
       { midi: 62, clef: 'treble', duration: 0.5, beat: 3.5, measure: 12, fingerRightHand: 2, noteName: 'D3' },
       { midi: 67, clef: 'treble', duration: 0.5, beat: 4, measure: 12, fingerRightHand: 4, noteName: 'G3' },
@@ -537,25 +537,25 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
 
       // --- VARIAÇÃO 4: GRANDE CADÊNCIA POLIFÔNICA FINAL (Compassos 13 a 16) ---
       // Compasso 13 (C5 -> B4)
-      { midi: 48, clef: 'bass', duration: 2, beat: 1, measure: 13, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 2, beat: 1, measure: 13, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 72, clef: 'treble', duration: 2, beat: 1, measure: 13, fingerRightHand: 5, noteName: 'C4' },
-      { midi: 43, clef: 'bass', duration: 2, beat: 3, measure: 13, fingerLeftHand: 1, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 2, beat: 3, measure: 13, fingerLeftHand: 1, noteName: 'G1', chordName: 'G' },
       { midi: 71, clef: 'treble', duration: 2, beat: 3, measure: 13, fingerRightHand: 4, noteName: 'B3' },
 
       // Compasso 14 (A4 -> G4)
-      { midi: 45, clef: 'bass', duration: 2, beat: 1, measure: 14, fingerLeftHand: 4, noteName: 'A2', chordName: 'Am' },
+      { midi: 45, clef: 'bass', duration: 2, beat: 1, measure: 14, fingerLeftHand: 4, noteName: 'A1', chordName: 'Am' },
       { midi: 69, clef: 'treble', duration: 2, beat: 1, measure: 14, fingerRightHand: 3, noteName: 'A3' },
-      { midi: 40, clef: 'bass', duration: 2, beat: 3, measure: 14, fingerLeftHand: 5, noteName: 'E2', chordName: 'Em' },
+      { midi: 40, clef: 'bass', duration: 2, beat: 3, measure: 14, fingerLeftHand: 5, noteName: 'E1', chordName: 'Em' },
       { midi: 67, clef: 'treble', duration: 2, beat: 3, measure: 14, fingerRightHand: 2, noteName: 'G3' },
 
       // Compasso 15 (F4 -> E4)
-      { midi: 41, clef: 'bass', duration: 2, beat: 1, measure: 15, fingerLeftHand: 3, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 2, beat: 1, measure: 15, fingerLeftHand: 3, noteName: 'F1', chordName: 'F' },
       { midi: 65, clef: 'treble', duration: 2, beat: 1, measure: 15, fingerRightHand: 2, noteName: 'F3' },
-      { midi: 43, clef: 'bass', duration: 2, beat: 3, measure: 15, fingerLeftHand: 1, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 2, beat: 3, measure: 15, fingerLeftHand: 1, noteName: 'G1', chordName: 'G' },
       { midi: 64, clef: 'treble', duration: 2, beat: 3, measure: 15, fingerRightHand: 1, noteName: 'E3' },
 
       // Compasso 16 (Acorde Final Sustentado de Dó Maior)
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 16, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 16, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 60, clef: 'treble', duration: 4, beat: 1, measure: 16, fingerRightHand: 1, noteName: 'C3' },
       { midi: 64, clef: 'treble', duration: 4, beat: 1, measure: 16, fingerRightHand: 3, noteName: 'E3' },
       { midi: 72, clef: 'treble', duration: 4, beat: 1, measure: 16, fingerRightHand: 5, noteName: 'C4' },
@@ -577,13 +577,13 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
     scoreTrack: [
       // --- VERSO 1 (Compassos 1 a 4) ---
       // Compasso 1 ("Lin-da, só...")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 1, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 1, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 67, clef: 'treble', duration: 1.5, beat: 1, measure: 1, fingerRightHand: 4, noteName: 'G3' },
       { midi: 64, clef: 'treble', duration: 1.5, beat: 2.5, measure: 1, fingerRightHand: 2, noteName: 'E3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 4, measure: 1, fingerRightHand: 4, noteName: 'G3' },
 
       // Compasso 2 ("...você me fascina")
-      { midi: 47, clef: 'bass', duration: 4, beat: 1, measure: 2, fingerLeftHand: 5, noteName: 'B2', chordName: 'G/B' },
+      { midi: 47, clef: 'bass', duration: 4, beat: 1, measure: 2, fingerLeftHand: 5, noteName: 'B1', chordName: 'G/B' },
       { midi: 67, clef: 'treble', duration: 0.5, beat: 1, measure: 2, fingerRightHand: 4, noteName: 'G3' },
       { midi: 67, clef: 'treble', duration: 0.5, beat: 1.5, measure: 2, fingerRightHand: 4, noteName: 'G3' },
       { midi: 69, clef: 'treble', duration: 0.5, beat: 2, measure: 2, fingerRightHand: 5, noteName: 'A3' },
@@ -591,13 +591,13 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       { midi: 64, clef: 'treble', duration: 2, beat: 3, measure: 2, fingerRightHand: 2, noteName: 'E3' },
 
       // Compasso 3 ("Te de-se-jo...")
-      { midi: 45, clef: 'bass', duration: 4, beat: 1, measure: 3, fingerLeftHand: 4, noteName: 'A2', chordName: 'Am' },
+      { midi: 45, clef: 'bass', duration: 4, beat: 1, measure: 3, fingerLeftHand: 4, noteName: 'A1', chordName: 'Am' },
       { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 3, fingerRightHand: 4, noteName: 'G3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 3, fingerRightHand: 2, noteName: 'E3' },
       { midi: 62, clef: 'treble', duration: 2, beat: 3, measure: 3, fingerRightHand: 1, noteName: 'D3' },
 
       // Compasso 4 ("...muito além do prazer")
-      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 4, fingerLeftHand: 5, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 4, fingerLeftHand: 5, noteName: 'F1', chordName: 'F' },
       { midi: 60, clef: 'treble', duration: 0.5, beat: 1, measure: 4, fingerRightHand: 1, noteName: 'C3' },
       { midi: 62, clef: 'treble', duration: 0.5, beat: 1.5, measure: 4, fingerRightHand: 2, noteName: 'D3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 4, fingerRightHand: 3, noteName: 'E3' },
@@ -606,20 +606,20 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
 
       // --- VERSO 2 (Compassos 5 a 8) ---
       // Compasso 5 ("Vista meu futuro...")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 5, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 5, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 5, fingerRightHand: 4, noteName: 'G3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 2, measure: 5, fingerRightHand: 4, noteName: 'G3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 3, measure: 5, fingerRightHand: 4, noteName: 'G3' },
       { midi: 69, clef: 'treble', duration: 1, beat: 4, measure: 5, fingerRightHand: 5, noteName: 'A3' },
 
       // Compasso 6 ("...em teu corpo")
-      { midi: 47, clef: 'bass', duration: 4, beat: 1, measure: 6, fingerLeftHand: 5, noteName: 'B2', chordName: 'G/B' },
+      { midi: 47, clef: 'bass', duration: 4, beat: 1, measure: 6, fingerLeftHand: 5, noteName: 'B1', chordName: 'G/B' },
       { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 6, fingerRightHand: 4, noteName: 'G3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 6, fingerRightHand: 2, noteName: 'E3' },
       { midi: 62, clef: 'treble', duration: 2, beat: 3, measure: 6, fingerRightHand: 1, noteName: 'D3' },
 
       // Compasso 7 ("E me ama como eu amo...")
-      { midi: 45, clef: 'bass', duration: 4, beat: 1, measure: 7, fingerLeftHand: 4, noteName: 'A2', chordName: 'Am' },
+      { midi: 45, clef: 'bass', duration: 4, beat: 1, measure: 7, fingerLeftHand: 4, noteName: 'A1', chordName: 'Am' },
       { midi: 64, clef: 'treble', duration: 0.5, beat: 1, measure: 7, fingerRightHand: 2, noteName: 'E3' },
       { midi: 64, clef: 'treble', duration: 0.5, beat: 1.5, measure: 7, fingerRightHand: 2, noteName: 'E3' },
       { midi: 64, clef: 'treble', duration: 0.5, beat: 2, measure: 7, fingerRightHand: 2, noteName: 'E3' },
@@ -628,44 +628,44 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       { midi: 62, clef: 'treble', duration: 1, beat: 4, measure: 7, fingerRightHand: 1, noteName: 'D3' },
 
       // Compasso 8 ("...você.")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 8, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 8, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 60, clef: 'treble', duration: 4, beat: 1, measure: 8, fingerRightHand: 1, noteName: 'C3' },
 
       // --- PRÉ-REFRÃO (Compassos 9 a 12) ---
       // Compasso 9 ("Vem que a noite é nossa...")
-      { midi: 50, clef: 'bass', duration: 4, beat: 1, measure: 9, fingerLeftHand: 4, noteName: 'D3', chordName: 'Dm' },
+      { midi: 50, clef: 'bass', duration: 4, beat: 1, measure: 9, fingerLeftHand: 4, noteName: 'D2', chordName: 'Dm' },
       { midi: 65, clef: 'treble', duration: 1, beat: 1, measure: 9, fingerRightHand: 3, noteName: 'F3' },
       { midi: 65, clef: 'treble', duration: 1, beat: 2, measure: 9, fingerRightHand: 3, noteName: 'F3' },
       { midi: 65, clef: 'treble', duration: 1, beat: 3, measure: 9, fingerRightHand: 3, noteName: 'F3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 4, measure: 9, fingerRightHand: 4, noteName: 'G3' },
 
       // Compasso 10 ("...nada vai nos separar")
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 10, fingerLeftHand: 5, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 10, fingerLeftHand: 5, noteName: 'G1', chordName: 'G' },
       { midi: 64, clef: 'treble', duration: 1, beat: 1, measure: 10, fingerRightHand: 2, noteName: 'E3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 10, fingerRightHand: 2, noteName: 'E3' },
       { midi: 62, clef: 'treble', duration: 2, beat: 3, measure: 10, fingerRightHand: 1, noteName: 'D3' },
 
       // Compasso 11 ("Tudo o que eu guardei...")
-      { midi: 45, clef: 'bass', duration: 4, beat: 1, measure: 11, fingerLeftHand: 4, noteName: 'A2', chordName: 'Am' },
+      { midi: 45, clef: 'bass', duration: 4, beat: 1, measure: 11, fingerLeftHand: 4, noteName: 'A1', chordName: 'Am' },
       { midi: 64, clef: 'treble', duration: 1, beat: 1, measure: 11, fingerRightHand: 2, noteName: 'E3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 2, measure: 11, fingerRightHand: 4, noteName: 'G3' },
       { midi: 69, clef: 'treble', duration: 2, beat: 3, measure: 11, fingerRightHand: 5, noteName: 'A3' },
 
       // Compasso 12 ("...foi pra te entregar")
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 12, fingerLeftHand: 5, noteName: 'G2', chordName: 'G7' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 12, fingerLeftHand: 5, noteName: 'G1', chordName: 'G7' },
       { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 12, fingerRightHand: 3, noteName: 'G3' },
       { midi: 69, clef: 'treble', duration: 1, beat: 2, measure: 12, fingerRightHand: 4, noteName: 'A3' },
       { midi: 71, clef: 'treble', duration: 2, beat: 3, measure: 12, fingerRightHand: 5, noteName: 'B3' },
 
       // --- O REFRÃO CLÁSSICO (Compassos 13 a 16) ---
       // Compasso 13 ("Lin-da de-mais!...")
-      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 13, fingerLeftHand: 5, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 13, fingerLeftHand: 5, noteName: 'F1', chordName: 'F' },
       { midi: 72, clef: 'treble', duration: 1.5, beat: 1, measure: 13, fingerRightHand: 5, noteName: 'C4' },
       { midi: 69, clef: 'treble', duration: 1.5, beat: 2.5, measure: 13, fingerRightHand: 4, noteName: 'A3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 4, measure: 13, fingerRightHand: 3, noteName: 'G3' },
 
       // Compasso 14 ("...per-fei-ta aos olhos do Pai!")
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 14, fingerLeftHand: 1, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 14, fingerLeftHand: 1, noteName: 'G1', chordName: 'G' },
       { midi: 67, clef: 'treble', duration: 0.5, beat: 1, measure: 14, fingerRightHand: 3, noteName: 'G3' },
       { midi: 69, clef: 'treble', duration: 0.5, beat: 1.5, measure: 14, fingerRightHand: 4, noteName: 'A3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 2, measure: 14, fingerRightHand: 3, noteName: 'G3' },
@@ -673,16 +673,16 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       { midi: 62, clef: 'treble', duration: 1, beat: 4, measure: 14, fingerRightHand: 1, noteName: 'D3' },
 
       // Compasso 15 ("Quem foi que te fez assim tão linda?")
-      { midi: 45, clef: 'bass', duration: 2, beat: 1, measure: 15, fingerLeftHand: 4, noteName: 'A2', chordName: 'Am' },
+      { midi: 45, clef: 'bass', duration: 2, beat: 1, measure: 15, fingerLeftHand: 4, noteName: 'A1', chordName: 'Am' },
       { midi: 64, clef: 'treble', duration: 0.5, beat: 1, measure: 15, fingerRightHand: 2, noteName: 'E3' },
       { midi: 64, clef: 'treble', duration: 0.5, beat: 1.5, measure: 15, fingerRightHand: 2, noteName: 'E3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 2, measure: 15, fingerRightHand: 4, noteName: 'G3' },
-      { midi: 41, clef: 'bass', duration: 2, beat: 3, measure: 15, fingerLeftHand: 5, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 2, beat: 3, measure: 15, fingerLeftHand: 5, noteName: 'F1', chordName: 'F' },
       { midi: 65, clef: 'treble', duration: 1, beat: 3, measure: 15, fingerRightHand: 3, noteName: 'F3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 4, measure: 15, fingerRightHand: 2, noteName: 'E3' },
 
       // Compasso 16 ("...tão linda!")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 16, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 16, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 60, clef: 'treble', duration: 4, beat: 1, measure: 16, fingerRightHand: 1, noteName: 'C3' },
     ],
   },
@@ -702,144 +702,144 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
     scoreTrack: [
       // --- PARTE A: O TEMA PRINCIPAL (Compassos 1 a 8) ---
       // Compasso 1 ("Olha que coisa mais linda...")
-      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 1, fingerLeftHand: 5, noteName: 'F2', chordName: 'Fmaj7' },
+      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 1, fingerLeftHand: 5, noteName: 'F1', chordName: 'Fmaj7' },
       { midi: 67, clef: 'treble', duration: 1.5, beat: 1, measure: 1, fingerRightHand: 5, noteName: 'G3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2.5, measure: 1, fingerRightHand: 3, noteName: 'E3' },
       { midi: 64, clef: 'treble', duration: 0.5, beat: 3.5, measure: 1, fingerRightHand: 3, noteName: 'E3' },
       { midi: 62, clef: 'treble', duration: 1, beat: 4, measure: 1, fingerRightHand: 2, noteName: 'D3' },
 
       // Compasso 2 ("...mais cheia de graça...")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 2, fingerLeftHand: 1, noteName: 'C3', chordName: 'Fmaj7' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 2, fingerLeftHand: 1, noteName: 'C2', chordName: 'Fmaj7' },
       { midi: 67, clef: 'treble', duration: 1.5, beat: 1, measure: 2, fingerRightHand: 5, noteName: 'G3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2.5, measure: 2, fingerRightHand: 3, noteName: 'E3' },
       { midi: 64, clef: 'treble', duration: 0.5, beat: 3.5, measure: 2, fingerRightHand: 3, noteName: 'E3' },
       { midi: 62, clef: 'treble', duration: 1, beat: 4, measure: 2, fingerRightHand: 2, noteName: 'D3' },
 
       // Compasso 3 ("...é ela menina que vem...")
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 3, fingerLeftHand: 4, noteName: 'G2', chordName: 'G7' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 3, fingerLeftHand: 4, noteName: 'G1', chordName: 'G7' },
       { midi: 67, clef: 'treble', duration: 1.5, beat: 1, measure: 3, fingerRightHand: 5, noteName: 'G3' },
       { midi: 62, clef: 'treble', duration: 1, beat: 2.5, measure: 3, fingerRightHand: 2, noteName: 'D3' },
       { midi: 62, clef: 'treble', duration: 0.5, beat: 3.5, measure: 3, fingerRightHand: 2, noteName: 'D3' },
       { midi: 60, clef: 'treble', duration: 1, beat: 4, measure: 3, fingerRightHand: 1, noteName: 'C3' },
 
       // Compasso 4 ("...e que passa...")
-      { midi: 50, clef: 'bass', duration: 4, beat: 1, measure: 4, fingerLeftHand: 1, noteName: 'D3', chordName: 'G7' },
+      { midi: 50, clef: 'bass', duration: 4, beat: 1, measure: 4, fingerLeftHand: 1, noteName: 'D2', chordName: 'G7' },
       { midi: 67, clef: 'treble', duration: 1.5, beat: 1, measure: 4, fingerRightHand: 5, noteName: 'G3' },
       { midi: 62, clef: 'treble', duration: 1, beat: 2.5, measure: 4, fingerRightHand: 2, noteName: 'D3' },
       { midi: 62, clef: 'treble', duration: 0.5, beat: 3.5, measure: 4, fingerRightHand: 2, noteName: 'D3' },
       { midi: 60, clef: 'treble', duration: 1, beat: 4, measure: 4, fingerRightHand: 1, noteName: 'C3' },
 
       // Compasso 5 ("...num doce balanço...")
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 5, fingerLeftHand: 4, noteName: 'G2', chordName: 'Gm7' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 5, fingerLeftHand: 4, noteName: 'G1', chordName: 'Gm7' },
       { midi: 65, clef: 'treble', duration: 1.5, beat: 1, measure: 5, fingerRightHand: 4, noteName: 'F3' },
       { midi: 62, clef: 'treble', duration: 1, beat: 2.5, measure: 5, fingerRightHand: 2, noteName: 'D3' },
       { midi: 62, clef: 'treble', duration: 0.5, beat: 3.5, measure: 5, fingerRightHand: 2, noteName: 'D3' },
       { midi: 60, clef: 'treble', duration: 1, beat: 4, measure: 5, fingerRightHand: 1, noteName: 'C3' },
 
       // Compasso 6 ("...a caminho do mar...")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 6, fingerLeftHand: 1, noteName: 'C3', chordName: 'C7' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 6, fingerLeftHand: 1, noteName: 'C2', chordName: 'C7' },
       { midi: 70, clef: 'treble', duration: 1.5, beat: 1, measure: 6, fingerRightHand: 5, noteName: 'Bb3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 2.5, measure: 6, fingerRightHand: 4, noteName: 'G3' },
       { midi: 64, clef: 'treble', duration: 0.5, beat: 3.5, measure: 6, fingerRightHand: 2, noteName: 'E3' },
       { midi: 62, clef: 'treble', duration: 1, beat: 4, measure: 6, fingerRightHand: 1, noteName: 'D3' },
 
       // Compasso 7 ("...doce balanço final")
-      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 7, fingerLeftHand: 5, noteName: 'F2', chordName: 'Fmaj7' },
+      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 7, fingerLeftHand: 5, noteName: 'F1', chordName: 'Fmaj7' },
       { midi: 65, clef: 'treble', duration: 3, beat: 1, measure: 7, fingerRightHand: 3, noteName: 'F3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 4, measure: 7, fingerRightHand: 2, noteName: 'E3' },
 
       // Compasso 8 (Transição para a Ponte)
-      { midi: 46, clef: 'bass', duration: 4, beat: 1, measure: 8, fingerLeftHand: 3, noteName: 'Bb2', chordName: 'Gb7' },
+      { midi: 46, clef: 'bass', duration: 4, beat: 1, measure: 8, fingerLeftHand: 3, noteName: 'Bb1', chordName: 'Gb7' },
       { midi: 65, clef: 'treble', duration: 4, beat: 1, measure: 8, fingerRightHand: 3, noteName: 'F3' },
 
       // --- PARTE B: A PONTE LÍRICA (Compassos 9 a 16) ---
       // Compasso 9 ("Ah, por que estou tão sozinho?...")
-      { midi: 42, clef: 'bass', duration: 4, beat: 1, measure: 9, fingerLeftHand: 4, noteName: 'F#2', chordName: 'F#m7' },
+      { midi: 42, clef: 'bass', duration: 4, beat: 1, measure: 9, fingerLeftHand: 4, noteName: 'F#1', chordName: 'F#m7' },
       { midi: 66, clef: 'treble', duration: 1.5, beat: 1, measure: 9, fingerRightHand: 3, noteName: 'F#3' },
       { midi: 69, clef: 'treble', duration: 1.5, beat: 2.5, measure: 9, fingerRightHand: 4, noteName: 'A3' },
       { midi: 73, clef: 'treble', duration: 1, beat: 4, measure: 9, fingerRightHand: 5, noteName: 'C#4' },
 
       // Compasso 10 ("...ah, por que tudo é tão triste?")
-      { midi: 47, clef: 'bass', duration: 4, beat: 1, measure: 10, fingerLeftHand: 1, noteName: 'B2', chordName: 'B7' },
+      { midi: 47, clef: 'bass', duration: 4, beat: 1, measure: 10, fingerLeftHand: 1, noteName: 'B1', chordName: 'B7' },
       { midi: 71, clef: 'treble', duration: 1.5, beat: 1, measure: 10, fingerRightHand: 4, noteName: 'B3' },
       { midi: 68, clef: 'treble', duration: 1.5, beat: 2.5, measure: 10, fingerRightHand: 3, noteName: 'G#3' },
       { midi: 66, clef: 'treble', duration: 1, beat: 4, measure: 10, fingerRightHand: 2, noteName: 'F#3' },
 
       // Compasso 11 ("Ah, a beleza que existe...")
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 11, fingerLeftHand: 4, noteName: 'G2', chordName: 'Gm7' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 11, fingerLeftHand: 4, noteName: 'G1', chordName: 'Gm7' },
       { midi: 67, clef: 'treble', duration: 1.5, beat: 1, measure: 11, fingerRightHand: 3, noteName: 'G3' },
       { midi: 70, clef: 'treble', duration: 1.5, beat: 2.5, measure: 11, fingerRightHand: 4, noteName: 'Bb3' },
       { midi: 74, clef: 'treble', duration: 1, beat: 4, measure: 11, fingerRightHand: 5, noteName: 'D4' },
 
       // Compasso 12 ("...a beleza que não é só minha")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 12, fingerLeftHand: 1, noteName: 'C3', chordName: 'C7' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 12, fingerLeftHand: 1, noteName: 'C2', chordName: 'C7' },
       { midi: 72, clef: 'treble', duration: 1.5, beat: 1, measure: 12, fingerRightHand: 4, noteName: 'C4' },
       { midi: 69, clef: 'treble', duration: 1.5, beat: 2.5, measure: 12, fingerRightHand: 3, noteName: 'A3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 4, measure: 12, fingerRightHand: 2, noteName: 'G3' },
 
       // Compasso 13 ("...que também passa...")
-      { midi: 45, clef: 'bass', duration: 4, beat: 1, measure: 13, fingerLeftHand: 4, noteName: 'A2', chordName: 'Am7' },
+      { midi: 45, clef: 'bass', duration: 4, beat: 1, measure: 13, fingerLeftHand: 4, noteName: 'A1', chordName: 'Am7' },
       { midi: 69, clef: 'treble', duration: 2, beat: 1, measure: 13, fingerRightHand: 4, noteName: 'A3' },
       { midi: 67, clef: 'treble', duration: 2, beat: 3, measure: 13, fingerRightHand: 3, noteName: 'G3' },
 
       // Compasso 14 ("...sozinha.")
-      { midi: 50, clef: 'bass', duration: 4, beat: 1, measure: 14, fingerLeftHand: 1, noteName: 'D3', chordName: 'D7' },
+      { midi: 50, clef: 'bass', duration: 4, beat: 1, measure: 14, fingerLeftHand: 1, noteName: 'D2', chordName: 'D7' },
       { midi: 65, clef: 'treble', duration: 2, beat: 1, measure: 14, fingerRightHand: 2, noteName: 'F3' },
       { midi: 64, clef: 'treble', duration: 2, beat: 3, measure: 14, fingerRightHand: 1, noteName: 'E3' },
 
       // Compasso 15 ("Preparação...")
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 15, fingerLeftHand: 4, noteName: 'G2', chordName: 'Gm7' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 15, fingerLeftHand: 4, noteName: 'G1', chordName: 'Gm7' },
       { midi: 65, clef: 'treble', duration: 2, beat: 1, measure: 15, fingerRightHand: 2, noteName: 'F3' },
       { midi: 67, clef: 'treble', duration: 2, beat: 3, measure: 15, fingerRightHand: 3, noteName: 'G3' },
 
       // Compasso 16 ("...do retorno")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 16, fingerLeftHand: 1, noteName: 'C3', chordName: 'C7' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 16, fingerLeftHand: 1, noteName: 'C2', chordName: 'C7' },
       { midi: 70, clef: 'treble', duration: 4, beat: 1, measure: 16, fingerRightHand: 5, noteName: 'Bb3' },
 
       // --- RETORNO A: RESOLUÇÃO FINAL (Compassos 17 a 24) ---
       // Compasso 17 ("Ah, se ela soubesse...")
-      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 17, fingerLeftHand: 5, noteName: 'F2', chordName: 'Fmaj7' },
+      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 17, fingerLeftHand: 5, noteName: 'F1', chordName: 'Fmaj7' },
       { midi: 67, clef: 'treble', duration: 1.5, beat: 1, measure: 17, fingerRightHand: 5, noteName: 'G3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2.5, measure: 17, fingerRightHand: 3, noteName: 'E3' },
       { midi: 62, clef: 'treble', duration: 1.5, beat: 3.5, measure: 17, fingerRightHand: 2, noteName: 'D3' },
 
       // Compasso 18 ("...que quando ela passa...")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 18, fingerLeftHand: 1, noteName: 'C3', chordName: 'Fmaj7' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 18, fingerLeftHand: 1, noteName: 'C2', chordName: 'Fmaj7' },
       { midi: 67, clef: 'treble', duration: 1.5, beat: 1, measure: 18, fingerRightHand: 5, noteName: 'G3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2.5, measure: 18, fingerRightHand: 3, noteName: 'E3' },
       { midi: 62, clef: 'treble', duration: 1.5, beat: 3.5, measure: 18, fingerRightHand: 2, noteName: 'D3' },
 
       // Compasso 19 ("...o mundo inteirinho...")
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 19, fingerLeftHand: 4, noteName: 'G2', chordName: 'G7' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 19, fingerLeftHand: 4, noteName: 'G1', chordName: 'G7' },
       { midi: 67, clef: 'treble', duration: 1.5, beat: 1, measure: 19, fingerRightHand: 5, noteName: 'G3' },
       { midi: 62, clef: 'treble', duration: 1, beat: 2.5, measure: 19, fingerRightHand: 2, noteName: 'D3' },
       { midi: 60, clef: 'treble', duration: 1.5, beat: 3.5, measure: 19, fingerRightHand: 1, noteName: 'C3' },
 
       // Compasso 20 ("...se enche de graça...")
-      { midi: 50, clef: 'bass', duration: 4, beat: 1, measure: 20, fingerLeftHand: 1, noteName: 'D3', chordName: 'G7' },
+      { midi: 50, clef: 'bass', duration: 4, beat: 1, measure: 20, fingerLeftHand: 1, noteName: 'D2', chordName: 'G7' },
       { midi: 67, clef: 'treble', duration: 1.5, beat: 1, measure: 20, fingerRightHand: 5, noteName: 'G3' },
       { midi: 62, clef: 'treble', duration: 1, beat: 2.5, measure: 20, fingerRightHand: 2, noteName: 'D3' },
       { midi: 60, clef: 'treble', duration: 1.5, beat: 3.5, measure: 20, fingerRightHand: 1, noteName: 'C3' },
 
       // Compasso 21 ("...e fica mais lindo...")
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 21, fingerLeftHand: 4, noteName: 'G2', chordName: 'Gm7' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 21, fingerLeftHand: 4, noteName: 'G1', chordName: 'Gm7' },
       { midi: 65, clef: 'treble', duration: 1.5, beat: 1, measure: 21, fingerRightHand: 4, noteName: 'F3' },
       { midi: 62, clef: 'treble', duration: 1, beat: 2.5, measure: 21, fingerRightHand: 2, noteName: 'D3' },
       { midi: 60, clef: 'treble', duration: 1.5, beat: 3.5, measure: 21, fingerRightHand: 1, noteName: 'C3' },
 
       // Compasso 22 ("...por causa do amor...")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 22, fingerLeftHand: 1, noteName: 'C3', chordName: 'C7' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 22, fingerLeftHand: 1, noteName: 'C2', chordName: 'C7' },
       { midi: 70, clef: 'treble', duration: 1.5, beat: 1, measure: 22, fingerRightHand: 5, noteName: 'Bb3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 2.5, measure: 22, fingerRightHand: 4, noteName: 'G3' },
       { midi: 64, clef: 'treble', duration: 1.5, beat: 3.5, measure: 22, fingerRightHand: 2, noteName: 'E3' },
 
       // Compasso 23 ("...por causa do amor...")
-      { midi: 42, clef: 'bass', duration: 4, beat: 1, measure: 23, fingerLeftHand: 3, noteName: 'Gb2', chordName: 'Gb7' },
+      { midi: 42, clef: 'bass', duration: 4, beat: 1, measure: 23, fingerLeftHand: 3, noteName: 'Gb1', chordName: 'Gb7' },
       { midi: 65, clef: 'treble', duration: 2, beat: 1, measure: 23, fingerRightHand: 3, noteName: 'F3' },
       { midi: 62, clef: 'treble', duration: 2, beat: 3, measure: 23, fingerRightHand: 2, noteName: 'D3' },
 
       // Compasso 24 (Acorde Final Fmaj7)
-      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 24, fingerLeftHand: 5, noteName: 'F2', chordName: 'Fmaj7' },
+      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 24, fingerLeftHand: 5, noteName: 'F1', chordName: 'Fmaj7' },
       { midi: 65, clef: 'treble', duration: 4, beat: 1, measure: 24, fingerRightHand: 3, noteName: 'F3' },
     ],
   },
@@ -859,7 +859,7 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
     scoreTrack: [
       // --- ESTROFE 1 (Compassos 1 a 8) ---
       // Compasso 1 ("Quando olhei a terra ardendo...")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 1, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 1, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 60, clef: 'treble', duration: 0.5, beat: 1, measure: 1, fingerRightHand: 1, noteName: 'C3' },
       { midi: 62, clef: 'treble', duration: 0.5, beat: 1.5, measure: 1, fingerRightHand: 2, noteName: 'D3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 1, fingerRightHand: 3, noteName: 'E3' },
@@ -867,13 +867,13 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       { midi: 67, clef: 'treble', duration: 1, beat: 4, measure: 1, fingerRightHand: 5, noteName: 'G3' },
 
       // Compasso 2 ("...qual a fogueira...")
-      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 2, fingerLeftHand: 5, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 2, fingerLeftHand: 5, noteName: 'F1', chordName: 'F' },
       { midi: 64, clef: 'treble', duration: 1, beat: 1, measure: 2, fingerRightHand: 3, noteName: 'E3' },
       { midi: 65, clef: 'treble', duration: 1, beat: 2, measure: 2, fingerRightHand: 4, noteName: 'F3' },
       { midi: 65, clef: 'treble', duration: 2, beat: 3, measure: 2, fingerRightHand: 4, noteName: 'F3' },
 
       // Compasso 3 ("...de São João...")
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 3, fingerLeftHand: 5, noteName: 'G2', chordName: 'G7' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 3, fingerLeftHand: 5, noteName: 'G1', chordName: 'G7' },
       { midi: 60, clef: 'treble', duration: 0.5, beat: 1, measure: 3, fingerRightHand: 1, noteName: 'C3' },
       { midi: 62, clef: 'treble', duration: 0.5, beat: 1.5, measure: 3, fingerRightHand: 2, noteName: 'D3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 3, fingerRightHand: 3, noteName: 'E3' },
@@ -881,13 +881,13 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       { midi: 67, clef: 'treble', duration: 1, beat: 4, measure: 3, fingerRightHand: 5, noteName: 'G3' },
 
       // Compasso 4 ("...eu perguntei...")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 4, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 4, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 65, clef: 'treble', duration: 1, beat: 1, measure: 4, fingerRightHand: 4, noteName: 'F3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 4, fingerRightHand: 3, noteName: 'E3' },
       { midi: 64, clef: 'treble', duration: 2, beat: 3, measure: 4, fingerRightHand: 3, noteName: 'E3' },
 
       // Compasso 5 ("...a Deus do céu, ai...")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 5, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 5, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 60, clef: 'treble', duration: 0.5, beat: 1, measure: 5, fingerRightHand: 1, noteName: 'C3' },
       { midi: 60, clef: 'treble', duration: 0.5, beat: 1.5, measure: 5, fingerRightHand: 1, noteName: 'C3' },
       { midi: 62, clef: 'treble', duration: 1, beat: 2, measure: 5, fingerRightHand: 2, noteName: 'D3' },
@@ -895,26 +895,26 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       { midi: 67, clef: 'treble', duration: 1, beat: 4, measure: 5, fingerRightHand: 5, noteName: 'G3' },
 
       // Compasso 6 ("...por que tamanha...")
-      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 6, fingerLeftHand: 5, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 6, fingerLeftHand: 5, noteName: 'F1', chordName: 'F' },
       { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 6, fingerRightHand: 5, noteName: 'G3' },
       { midi: 65, clef: 'treble', duration: 1, beat: 2, measure: 6, fingerRightHand: 4, noteName: 'F3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 3, measure: 6, fingerRightHand: 3, noteName: 'E3' },
       { midi: 60, clef: 'treble', duration: 1, beat: 4, measure: 6, fingerRightHand: 1, noteName: 'C3' },
 
       // Compasso 7 ("...judiação...")
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 7, fingerLeftHand: 5, noteName: 'G2', chordName: 'G7' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 7, fingerLeftHand: 5, noteName: 'G1', chordName: 'G7' },
       { midi: 62, clef: 'treble', duration: 1, beat: 1, measure: 7, fingerRightHand: 2, noteName: 'D3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 7, fingerRightHand: 3, noteName: 'E3' },
       { midi: 62, clef: 'treble', duration: 1, beat: 3, measure: 7, fingerRightHand: 2, noteName: 'D3' },
       { midi: 59, clef: 'treble', duration: 1, beat: 4, measure: 7, fingerRightHand: 1, noteName: 'B2' },
 
       // Compasso 8 (Dó final da estrofe 1)
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 8, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 8, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 60, clef: 'treble', duration: 4, beat: 1, measure: 8, fingerRightHand: 1, noteName: 'C3' },
 
       // --- ESTROFE 2: QUE BRASEIRO... (Compassos 9 a 16) ---
       // Compasso 9 ("Que braseiro, que fornaia...")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 9, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 9, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 60, clef: 'treble', duration: 0.5, beat: 1, measure: 9, fingerRightHand: 1, noteName: 'C3' },
       { midi: 62, clef: 'treble', duration: 0.5, beat: 1.5, measure: 9, fingerRightHand: 2, noteName: 'D3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 9, fingerRightHand: 3, noteName: 'E3' },
@@ -922,13 +922,13 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       { midi: 67, clef: 'treble', duration: 1, beat: 4, measure: 9, fingerRightHand: 5, noteName: 'G3' },
 
       // Compasso 10 ("...nenhum pé de prantação...")
-      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 10, fingerLeftHand: 5, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 10, fingerLeftHand: 5, noteName: 'F1', chordName: 'F' },
       { midi: 64, clef: 'treble', duration: 1, beat: 1, measure: 10, fingerRightHand: 3, noteName: 'E3' },
       { midi: 65, clef: 'treble', duration: 1, beat: 2, measure: 10, fingerRightHand: 4, noteName: 'F3' },
       { midi: 65, clef: 'treble', duration: 2, beat: 3, measure: 10, fingerRightHand: 4, noteName: 'F3' },
 
       // Compasso 11 ("Por falta d'água perdi meu gado...")
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 11, fingerLeftHand: 5, noteName: 'G2', chordName: 'G7' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 11, fingerLeftHand: 5, noteName: 'G1', chordName: 'G7' },
       { midi: 60, clef: 'treble', duration: 0.5, beat: 1, measure: 11, fingerRightHand: 1, noteName: 'C3' },
       { midi: 62, clef: 'treble', duration: 0.5, beat: 1.5, measure: 11, fingerRightHand: 2, noteName: 'D3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 11, fingerRightHand: 3, noteName: 'E3' },
@@ -936,13 +936,13 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       { midi: 67, clef: 'treble', duration: 1, beat: 4, measure: 11, fingerRightHand: 5, noteName: 'G3' },
 
       // Compasso 12 ("...morreu de sede meu alazão...")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 12, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 12, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 65, clef: 'treble', duration: 1, beat: 1, measure: 12, fingerRightHand: 4, noteName: 'F3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 12, fingerRightHand: 3, noteName: 'E3' },
       { midi: 64, clef: 'treble', duration: 2, beat: 3, measure: 12, fingerRightHand: 3, noteName: 'E3' },
 
       // Compasso 13 ("Por falta d'água...")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 13, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 13, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 60, clef: 'treble', duration: 0.5, beat: 1, measure: 13, fingerRightHand: 1, noteName: 'C3' },
       { midi: 60, clef: 'treble', duration: 0.5, beat: 1.5, measure: 13, fingerRightHand: 1, noteName: 'C3' },
       { midi: 62, clef: 'treble', duration: 1, beat: 2, measure: 13, fingerRightHand: 2, noteName: 'D3' },
@@ -950,26 +950,26 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       { midi: 67, clef: 'treble', duration: 1, beat: 4, measure: 13, fingerRightHand: 5, noteName: 'G3' },
 
       // Compasso 14 ("...perdi meu gado...")
-      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 14, fingerLeftHand: 5, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 14, fingerLeftHand: 5, noteName: 'F1', chordName: 'F' },
       { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 14, fingerRightHand: 5, noteName: 'G3' },
       { midi: 65, clef: 'treble', duration: 1, beat: 2, measure: 14, fingerRightHand: 4, noteName: 'F3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 3, measure: 14, fingerRightHand: 3, noteName: 'E3' },
       { midi: 60, clef: 'treble', duration: 1, beat: 4, measure: 14, fingerRightHand: 1, noteName: 'C3' },
 
       // Compasso 15 ("...morreu de sede...")
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 15, fingerLeftHand: 5, noteName: 'G2', chordName: 'G7' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 15, fingerLeftHand: 5, noteName: 'G1', chordName: 'G7' },
       { midi: 62, clef: 'treble', duration: 1, beat: 1, measure: 15, fingerRightHand: 2, noteName: 'D3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 15, fingerRightHand: 3, noteName: 'E3' },
       { midi: 62, clef: 'treble', duration: 1, beat: 3, measure: 15, fingerRightHand: 2, noteName: 'D3' },
       { midi: 59, clef: 'treble', duration: 1, beat: 4, measure: 15, fingerRightHand: 1, noteName: 'B2' },
 
       // Compasso 16 ("...meu alazão.")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 16, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 16, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 60, clef: 'treble', duration: 4, beat: 1, measure: 16, fingerRightHand: 1, noteName: 'C3' },
 
       // --- O REFRÃO CONSAGRADO (Compassos 17 a 24) ---
       // Compasso 17 ("Inté mesmo a asa branca...")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 17, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 17, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 60, clef: 'treble', duration: 0.5, beat: 1, measure: 17, fingerRightHand: 1, noteName: 'C3' },
       { midi: 62, clef: 'treble', duration: 0.5, beat: 1.5, measure: 17, fingerRightHand: 2, noteName: 'D3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 17, fingerRightHand: 3, noteName: 'E3' },
@@ -977,13 +977,13 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       { midi: 67, clef: 'treble', duration: 1, beat: 4, measure: 17, fingerRightHand: 5, noteName: 'G3' },
 
       // Compasso 18 ("...bateu asas do sertão...")
-      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 18, fingerLeftHand: 5, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 18, fingerLeftHand: 5, noteName: 'F1', chordName: 'F' },
       { midi: 64, clef: 'treble', duration: 1, beat: 1, measure: 18, fingerRightHand: 3, noteName: 'E3' },
       { midi: 65, clef: 'treble', duration: 1, beat: 2, measure: 18, fingerRightHand: 4, noteName: 'F3' },
       { midi: 65, clef: 'treble', duration: 2, beat: 3, measure: 18, fingerRightHand: 4, noteName: 'F3' },
 
       // Compasso 19 ("Entonce eu disse adeus Rosinha...")
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 19, fingerLeftHand: 5, noteName: 'G2', chordName: 'G7' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 19, fingerLeftHand: 5, noteName: 'G1', chordName: 'G7' },
       { midi: 60, clef: 'treble', duration: 0.5, beat: 1, measure: 19, fingerRightHand: 1, noteName: 'C3' },
       { midi: 62, clef: 'treble', duration: 0.5, beat: 1.5, measure: 19, fingerRightHand: 2, noteName: 'D3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 19, fingerRightHand: 3, noteName: 'E3' },
@@ -991,13 +991,13 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       { midi: 67, clef: 'treble', duration: 1, beat: 4, measure: 19, fingerRightHand: 5, noteName: 'G3' },
 
       // Compasso 20 ("...guarda contigo meu coração...")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 20, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 20, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 65, clef: 'treble', duration: 1, beat: 1, measure: 20, fingerRightHand: 4, noteName: 'F3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 20, fingerRightHand: 3, noteName: 'E3' },
       { midi: 64, clef: 'treble', duration: 2, beat: 3, measure: 20, fingerRightHand: 3, noteName: 'E3' },
 
       // Compasso 21 ("Hoje longe muitas léguas...")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 21, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 21, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 60, clef: 'treble', duration: 0.5, beat: 1, measure: 21, fingerRightHand: 1, noteName: 'C3' },
       { midi: 60, clef: 'treble', duration: 0.5, beat: 1.5, measure: 21, fingerRightHand: 1, noteName: 'C3' },
       { midi: 62, clef: 'treble', duration: 1, beat: 2, measure: 21, fingerRightHand: 2, noteName: 'D3' },
@@ -1005,21 +1005,21 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       { midi: 67, clef: 'treble', duration: 1, beat: 4, measure: 21, fingerRightHand: 5, noteName: 'G3' },
 
       // Compasso 22 ("...numa triste solidão...")
-      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 22, fingerLeftHand: 5, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 22, fingerLeftHand: 5, noteName: 'F1', chordName: 'F' },
       { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 22, fingerRightHand: 5, noteName: 'G3' },
       { midi: 65, clef: 'treble', duration: 1, beat: 2, measure: 22, fingerRightHand: 4, noteName: 'F3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 3, measure: 22, fingerRightHand: 3, noteName: 'E3' },
       { midi: 60, clef: 'treble', duration: 1, beat: 4, measure: 22, fingerRightHand: 1, noteName: 'C3' },
 
       // Compasso 23 ("...espero a chuva cair de novo...")
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 23, fingerLeftHand: 5, noteName: 'G2', chordName: 'G7' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 23, fingerLeftHand: 5, noteName: 'G1', chordName: 'G7' },
       { midi: 62, clef: 'treble', duration: 1, beat: 1, measure: 23, fingerRightHand: 2, noteName: 'D3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 23, fingerRightHand: 3, noteName: 'E3' },
       { midi: 62, clef: 'treble', duration: 1, beat: 3, measure: 23, fingerRightHand: 2, noteName: 'D3' },
       { midi: 59, clef: 'treble', duration: 1, beat: 4, measure: 23, fingerRightHand: 1, noteName: 'B2' },
 
       // Compasso 24 ("...pra mim voltar pro meu sertão!")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 24, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 24, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 60, clef: 'treble', duration: 4, beat: 1, measure: 24, fingerRightHand: 1, noteName: 'C3' },
     ],
   },
@@ -1039,7 +1039,7 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
     scoreTrack: [
       // --- INTRO & VERSO 1 (Compassos 1 a 4) ---
       // Compasso 1 (C -> Cmaj7)
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 1, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 1, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 64, clef: 'treble', duration: 1, beat: 1, measure: 1, fingerRightHand: 2, noteName: 'E3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 1, fingerRightHand: 4, noteName: 'G3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 1, fingerRightHand: 2, noteName: 'E3' },
@@ -1050,7 +1050,7 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       { midi: 67, clef: 'treble', duration: 1, beat: 4, measure: 1, fingerRightHand: 4, noteName: 'G3' },
 
       // Compasso 2 (F com arpejo característico)
-      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 2, fingerLeftHand: 5, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 2, fingerLeftHand: 5, noteName: 'F1', chordName: 'F' },
       { midi: 65, clef: 'treble', duration: 1, beat: 1, measure: 2, fingerRightHand: 2, noteName: 'F3' },
       { midi: 69, clef: 'treble', duration: 1, beat: 1, measure: 2, fingerRightHand: 4, noteName: 'A3' },
       { midi: 65, clef: 'treble', duration: 1, beat: 2, measure: 2, fingerRightHand: 2, noteName: 'F3' },
@@ -1060,98 +1060,98 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       { midi: 72, clef: 'treble', duration: 1, beat: 4, measure: 2, fingerRightHand: 4, noteName: 'C4' },
 
       // Compasso 3 ("Imagine there's no heaven...")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 3, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 3, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 3, fingerRightHand: 4, noteName: 'G3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 2, measure: 3, fingerRightHand: 4, noteName: 'G3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 3, measure: 3, fingerRightHand: 4, noteName: 'G3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 4, measure: 3, fingerRightHand: 2, noteName: 'E3' },
 
       // Compasso 4 ("...it's easy if you try")
-      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 4, fingerLeftHand: 5, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 4, fingerLeftHand: 5, noteName: 'F1', chordName: 'F' },
       { midi: 65, clef: 'treble', duration: 1, beat: 1, measure: 4, fingerRightHand: 3, noteName: 'F3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 4, fingerRightHand: 2, noteName: 'E3' },
       { midi: 62, clef: 'treble', duration: 2, beat: 3, measure: 4, fingerRightHand: 1, noteName: 'D3' },
 
       // --- VERSO 2 (Compassos 5 a 8) ---
       // Compasso 5 ("No hell below us...")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 5, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 5, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 5, fingerRightHand: 4, noteName: 'G3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 2, measure: 5, fingerRightHand: 4, noteName: 'G3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 3, measure: 5, fingerRightHand: 4, noteName: 'G3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 4, measure: 5, fingerRightHand: 2, noteName: 'E3' },
 
       // Compasso 6 ("...above us only sky")
-      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 6, fingerLeftHand: 5, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 6, fingerLeftHand: 5, noteName: 'F1', chordName: 'F' },
       { midi: 65, clef: 'treble', duration: 1, beat: 1, measure: 6, fingerRightHand: 3, noteName: 'F3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 6, fingerRightHand: 2, noteName: 'E3' },
       { midi: 62, clef: 'treble', duration: 2, beat: 3, measure: 6, fingerRightHand: 1, noteName: 'D3' },
 
       // Compasso 7 ("Imagine all the people...")
-      { midi: 41, clef: 'bass', duration: 2, beat: 1, measure: 7, fingerLeftHand: 5, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 2, beat: 1, measure: 7, fingerLeftHand: 5, noteName: 'F1', chordName: 'F' },
       { midi: 69, clef: 'treble', duration: 1, beat: 1, measure: 7, fingerRightHand: 5, noteName: 'A3' },
       { midi: 69, clef: 'treble', duration: 1, beat: 2, measure: 7, fingerRightHand: 5, noteName: 'A3' },
-      { midi: 45, clef: 'bass', duration: 2, beat: 3, measure: 7, fingerLeftHand: 4, noteName: 'A2', chordName: 'Am' },
+      { midi: 45, clef: 'bass', duration: 2, beat: 3, measure: 7, fingerLeftHand: 4, noteName: 'A1', chordName: 'Am' },
       { midi: 69, clef: 'treble', duration: 1, beat: 3, measure: 7, fingerRightHand: 5, noteName: 'A3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 4, measure: 7, fingerRightHand: 4, noteName: 'G3' },
 
       // Compasso 8 ("...living for today...")
-      { midi: 50, clef: 'bass', duration: 2, beat: 1, measure: 8, fingerLeftHand: 3, noteName: 'D3', chordName: 'Dm' },
+      { midi: 50, clef: 'bass', duration: 2, beat: 1, measure: 8, fingerLeftHand: 3, noteName: 'D2', chordName: 'Dm' },
       { midi: 65, clef: 'treble', duration: 1, beat: 1, measure: 8, fingerRightHand: 3, noteName: 'F3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 8, fingerRightHand: 2, noteName: 'E3' },
-      { midi: 43, clef: 'bass', duration: 2, beat: 3, measure: 8, fingerLeftHand: 5, noteName: 'G2', chordName: 'G7' },
+      { midi: 43, clef: 'bass', duration: 2, beat: 3, measure: 8, fingerLeftHand: 5, noteName: 'G1', chordName: 'G7' },
       { midi: 62, clef: 'treble', duration: 2, beat: 3, measure: 8, fingerRightHand: 1, noteName: 'D3' },
 
       // --- O REFRÃO DA PAZ (Compassos 9 a 16) ---
       // Compasso 9 ("You may say I'm a dreamer...")
-      { midi: 41, clef: 'bass', duration: 2, beat: 1, measure: 9, fingerLeftHand: 5, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 2, beat: 1, measure: 9, fingerLeftHand: 5, noteName: 'F1', chordName: 'F' },
       { midi: 60, clef: 'treble', duration: 0.5, beat: 1, measure: 9, fingerRightHand: 1, noteName: 'C3' },
       { midi: 62, clef: 'treble', duration: 0.5, beat: 1.5, measure: 9, fingerRightHand: 2, noteName: 'D3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 9, fingerRightHand: 3, noteName: 'E3' },
-      { midi: 43, clef: 'bass', duration: 2, beat: 3, measure: 9, fingerLeftHand: 4, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 2, beat: 3, measure: 9, fingerLeftHand: 4, noteName: 'G1', chordName: 'G' },
       { midi: 67, clef: 'treble', duration: 1, beat: 3, measure: 9, fingerRightHand: 5, noteName: 'G3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 4, measure: 9, fingerRightHand: 3, noteName: 'E3' },
 
       // Compasso 10 ("...but I'm not the only one")
-      { midi: 48, clef: 'bass', duration: 2, beat: 1, measure: 10, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 2, beat: 1, measure: 10, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 62, clef: 'treble', duration: 1, beat: 1, measure: 10, fingerRightHand: 2, noteName: 'D3' },
       { midi: 60, clef: 'treble', duration: 1, beat: 2, measure: 10, fingerRightHand: 1, noteName: 'C3' },
-      { midi: 40, clef: 'bass', duration: 2, beat: 3, measure: 10, fingerLeftHand: 5, noteName: 'E2', chordName: 'E7' },
+      { midi: 40, clef: 'bass', duration: 2, beat: 3, measure: 10, fingerLeftHand: 5, noteName: 'E1', chordName: 'E7' },
       { midi: 68, clef: 'treble', duration: 2, beat: 3, measure: 10, fingerRightHand: 4, noteName: 'G#3' },
 
       // Compasso 11 ("I hope someday you'll join us...")
-      { midi: 41, clef: 'bass', duration: 2, beat: 1, measure: 11, fingerLeftHand: 5, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 2, beat: 1, measure: 11, fingerLeftHand: 5, noteName: 'F1', chordName: 'F' },
       { midi: 60, clef: 'treble', duration: 0.5, beat: 1, measure: 11, fingerRightHand: 1, noteName: 'C3' },
       { midi: 62, clef: 'treble', duration: 0.5, beat: 1.5, measure: 11, fingerRightHand: 2, noteName: 'D3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 11, fingerRightHand: 3, noteName: 'E3' },
-      { midi: 43, clef: 'bass', duration: 2, beat: 3, measure: 11, fingerLeftHand: 4, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 2, beat: 3, measure: 11, fingerLeftHand: 4, noteName: 'G1', chordName: 'G' },
       { midi: 67, clef: 'treble', duration: 1, beat: 3, measure: 11, fingerRightHand: 5, noteName: 'G3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 4, measure: 11, fingerRightHand: 3, noteName: 'E3' },
 
       // Compasso 12 ("...and the world will be as one")
-      { midi: 48, clef: 'bass', duration: 2, beat: 1, measure: 12, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 2, beat: 1, measure: 12, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 62, clef: 'treble', duration: 1, beat: 1, measure: 12, fingerRightHand: 2, noteName: 'D3' },
       { midi: 60, clef: 'treble', duration: 1, beat: 2, measure: 12, fingerRightHand: 1, noteName: 'C3' },
-      { midi: 48, clef: 'bass', duration: 2, beat: 3, measure: 12, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 2, beat: 3, measure: 12, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 60, clef: 'treble', duration: 2, beat: 3, measure: 12, fingerRightHand: 1, noteName: 'C3' },
 
       // Compasso 13 (C -> Cmaj7 repetição lírica)
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 13, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 13, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 64, clef: 'treble', duration: 1, beat: 1, measure: 13, fingerRightHand: 2, noteName: 'E3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 13, fingerRightHand: 4, noteName: 'G3' },
       { midi: 71, clef: 'treble', duration: 2, beat: 3, measure: 13, fingerRightHand: 5, noteName: 'B3', chordName: 'Cmaj7' },
 
       // Compasso 14 (F)
-      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 14, fingerLeftHand: 5, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 14, fingerLeftHand: 5, noteName: 'F1', chordName: 'F' },
       { midi: 65, clef: 'treble', duration: 2, beat: 1, measure: 14, fingerRightHand: 2, noteName: 'F3' },
       { midi: 69, clef: 'treble', duration: 2, beat: 3, measure: 14, fingerRightHand: 4, noteName: 'A3' },
 
       // Compasso 15 (G)
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 15, fingerLeftHand: 5, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 15, fingerLeftHand: 5, noteName: 'G1', chordName: 'G' },
       { midi: 67, clef: 'treble', duration: 2, beat: 1, measure: 15, fingerRightHand: 3, noteName: 'G3' },
       { midi: 71, clef: 'treble', duration: 2, beat: 3, measure: 15, fingerRightHand: 5, noteName: 'B3' },
 
       // Compasso 16 (Acorde Final em Dó Maior Sustentado)
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 16, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 16, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 60, clef: 'treble', duration: 4, beat: 1, measure: 16, fingerRightHand: 1, noteName: 'C3' },
       { midi: 64, clef: 'treble', duration: 4, beat: 1, measure: 16, fingerRightHand: 3, noteName: 'E3' },
       { midi: 67, clef: 'treble', duration: 4, beat: 1, measure: 16, fingerRightHand: 5, noteName: 'G3' },
@@ -1173,125 +1173,125 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
     scoreTrack: [
       // --- VERSO 1 (Compassos 1 a 4) ---
       // Compasso 1 (C -> G)
-      { midi: 48, clef: 'bass', duration: 2, beat: 1, measure: 1, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 2, beat: 1, measure: 1, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 60, clef: 'treble', duration: 1, beat: 1, measure: 1, fingerRightHand: 1, noteName: 'C3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 1, measure: 1, fingerRightHand: 3, noteName: 'E3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 1, fingerRightHand: 5, noteName: 'G3' },
-      { midi: 43, clef: 'bass', duration: 2, beat: 3, measure: 1, fingerLeftHand: 1, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 2, beat: 3, measure: 1, fingerLeftHand: 1, noteName: 'G1', chordName: 'G' },
       { midi: 59, clef: 'treble', duration: 1, beat: 3, measure: 1, fingerRightHand: 1, noteName: 'B2' },
       { midi: 62, clef: 'treble', duration: 1, beat: 3, measure: 1, fingerRightHand: 2, noteName: 'D3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 3, measure: 1, fingerRightHand: 5, noteName: 'G3' },
 
       // Compasso 2 (Am -> F)
-      { midi: 45, clef: 'bass', duration: 2, beat: 1, measure: 2, fingerLeftHand: 4, noteName: 'A2', chordName: 'Am' },
+      { midi: 45, clef: 'bass', duration: 2, beat: 1, measure: 2, fingerLeftHand: 4, noteName: 'A1', chordName: 'Am' },
       { midi: 60, clef: 'treble', duration: 1, beat: 1, measure: 2, fingerRightHand: 1, noteName: 'C3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 1, measure: 2, fingerRightHand: 3, noteName: 'E3' },
       { midi: 69, clef: 'treble', duration: 1, beat: 1, measure: 2, fingerRightHand: 5, noteName: 'A3' },
-      { midi: 41, clef: 'bass', duration: 2, beat: 3, measure: 2, fingerLeftHand: 3, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 2, beat: 3, measure: 2, fingerLeftHand: 3, noteName: 'F1', chordName: 'F' },
       { midi: 60, clef: 'treble', duration: 1, beat: 3, measure: 2, fingerRightHand: 1, noteName: 'C3' },
       { midi: 65, clef: 'treble', duration: 1, beat: 3, measure: 2, fingerRightHand: 3, noteName: 'F3' },
       { midi: 69, clef: 'treble', duration: 1, beat: 3, measure: 2, fingerRightHand: 5, noteName: 'A3' },
 
       // Compasso 3 (C -> G)
-      { midi: 48, clef: 'bass', duration: 2, beat: 1, measure: 3, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 2, beat: 1, measure: 3, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 60, clef: 'treble', duration: 1, beat: 1, measure: 3, fingerRightHand: 1, noteName: 'C3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 1, measure: 3, fingerRightHand: 3, noteName: 'E3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 3, fingerRightHand: 5, noteName: 'G3' },
-      { midi: 43, clef: 'bass', duration: 2, beat: 3, measure: 3, fingerLeftHand: 1, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 2, beat: 3, measure: 3, fingerLeftHand: 1, noteName: 'G1', chordName: 'G' },
       { midi: 59, clef: 'treble', duration: 1, beat: 3, measure: 3, fingerRightHand: 1, noteName: 'B2' },
       { midi: 62, clef: 'treble', duration: 1, beat: 3, measure: 3, fingerRightHand: 2, noteName: 'D3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 3, measure: 3, fingerRightHand: 5, noteName: 'G3' },
 
       // Compasso 4 (F -> C resolução)
-      { midi: 41, clef: 'bass', duration: 2, beat: 1, measure: 4, fingerLeftHand: 3, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 2, beat: 1, measure: 4, fingerLeftHand: 3, noteName: 'F1', chordName: 'F' },
       { midi: 60, clef: 'treble', duration: 1, beat: 1, measure: 4, fingerRightHand: 1, noteName: 'C3' },
       { midi: 65, clef: 'treble', duration: 1, beat: 1, measure: 4, fingerRightHand: 3, noteName: 'F3' },
       { midi: 69, clef: 'treble', duration: 1, beat: 1, measure: 4, fingerRightHand: 5, noteName: 'A3' },
-      { midi: 48, clef: 'bass', duration: 2, beat: 3, measure: 4, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 2, beat: 3, measure: 4, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 60, clef: 'treble', duration: 2, beat: 3, measure: 4, fingerRightHand: 1, noteName: 'C3' },
       { midi: 64, clef: 'treble', duration: 2, beat: 3, measure: 4, fingerRightHand: 3, noteName: 'E3' },
       { midi: 67, clef: 'treble', duration: 2, beat: 3, measure: 4, fingerRightHand: 5, noteName: 'G3' },
 
       // --- VERSO 2: AND IN MY HOUR OF DARKNESS (Compassos 5 a 8) ---
       // Compasso 5 (C -> G)
-      { midi: 48, clef: 'bass', duration: 2, beat: 1, measure: 5, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 2, beat: 1, measure: 5, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 5, fingerRightHand: 5, noteName: 'G3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 2, measure: 5, fingerRightHand: 5, noteName: 'G3' },
-      { midi: 43, clef: 'bass', duration: 2, beat: 3, measure: 5, fingerLeftHand: 1, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 2, beat: 3, measure: 5, fingerLeftHand: 1, noteName: 'G1', chordName: 'G' },
       { midi: 67, clef: 'treble', duration: 1, beat: 3, measure: 5, fingerRightHand: 5, noteName: 'G3' },
       { midi: 69, clef: 'treble', duration: 1, beat: 4, measure: 5, fingerRightHand: 5, noteName: 'A3' },
 
       // Compasso 6 (Am -> F)
-      { midi: 45, clef: 'bass', duration: 2, beat: 1, measure: 6, fingerLeftHand: 4, noteName: 'A2', chordName: 'Am' },
+      { midi: 45, clef: 'bass', duration: 2, beat: 1, measure: 6, fingerLeftHand: 4, noteName: 'A1', chordName: 'Am' },
       { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 6, fingerRightHand: 4, noteName: 'G3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 6, fingerRightHand: 2, noteName: 'E3' },
-      { midi: 41, clef: 'bass', duration: 2, beat: 3, measure: 6, fingerLeftHand: 3, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 2, beat: 3, measure: 6, fingerLeftHand: 3, noteName: 'F1', chordName: 'F' },
       { midi: 65, clef: 'treble', duration: 1, beat: 3, measure: 6, fingerRightHand: 3, noteName: 'F3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 4, measure: 6, fingerRightHand: 2, noteName: 'E3' },
 
       // Compasso 7 (C -> G)
-      { midi: 48, clef: 'bass', duration: 2, beat: 1, measure: 7, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 2, beat: 1, measure: 7, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 64, clef: 'treble', duration: 1, beat: 1, measure: 7, fingerRightHand: 2, noteName: 'E3' },
       { midi: 62, clef: 'treble', duration: 1, beat: 2, measure: 7, fingerRightHand: 1, noteName: 'D3' },
-      { midi: 43, clef: 'bass', duration: 2, beat: 3, measure: 7, fingerLeftHand: 1, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 2, beat: 3, measure: 7, fingerLeftHand: 1, noteName: 'G1', chordName: 'G' },
       { midi: 62, clef: 'treble', duration: 1, beat: 3, measure: 7, fingerRightHand: 1, noteName: 'D3' },
       { midi: 60, clef: 'treble', duration: 1, beat: 4, measure: 7, fingerRightHand: 1, noteName: 'C3' },
 
       // Compasso 8 (F -> C)
-      { midi: 41, clef: 'bass', duration: 2, beat: 1, measure: 8, fingerLeftHand: 3, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 2, beat: 1, measure: 8, fingerLeftHand: 3, noteName: 'F1', chordName: 'F' },
       { midi: 62, clef: 'treble', duration: 1, beat: 1, measure: 8, fingerRightHand: 2, noteName: 'D3' },
       { midi: 60, clef: 'treble', duration: 1, beat: 2, measure: 8, fingerRightHand: 1, noteName: 'C3' },
-      { midi: 48, clef: 'bass', duration: 2, beat: 3, measure: 8, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 2, beat: 3, measure: 8, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 60, clef: 'treble', duration: 2, beat: 3, measure: 8, fingerRightHand: 1, noteName: 'C3' },
 
       // --- O REFRÃO CLÁSSICO: LET IT BE (Compassos 9 a 16) ---
       // Compasso 9 ("Let it be, let it be...")
-      { midi: 45, clef: 'bass', duration: 4, beat: 1, measure: 9, fingerLeftHand: 4, noteName: 'A2', chordName: 'Am' },
+      { midi: 45, clef: 'bass', duration: 4, beat: 1, measure: 9, fingerLeftHand: 4, noteName: 'A1', chordName: 'Am' },
       { midi: 69, clef: 'treble', duration: 1.5, beat: 1, measure: 9, fingerRightHand: 4, noteName: 'A3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 2.5, measure: 9, fingerRightHand: 3, noteName: 'G3' },
       { midi: 64, clef: 'treble', duration: 1.5, beat: 3.5, measure: 9, fingerRightHand: 2, noteName: 'E3' },
 
       // Compasso 10 ("...let it be, let it be")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 10, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 10, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 67, clef: 'treble', duration: 1.5, beat: 1, measure: 10, fingerRightHand: 4, noteName: 'G3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2.5, measure: 10, fingerRightHand: 2, noteName: 'E3' },
       { midi: 62, clef: 'treble', duration: 1.5, beat: 3.5, measure: 10, fingerRightHand: 1, noteName: 'D3' },
 
       // Compasso 11 ("Whisper words of wisdom...")
-      { midi: 41, clef: 'bass', duration: 2, beat: 1, measure: 11, fingerLeftHand: 3, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 2, beat: 1, measure: 11, fingerLeftHand: 3, noteName: 'F1', chordName: 'F' },
       { midi: 65, clef: 'treble', duration: 1, beat: 1, measure: 11, fingerRightHand: 3, noteName: 'F3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 11, fingerRightHand: 2, noteName: 'E3' },
-      { midi: 48, clef: 'bass', duration: 2, beat: 3, measure: 11, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 2, beat: 3, measure: 11, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 62, clef: 'treble', duration: 1, beat: 3, measure: 11, fingerRightHand: 1, noteName: 'D3' },
       { midi: 60, clef: 'treble', duration: 1, beat: 4, measure: 11, fingerRightHand: 1, noteName: 'C3' },
 
       // Compasso 12 ("...let it be.")
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 12, fingerLeftHand: 5, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 12, fingerLeftHand: 5, noteName: 'G1', chordName: 'G' },
       { midi: 62, clef: 'treble', duration: 2, beat: 1, measure: 12, fingerRightHand: 2, noteName: 'D3' },
       { midi: 60, clef: 'treble', duration: 2, beat: 3, measure: 12, fingerRightHand: 1, noteName: 'C3' },
 
       // Compasso 13 ("Let it be, let it be...")
-      { midi: 45, clef: 'bass', duration: 4, beat: 1, measure: 13, fingerLeftHand: 4, noteName: 'A2', chordName: 'Am' },
+      { midi: 45, clef: 'bass', duration: 4, beat: 1, measure: 13, fingerLeftHand: 4, noteName: 'A1', chordName: 'Am' },
       { midi: 69, clef: 'treble', duration: 1.5, beat: 1, measure: 13, fingerRightHand: 4, noteName: 'A3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 2.5, measure: 13, fingerRightHand: 3, noteName: 'G3' },
       { midi: 64, clef: 'treble', duration: 1.5, beat: 3.5, measure: 13, fingerRightHand: 2, noteName: 'E3' },
 
       // Compasso 14 ("...there will be an answer...")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 14, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 14, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 67, clef: 'treble', duration: 1.5, beat: 1, measure: 14, fingerRightHand: 4, noteName: 'G3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2.5, measure: 14, fingerRightHand: 2, noteName: 'E3' },
       { midi: 62, clef: 'treble', duration: 1.5, beat: 3.5, measure: 14, fingerRightHand: 1, noteName: 'D3' },
 
       // Compasso 15 ("...whisper words of wisdom...")
-      { midi: 41, clef: 'bass', duration: 2, beat: 1, measure: 15, fingerLeftHand: 3, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 2, beat: 1, measure: 15, fingerLeftHand: 3, noteName: 'F1', chordName: 'F' },
       { midi: 65, clef: 'treble', duration: 1, beat: 1, measure: 15, fingerRightHand: 3, noteName: 'F3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 15, fingerRightHand: 2, noteName: 'E3' },
-      { midi: 43, clef: 'bass', duration: 2, beat: 3, measure: 15, fingerLeftHand: 1, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 2, beat: 3, measure: 15, fingerLeftHand: 1, noteName: 'G1', chordName: 'G' },
       { midi: 62, clef: 'treble', duration: 1, beat: 3, measure: 15, fingerRightHand: 2, noteName: 'D3' },
       { midi: 60, clef: 'treble', duration: 1, beat: 4, measure: 15, fingerRightHand: 1, noteName: 'C3' },
 
       // Compasso 16 ("...let it be!")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 16, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 16, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 60, clef: 'treble', duration: 4, beat: 1, measure: 16, fingerRightHand: 1, noteName: 'C3' },
     ],
   },
@@ -1310,99 +1310,99 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
     chords: ['Bb', 'Gm', 'Cm', 'F', 'Eb'],
     scoreTrack: [
       // Compasso 1 ("Mama, just killed a man...")
-      { midi: 46, clef: 'bass', duration: 4, beat: 1, measure: 1, fingerLeftHand: 5, noteName: 'Bb2', chordName: 'Bb' },
+      { midi: 46, clef: 'bass', duration: 4, beat: 1, measure: 1, fingerLeftHand: 5, noteName: 'Bb1', chordName: 'Bb' },
       { midi: 70, clef: 'treble', duration: 1, beat: 1, measure: 1, fingerRightHand: 3, noteName: 'Bb3' },
       { midi: 70, clef: 'treble', duration: 1, beat: 2, measure: 1, fingerRightHand: 3, noteName: 'Bb3' },
       { midi: 70, clef: 'treble', duration: 1, beat: 3, measure: 1, fingerRightHand: 3, noteName: 'Bb3' },
       { midi: 69, clef: 'treble', duration: 1, beat: 4, measure: 1, fingerRightHand: 2, noteName: 'A3' },
 
       // Compasso 2 ("...put a gun against his head...")
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 2, fingerLeftHand: 5, noteName: 'G2', chordName: 'Gm' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 2, fingerLeftHand: 5, noteName: 'G1', chordName: 'Gm' },
       { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 2, fingerRightHand: 1, noteName: 'G3' },
       { midi: 70, clef: 'treble', duration: 1, beat: 2, measure: 2, fingerRightHand: 3, noteName: 'Bb3' },
       { midi: 70, clef: 'treble', duration: 1, beat: 3, measure: 2, fingerRightHand: 3, noteName: 'Bb3' },
       { midi: 69, clef: 'treble', duration: 1, beat: 4, measure: 2, fingerRightHand: 2, noteName: 'A3' },
 
       // Compasso 3 ("...pulled my trigger, now he's dead...")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 3, fingerLeftHand: 4, noteName: 'C3', chordName: 'Cm' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 3, fingerLeftHand: 4, noteName: 'C2', chordName: 'Cm' },
       { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 3, fingerRightHand: 1, noteName: 'G3' },
       { midi: 72, clef: 'treble', duration: 1, beat: 2, measure: 3, fingerRightHand: 4, noteName: 'C4' },
       { midi: 72, clef: 'treble', duration: 1, beat: 3, measure: 3, fingerRightHand: 4, noteName: 'C4' },
       { midi: 70, clef: 'treble', duration: 1, beat: 4, measure: 3, fingerRightHand: 3, noteName: 'Bb3' },
 
       // Compasso 4 ("...now he's dead.")
-      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 4, fingerLeftHand: 5, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 4, fingerLeftHand: 5, noteName: 'F1', chordName: 'F' },
       { midi: 69, clef: 'treble', duration: 2, beat: 1, measure: 4, fingerRightHand: 2, noteName: 'A3' },
       { midi: 65, clef: 'treble', duration: 2, beat: 3, measure: 4, fingerRightHand: 1, noteName: 'F3' },
 
       // Compasso 5 ("Mama, life had just begun...")
-      { midi: 46, clef: 'bass', duration: 4, beat: 1, measure: 5, fingerLeftHand: 5, noteName: 'Bb2', chordName: 'Bb' },
+      { midi: 46, clef: 'bass', duration: 4, beat: 1, measure: 5, fingerLeftHand: 5, noteName: 'Bb1', chordName: 'Bb' },
       { midi: 70, clef: 'treble', duration: 1, beat: 1, measure: 5, fingerRightHand: 3, noteName: 'Bb3' },
       { midi: 70, clef: 'treble', duration: 1, beat: 2, measure: 5, fingerRightHand: 3, noteName: 'Bb3' },
       { midi: 70, clef: 'treble', duration: 1, beat: 3, measure: 5, fingerRightHand: 3, noteName: 'Bb3' },
       { midi: 72, clef: 'treble', duration: 1, beat: 4, measure: 5, fingerRightHand: 4, noteName: 'C4' },
 
       // Compasso 6 ("...but now I've gone and thrown it all away...")
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 6, fingerLeftHand: 5, noteName: 'G2', chordName: 'Gm' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 6, fingerLeftHand: 5, noteName: 'G1', chordName: 'Gm' },
       { midi: 74, clef: 'treble', duration: 1, beat: 1, measure: 6, fingerRightHand: 5, noteName: 'D4' },
       { midi: 74, clef: 'treble', duration: 1, beat: 2, measure: 6, fingerRightHand: 5, noteName: 'D4' },
       { midi: 72, clef: 'treble', duration: 1, beat: 3, measure: 6, fingerRightHand: 4, noteName: 'C4' },
       { midi: 70, clef: 'treble', duration: 1, beat: 4, measure: 6, fingerRightHand: 3, noteName: 'Bb3' },
 
       // Compasso 7 ("...thrown it all away...")
-      { midi: 51, clef: 'bass', duration: 4, beat: 1, measure: 7, fingerLeftHand: 3, noteName: 'Eb3', chordName: 'Eb' },
+      { midi: 51, clef: 'bass', duration: 4, beat: 1, measure: 7, fingerLeftHand: 3, noteName: 'Eb2', chordName: 'Eb' },
       { midi: 69, clef: 'treble', duration: 1.5, beat: 1, measure: 7, fingerRightHand: 2, noteName: 'A3' },
       { midi: 67, clef: 'treble', duration: 1.5, beat: 2.5, measure: 7, fingerRightHand: 1, noteName: 'G3' },
       { midi: 65, clef: 'treble', duration: 1, beat: 4, measure: 7, fingerRightHand: 1, noteName: 'F3' },
 
       // Compasso 8 (Pausa com acorde de Fá)
-      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 8, fingerLeftHand: 5, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 8, fingerLeftHand: 5, noteName: 'F1', chordName: 'F' },
       { midi: 69, clef: 'treble', duration: 4, beat: 1, measure: 8, fingerRightHand: 2, noteName: 'A3' },
 
       // Compasso 9 ("Mama, ooh-ooh-ooh...")
-      { midi: 51, clef: 'bass', duration: 4, beat: 1, measure: 9, fingerLeftHand: 4, noteName: 'Eb3', chordName: 'Eb' },
+      { midi: 51, clef: 'bass', duration: 4, beat: 1, measure: 9, fingerLeftHand: 4, noteName: 'Eb2', chordName: 'Eb' },
       { midi: 75, clef: 'treble', duration: 2, beat: 1, measure: 9, fingerRightHand: 5, noteName: 'Eb4' },
       { midi: 74, clef: 'treble', duration: 1, beat: 3, measure: 9, fingerRightHand: 4, noteName: 'D4' },
       { midi: 72, clef: 'treble', duration: 1, beat: 4, measure: 9, fingerRightHand: 3, noteName: 'C4' },
 
       // Compasso 10 ("...didn't mean to make you cry...")
-      { midi: 46, clef: 'bass', duration: 4, beat: 1, measure: 10, fingerLeftHand: 5, noteName: 'Bb2', chordName: 'Bb' },
+      { midi: 46, clef: 'bass', duration: 4, beat: 1, measure: 10, fingerLeftHand: 5, noteName: 'Bb1', chordName: 'Bb' },
       { midi: 70, clef: 'treble', duration: 1.5, beat: 1, measure: 10, fingerRightHand: 2, noteName: 'Bb3' },
       { midi: 72, clef: 'treble', duration: 0.5, beat: 2.5, measure: 10, fingerRightHand: 3, noteName: 'C4' },
       { midi: 74, clef: 'treble', duration: 2, beat: 3, measure: 10, fingerRightHand: 4, noteName: 'D4' },
 
       // Compasso 11 ("If I'm not back again this time tomorrow...")
-      { midi: 48, clef: 'bass', duration: 2, beat: 1, measure: 11, fingerLeftHand: 4, noteName: 'C3', chordName: 'Cm' },
+      { midi: 48, clef: 'bass', duration: 2, beat: 1, measure: 11, fingerLeftHand: 4, noteName: 'C2', chordName: 'Cm' },
       { midi: 72, clef: 'treble', duration: 1, beat: 1, measure: 11, fingerRightHand: 3, noteName: 'C4' },
       { midi: 72, clef: 'treble', duration: 1, beat: 2, measure: 11, fingerRightHand: 3, noteName: 'C4' },
-      { midi: 41, clef: 'bass', duration: 2, beat: 3, measure: 11, fingerLeftHand: 5, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 2, beat: 3, measure: 11, fingerLeftHand: 5, noteName: 'F1', chordName: 'F' },
       { midi: 70, clef: 'treble', duration: 1, beat: 3, measure: 11, fingerRightHand: 2, noteName: 'Bb3' },
       { midi: 69, clef: 'treble', duration: 1, beat: 4, measure: 11, fingerRightHand: 1, noteName: 'A3' },
 
       // Compasso 12 ("...carry on, carry on...")
-      { midi: 46, clef: 'bass', duration: 4, beat: 1, measure: 12, fingerLeftHand: 5, noteName: 'Bb2', chordName: 'Bb' },
+      { midi: 46, clef: 'bass', duration: 4, beat: 1, measure: 12, fingerLeftHand: 5, noteName: 'Bb1', chordName: 'Bb' },
       { midi: 70, clef: 'treble', duration: 2, beat: 1, measure: 12, fingerRightHand: 2, noteName: 'Bb3' },
       { midi: 67, clef: 'treble', duration: 2, beat: 3, measure: 12, fingerRightHand: 1, noteName: 'G3' },
 
       // Compasso 13 ("...as if nothing really matters...")
-      { midi: 51, clef: 'bass', duration: 4, beat: 1, measure: 13, fingerLeftHand: 4, noteName: 'Eb3', chordName: 'Eb' },
+      { midi: 51, clef: 'bass', duration: 4, beat: 1, measure: 13, fingerLeftHand: 4, noteName: 'Eb2', chordName: 'Eb' },
       { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 13, fingerRightHand: 2, noteName: 'G3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 2, measure: 13, fingerRightHand: 2, noteName: 'G3' },
       { midi: 65, clef: 'treble', duration: 1, beat: 3, measure: 13, fingerRightHand: 1, noteName: 'F3' },
       { midi: 63, clef: 'treble', duration: 1, beat: 4, measure: 13, fingerRightHand: 1, noteName: 'Eb3' },
 
       // Compasso 14 ("...really matters...")
-      { midi: 46, clef: 'bass', duration: 4, beat: 1, measure: 14, fingerLeftHand: 5, noteName: 'Bb2', chordName: 'Bb' },
+      { midi: 46, clef: 'bass', duration: 4, beat: 1, measure: 14, fingerLeftHand: 5, noteName: 'Bb1', chordName: 'Bb' },
       { midi: 65, clef: 'treble', duration: 2, beat: 1, measure: 14, fingerRightHand: 2, noteName: 'F3' },
       { midi: 63, clef: 'treble', duration: 2, beat: 3, measure: 14, fingerRightHand: 1, noteName: 'Eb3' },
 
       // Compasso 15 (Cadência do Piano de Freddie)
-      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 15, fingerLeftHand: 5, noteName: 'F2', chordName: 'F7' },
+      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 15, fingerLeftHand: 5, noteName: 'F1', chordName: 'F7' },
       { midi: 62, clef: 'treble', duration: 2, beat: 1, measure: 15, fingerRightHand: 1, noteName: 'D3' },
       { midi: 65, clef: 'treble', duration: 2, beat: 3, measure: 15, fingerRightHand: 2, noteName: 'F3' },
 
       // Compasso 16 (Acorde Final Majestoso em Bb)
-      { midi: 46, clef: 'bass', duration: 4, beat: 1, measure: 16, fingerLeftHand: 5, noteName: 'Bb2', chordName: 'Bb' },
+      { midi: 46, clef: 'bass', duration: 4, beat: 1, measure: 16, fingerLeftHand: 5, noteName: 'Bb1', chordName: 'Bb' },
       { midi: 58, clef: 'treble', duration: 4, beat: 1, measure: 16, fingerRightHand: 1, noteName: 'Bb2' },
       { midi: 62, clef: 'treble', duration: 4, beat: 1, measure: 16, fingerRightHand: 2, noteName: 'D3' },
       { midi: 65, clef: 'treble', duration: 4, beat: 1, measure: 16, fingerRightHand: 4, noteName: 'F3' },
@@ -1425,7 +1425,7 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
     scoreTrack: [
       // --- O RIFF LENDÁRIO (Compassos 1 a 4) ---
       // Compasso 1 (F#m)
-      { midi: 42, clef: 'bass', duration: 4, beat: 1, measure: 1, fingerLeftHand: 5, noteName: 'F#2', chordName: 'F#m' },
+      { midi: 42, clef: 'bass', duration: 4, beat: 1, measure: 1, fingerLeftHand: 5, noteName: 'F#1', chordName: 'F#m' },
       { midi: 66, clef: 'treble', duration: 0.5, beat: 1, measure: 1, fingerRightHand: 1, noteName: 'F#3' },
       { midi: 66, clef: 'treble', duration: 0.5, beat: 1.5, measure: 1, fingerRightHand: 1, noteName: 'F#3' },
       { midi: 69, clef: 'treble', duration: 0.5, beat: 2, measure: 1, fingerRightHand: 3, noteName: 'A3' },
@@ -1435,7 +1435,7 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       { midi: 69, clef: 'treble', duration: 0.5, beat: 4.5, measure: 1, fingerRightHand: 3, noteName: 'A3' },
 
       // Compasso 2 (B)
-      { midi: 47, clef: 'bass', duration: 4, beat: 1, measure: 2, fingerLeftHand: 1, noteName: 'B2', chordName: 'B' },
+      { midi: 47, clef: 'bass', duration: 4, beat: 1, measure: 2, fingerLeftHand: 1, noteName: 'B1', chordName: 'B' },
       { midi: 71, clef: 'treble', duration: 0.5, beat: 1, measure: 2, fingerRightHand: 4, noteName: 'B3' },
       { midi: 71, clef: 'treble', duration: 0.5, beat: 1.5, measure: 2, fingerRightHand: 4, noteName: 'B3' },
       { midi: 74, clef: 'treble', duration: 0.5, beat: 2, measure: 2, fingerRightHand: 5, noteName: 'D4' },
@@ -1444,7 +1444,7 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       { midi: 66, clef: 'treble', duration: 1, beat: 4, measure: 2, fingerRightHand: 1, noteName: 'F#3' },
 
       // Compasso 3 (E)
-      { midi: 40, clef: 'bass', duration: 4, beat: 1, measure: 3, fingerLeftHand: 5, noteName: 'E2', chordName: 'E' },
+      { midi: 40, clef: 'bass', duration: 4, beat: 1, measure: 3, fingerLeftHand: 5, noteName: 'E1', chordName: 'E' },
       { midi: 64, clef: 'treble', duration: 0.5, beat: 1, measure: 3, fingerRightHand: 1, noteName: 'E3' },
       { midi: 64, clef: 'treble', duration: 0.5, beat: 1.5, measure: 3, fingerRightHand: 1, noteName: 'E3' },
       { midi: 68, clef: 'treble', duration: 0.5, beat: 2, measure: 3, fingerRightHand: 2, noteName: 'G#3' },
@@ -1454,7 +1454,7 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       { midi: 68, clef: 'treble', duration: 0.5, beat: 4.5, measure: 3, fingerRightHand: 2, noteName: 'G#3' },
 
       // Compasso 4 (C#m)
-      { midi: 49, clef: 'bass', duration: 4, beat: 1, measure: 4, fingerLeftHand: 2, noteName: 'C#3', chordName: 'C#m' },
+      { midi: 49, clef: 'bass', duration: 4, beat: 1, measure: 4, fingerLeftHand: 2, noteName: 'C#2', chordName: 'C#m' },
       { midi: 69, clef: 'treble', duration: 0.5, beat: 1, measure: 4, fingerRightHand: 3, noteName: 'A3' },
       { midi: 68, clef: 'treble', duration: 0.5, beat: 1.5, measure: 4, fingerRightHand: 2, noteName: 'G#3' },
       { midi: 66, clef: 'treble', duration: 0.5, beat: 2, measure: 4, fingerRightHand: 1, noteName: 'F#3' },
@@ -1463,7 +1463,7 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
 
       // --- REPETIÇÃO DO RIFF COM BRILHO (Compassos 5 a 8) ---
       // Compasso 5 (F#m)
-      { midi: 42, clef: 'bass', duration: 4, beat: 1, measure: 5, fingerLeftHand: 5, noteName: 'F#2', chordName: 'F#m' },
+      { midi: 42, clef: 'bass', duration: 4, beat: 1, measure: 5, fingerLeftHand: 5, noteName: 'F#1', chordName: 'F#m' },
       { midi: 66, clef: 'treble', duration: 0.5, beat: 1, measure: 5, fingerRightHand: 1, noteName: 'F#3' },
       { midi: 66, clef: 'treble', duration: 0.5, beat: 1.5, measure: 5, fingerRightHand: 1, noteName: 'F#3' },
       { midi: 69, clef: 'treble', duration: 0.5, beat: 2, measure: 5, fingerRightHand: 3, noteName: 'A3' },
@@ -1472,7 +1472,7 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       { midi: 69, clef: 'treble', duration: 0.5, beat: 4.5, measure: 5, fingerRightHand: 3, noteName: 'A3' },
 
       // Compasso 6 (B)
-      { midi: 47, clef: 'bass', duration: 4, beat: 1, measure: 6, fingerLeftHand: 1, noteName: 'B2', chordName: 'B' },
+      { midi: 47, clef: 'bass', duration: 4, beat: 1, measure: 6, fingerLeftHand: 1, noteName: 'B1', chordName: 'B' },
       { midi: 71, clef: 'treble', duration: 0.5, beat: 1, measure: 6, fingerRightHand: 4, noteName: 'B3' },
       { midi: 71, clef: 'treble', duration: 0.5, beat: 1.5, measure: 6, fingerRightHand: 4, noteName: 'B3' },
       { midi: 74, clef: 'treble', duration: 0.5, beat: 2, measure: 6, fingerRightHand: 5, noteName: 'D4' },
@@ -1480,7 +1480,7 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       { midi: 66, clef: 'treble', duration: 1, beat: 4, measure: 6, fingerRightHand: 1, noteName: 'F#3' },
 
       // Compasso 7 (E)
-      { midi: 40, clef: 'bass', duration: 4, beat: 1, measure: 7, fingerLeftHand: 5, noteName: 'E2', chordName: 'E' },
+      { midi: 40, clef: 'bass', duration: 4, beat: 1, measure: 7, fingerLeftHand: 5, noteName: 'E1', chordName: 'E' },
       { midi: 64, clef: 'treble', duration: 0.5, beat: 1, measure: 7, fingerRightHand: 1, noteName: 'E3' },
       { midi: 68, clef: 'treble', duration: 0.5, beat: 1.5, measure: 7, fingerRightHand: 2, noteName: 'G#3' },
       { midi: 71, clef: 'treble', duration: 1.5, beat: 2, measure: 7, fingerRightHand: 4, noteName: 'B3' },
@@ -1488,55 +1488,55 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       { midi: 68, clef: 'treble', duration: 1, beat: 4, measure: 7, fingerRightHand: 2, noteName: 'G#3' },
 
       // Compasso 8 (C#m cadência para o verso)
-      { midi: 49, clef: 'bass', duration: 4, beat: 1, measure: 8, fingerLeftHand: 2, noteName: 'C#3', chordName: 'C#m' },
+      { midi: 49, clef: 'bass', duration: 4, beat: 1, measure: 8, fingerLeftHand: 2, noteName: 'C#2', chordName: 'C#m' },
       { midi: 66, clef: 'treble', duration: 2, beat: 1, measure: 8, fingerRightHand: 2, noteName: 'F#3' },
       { midi: 64, clef: 'treble', duration: 2, beat: 3, measure: 8, fingerRightHand: 1, noteName: 'E3' },
 
       // --- VERSO (Compassos 9 a 12) ---
       // Compasso 9 ("Talking away...")
-      { midi: 42, clef: 'bass', duration: 4, beat: 1, measure: 9, fingerLeftHand: 5, noteName: 'F#2', chordName: 'F#m' },
+      { midi: 42, clef: 'bass', duration: 4, beat: 1, measure: 9, fingerLeftHand: 5, noteName: 'F#1', chordName: 'F#m' },
       { midi: 66, clef: 'treble', duration: 1, beat: 1, measure: 9, fingerRightHand: 2, noteName: 'F#3' },
       { midi: 66, clef: 'treble', duration: 1, beat: 2, measure: 9, fingerRightHand: 2, noteName: 'F#3' },
       { midi: 66, clef: 'treble', duration: 1, beat: 3, measure: 9, fingerRightHand: 2, noteName: 'F#3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 4, measure: 9, fingerRightHand: 1, noteName: 'E3' },
 
       // Compasso 10 ("...I don't know what I'm to say")
-      { midi: 47, clef: 'bass', duration: 4, beat: 1, measure: 10, fingerLeftHand: 1, noteName: 'B2', chordName: 'B' },
+      { midi: 47, clef: 'bass', duration: 4, beat: 1, measure: 10, fingerLeftHand: 1, noteName: 'B1', chordName: 'B' },
       { midi: 66, clef: 'treble', duration: 1, beat: 1, measure: 10, fingerRightHand: 2, noteName: 'F#3' },
       { midi: 68, clef: 'treble', duration: 1, beat: 2, measure: 10, fingerRightHand: 3, noteName: 'G#3' },
       { midi: 69, clef: 'treble', duration: 2, beat: 3, measure: 10, fingerRightHand: 4, noteName: 'A3' },
 
       // Compasso 11 ("I'll say it anyway...")
-      { midi: 40, clef: 'bass', duration: 4, beat: 1, measure: 11, fingerLeftHand: 5, noteName: 'E2', chordName: 'E' },
+      { midi: 40, clef: 'bass', duration: 4, beat: 1, measure: 11, fingerLeftHand: 5, noteName: 'E1', chordName: 'E' },
       { midi: 68, clef: 'treble', duration: 1, beat: 1, measure: 11, fingerRightHand: 3, noteName: 'G#3' },
       { midi: 68, clef: 'treble', duration: 1, beat: 2, measure: 11, fingerRightHand: 3, noteName: 'G#3' },
       { midi: 66, clef: 'treble', duration: 1, beat: 3, measure: 11, fingerRightHand: 2, noteName: 'F#3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 4, measure: 11, fingerRightHand: 1, noteName: 'E3' },
 
       // Compasso 12 ("...today's another day to find you")
-      { midi: 49, clef: 'bass', duration: 4, beat: 1, measure: 12, fingerLeftHand: 2, noteName: 'C#3', chordName: 'C#m' },
+      { midi: 49, clef: 'bass', duration: 4, beat: 1, measure: 12, fingerLeftHand: 2, noteName: 'C#2', chordName: 'C#m' },
       { midi: 66, clef: 'treble', duration: 1, beat: 1, measure: 12, fingerRightHand: 2, noteName: 'F#3' },
       { midi: 68, clef: 'treble', duration: 1, beat: 2, measure: 12, fingerRightHand: 3, noteName: 'G#3' },
       { midi: 71, clef: 'treble', duration: 2, beat: 3, measure: 12, fingerRightHand: 5, noteName: 'B3' },
 
       // --- O REFRÃO EXPLOSIVO (Compassos 13 a 16) ---
       // Compasso 13 ("Take on me!...")
-      { midi: 45, clef: 'bass', duration: 4, beat: 1, measure: 13, fingerLeftHand: 4, noteName: 'A2', chordName: 'A' },
+      { midi: 45, clef: 'bass', duration: 4, beat: 1, measure: 13, fingerLeftHand: 4, noteName: 'A1', chordName: 'A' },
       { midi: 73, clef: 'treble', duration: 2, beat: 1, measure: 13, fingerRightHand: 4, noteName: 'C#4' },
       { midi: 76, clef: 'treble', duration: 2, beat: 3, measure: 13, fingerRightHand: 5, noteName: 'E4' },
 
       // Compasso 14 ("...(Take on me)...")
-      { midi: 47, clef: 'bass', duration: 4, beat: 1, measure: 14, fingerLeftHand: 1, noteName: 'B2', chordName: 'B' },
+      { midi: 47, clef: 'bass', duration: 4, beat: 1, measure: 14, fingerLeftHand: 1, noteName: 'B1', chordName: 'B' },
       { midi: 74, clef: 'treble', duration: 2, beat: 1, measure: 14, fingerRightHand: 4, noteName: 'D4' },
       { midi: 71, clef: 'treble', duration: 2, beat: 3, measure: 14, fingerRightHand: 3, noteName: 'B3' },
 
       // Compasso 15 ("Take me on!...")
-      { midi: 49, clef: 'bass', duration: 4, beat: 1, measure: 15, fingerLeftHand: 2, noteName: 'C#3', chordName: 'C#m' },
+      { midi: 49, clef: 'bass', duration: 4, beat: 1, measure: 15, fingerLeftHand: 2, noteName: 'C#2', chordName: 'C#m' },
       { midi: 73, clef: 'treble', duration: 2, beat: 1, measure: 15, fingerRightHand: 3, noteName: 'C#4' },
       { midi: 76, clef: 'treble', duration: 2, beat: 3, measure: 15, fingerRightHand: 5, noteName: 'E4' },
 
       // Compasso 16 ("I'll be gone in a day or two!")
-      { midi: 45, clef: 'bass', duration: 4, beat: 1, measure: 16, fingerLeftHand: 4, noteName: 'A2', chordName: 'A' },
+      { midi: 45, clef: 'bass', duration: 4, beat: 1, measure: 16, fingerLeftHand: 4, noteName: 'A1', chordName: 'A' },
       { midi: 78, clef: 'treble', duration: 2, beat: 1, measure: 16, fingerRightHand: 5, noteName: 'F#4' },
       { midi: 73, clef: 'treble', duration: 2, beat: 3, measure: 16, fingerRightHand: 3, noteName: 'C#4' },
     ],
@@ -1556,99 +1556,99 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
     chords: ['C', 'G7', 'F'],
     scoreTrack: [
       // Compasso 1 ("Ci-ran-da, ci-ran-di-nha...")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 1, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 1, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 1, fingerRightHand: 5, noteName: 'G3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 2, measure: 1, fingerRightHand: 5, noteName: 'G3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 3, measure: 1, fingerRightHand: 5, noteName: 'G3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 4, measure: 1, fingerRightHand: 3, noteName: 'E3' },
 
       // Compasso 2 ("...vamos todos cirandar...")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 2, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 2, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 65, clef: 'treble', duration: 1, beat: 1, measure: 2, fingerRightHand: 4, noteName: 'F3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 2, fingerRightHand: 3, noteName: 'E3' },
       { midi: 62, clef: 'treble', duration: 2, beat: 3, measure: 2, fingerRightHand: 2, noteName: 'D3' },
 
       // Compasso 3 ("Vamos dar a meia-volta...")
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 3, fingerLeftHand: 5, noteName: 'G2', chordName: 'G7' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 3, fingerLeftHand: 5, noteName: 'G1', chordName: 'G7' },
       { midi: 62, clef: 'treble', duration: 1, beat: 1, measure: 3, fingerRightHand: 2, noteName: 'D3' },
       { midi: 62, clef: 'treble', duration: 1, beat: 2, measure: 3, fingerRightHand: 2, noteName: 'D3' },
       { midi: 62, clef: 'treble', duration: 1, beat: 3, measure: 3, fingerRightHand: 2, noteName: 'D3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 4, measure: 3, fingerRightHand: 3, noteName: 'E3' },
 
       // Compasso 4 ("...volta e meia vamos dar.")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 4, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 4, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 65, clef: 'treble', duration: 1, beat: 1, measure: 4, fingerRightHand: 4, noteName: 'F3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 4, fingerRightHand: 3, noteName: 'E3' },
       { midi: 60, clef: 'treble', duration: 2, beat: 3, measure: 4, fingerRightHand: 1, noteName: 'C3' },
 
       // Compasso 5 ("O anel que tu me destes...")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 5, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 5, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 5, fingerRightHand: 5, noteName: 'G3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 2, measure: 5, fingerRightHand: 5, noteName: 'G3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 3, measure: 5, fingerRightHand: 5, noteName: 'G3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 4, measure: 5, fingerRightHand: 3, noteName: 'E3' },
 
       // Compasso 6 ("...era vidro e se quebrou...")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 6, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 6, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 65, clef: 'treble', duration: 1, beat: 1, measure: 6, fingerRightHand: 4, noteName: 'F3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 6, fingerRightHand: 3, noteName: 'E3' },
       { midi: 62, clef: 'treble', duration: 2, beat: 3, measure: 6, fingerRightHand: 2, noteName: 'D3' },
 
       // Compasso 7 ("O amor que tu me tinhas...")
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 7, fingerLeftHand: 5, noteName: 'G2', chordName: 'G7' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 7, fingerLeftHand: 5, noteName: 'G1', chordName: 'G7' },
       { midi: 62, clef: 'treble', duration: 1, beat: 1, measure: 7, fingerRightHand: 2, noteName: 'D3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 7, fingerRightHand: 3, noteName: 'E3' },
       { midi: 65, clef: 'treble', duration: 1, beat: 3, measure: 7, fingerRightHand: 4, noteName: 'F3' },
       { midi: 62, clef: 'treble', duration: 1, beat: 4, measure: 7, fingerRightHand: 2, noteName: 'D3' },
 
       // Compasso 8 ("...era pouco e se acabou.")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 8, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 8, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 60, clef: 'treble', duration: 4, beat: 1, measure: 8, fingerRightHand: 1, noteName: 'C3' },
 
       // Compasso 9 ("Por isso dona Chica...")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 9, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 9, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 9, fingerRightHand: 5, noteName: 'G3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 2, measure: 9, fingerRightHand: 5, noteName: 'G3' },
       { midi: 64, clef: 'treble', duration: 2, beat: 3, measure: 9, fingerRightHand: 3, noteName: 'E3' },
 
       // Compasso 10 ("...faça o favor de entrar na roda...")
-      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 10, fingerLeftHand: 5, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 10, fingerLeftHand: 5, noteName: 'F1', chordName: 'F' },
       { midi: 65, clef: 'treble', duration: 1, beat: 1, measure: 10, fingerRightHand: 4, noteName: 'F3' },
       { midi: 65, clef: 'treble', duration: 1, beat: 2, measure: 10, fingerRightHand: 4, noteName: 'F3' },
       { midi: 64, clef: 'treble', duration: 2, beat: 3, measure: 10, fingerRightHand: 3, noteName: 'E3' },
 
       // Compasso 11 ("Diga um verso bem bonito...")
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 11, fingerLeftHand: 5, noteName: 'G2', chordName: 'G7' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 11, fingerLeftHand: 5, noteName: 'G1', chordName: 'G7' },
       { midi: 62, clef: 'treble', duration: 1, beat: 1, measure: 11, fingerRightHand: 2, noteName: 'D3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 11, fingerRightHand: 3, noteName: 'E3' },
       { midi: 65, clef: 'treble', duration: 1, beat: 3, measure: 11, fingerRightHand: 4, noteName: 'F3' },
       { midi: 62, clef: 'treble', duration: 1, beat: 4, measure: 11, fingerRightHand: 2, noteName: 'D3' },
 
       // Compasso 12 ("...diga adeus e vá se embora.")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 12, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 12, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 60, clef: 'treble', duration: 4, beat: 1, measure: 12, fingerRightHand: 1, noteName: 'C3' },
 
       // Compasso 13 (Repetição triunfal do refrão festivo)
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 13, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 13, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 13, fingerRightHand: 5, noteName: 'G3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 2, measure: 13, fingerRightHand: 5, noteName: 'G3' },
       { midi: 64, clef: 'treble', duration: 2, beat: 3, measure: 13, fingerRightHand: 3, noteName: 'E3' },
 
       // Compasso 14 (Meia-volta final)
-      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 14, fingerLeftHand: 5, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 14, fingerLeftHand: 5, noteName: 'F1', chordName: 'F' },
       { midi: 65, clef: 'treble', duration: 1, beat: 1, measure: 14, fingerRightHand: 4, noteName: 'F3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 14, fingerRightHand: 3, noteName: 'E3' },
       { midi: 62, clef: 'treble', duration: 2, beat: 3, measure: 14, fingerRightHand: 2, noteName: 'D3' },
 
       // Compasso 15 (Volta e meia)
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 15, fingerLeftHand: 5, noteName: 'G2', chordName: 'G7' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 15, fingerLeftHand: 5, noteName: 'G1', chordName: 'G7' },
       { midi: 62, clef: 'treble', duration: 1, beat: 1, measure: 15, fingerRightHand: 2, noteName: 'D3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 15, fingerRightHand: 3, noteName: 'E3' },
       { midi: 65, clef: 'treble', duration: 1, beat: 3, measure: 15, fingerRightHand: 4, noteName: 'F3' },
       { midi: 62, clef: 'treble', duration: 1, beat: 4, measure: 15, fingerRightHand: 2, noteName: 'D3' },
 
       // Compasso 16 (Acorde Final Sustentado de C)
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 16, fingerLeftHand: 5, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 16, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 60, clef: 'treble', duration: 4, beat: 1, measure: 16, fingerRightHand: 1, noteName: 'C3' },
       { midi: 64, clef: 'treble', duration: 4, beat: 1, measure: 16, fingerRightHand: 3, noteName: 'E3' },
       { midi: 67, clef: 'treble', duration: 4, beat: 1, measure: 16, fingerRightHand: 5, noteName: 'G3' },
@@ -1669,105 +1669,105 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
     chords: ['G', 'D7', 'C'],
     scoreTrack: [
       // Compasso 1 ("Como pode o peixe vivo...")
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 1, fingerLeftHand: 5, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 1, fingerLeftHand: 5, noteName: 'G1', chordName: 'G' },
       { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 1, fingerRightHand: 3, noteName: 'G3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 2, measure: 1, fingerRightHand: 3, noteName: 'G3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 3, measure: 1, fingerRightHand: 3, noteName: 'G3' },
       { midi: 69, clef: 'treble', duration: 1, beat: 4, measure: 1, fingerRightHand: 4, noteName: 'A3' },
 
       // Compasso 2 ("...viver fora da água fria?")
-      { midi: 50, clef: 'bass', duration: 4, beat: 1, measure: 2, fingerLeftHand: 1, noteName: 'D3', chordName: 'D7' },
+      { midi: 50, clef: 'bass', duration: 4, beat: 1, measure: 2, fingerLeftHand: 1, noteName: 'D2', chordName: 'D7' },
       { midi: 71, clef: 'treble', duration: 1, beat: 1, measure: 2, fingerRightHand: 5, noteName: 'B3' },
       { midi: 69, clef: 'treble', duration: 1, beat: 2, measure: 2, fingerRightHand: 4, noteName: 'A3' },
       { midi: 67, clef: 'treble', duration: 2, beat: 3, measure: 2, fingerRightHand: 3, noteName: 'G3' },
 
       // Compasso 3 ("Como pode o peixe vivo...")
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 3, fingerLeftHand: 5, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 3, fingerLeftHand: 5, noteName: 'G1', chordName: 'G' },
       { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 3, fingerRightHand: 3, noteName: 'G3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 2, measure: 3, fingerRightHand: 3, noteName: 'G3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 3, measure: 3, fingerRightHand: 3, noteName: 'G3' },
       { midi: 69, clef: 'treble', duration: 1, beat: 4, measure: 3, fingerRightHand: 4, noteName: 'A3' },
 
       // Compasso 4 ("...viver fora da água fria?")
-      { midi: 50, clef: 'bass', duration: 4, beat: 1, measure: 4, fingerLeftHand: 1, noteName: 'D3', chordName: 'D7' },
+      { midi: 50, clef: 'bass', duration: 4, beat: 1, measure: 4, fingerLeftHand: 1, noteName: 'D2', chordName: 'D7' },
       { midi: 71, clef: 'treble', duration: 1, beat: 1, measure: 4, fingerRightHand: 5, noteName: 'B3' },
       { midi: 69, clef: 'treble', duration: 1, beat: 2, measure: 4, fingerRightHand: 4, noteName: 'A3' },
       { midi: 67, clef: 'treble', duration: 2, beat: 3, measure: 4, fingerRightHand: 3, noteName: 'G3' },
 
       // Compasso 5 ("Como poderei viver...")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 5, fingerLeftHand: 4, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 5, fingerLeftHand: 4, noteName: 'C2', chordName: 'C' },
       { midi: 72, clef: 'treble', duration: 1.5, beat: 1, measure: 5, fingerRightHand: 5, noteName: 'C4' },
       { midi: 72, clef: 'treble', duration: 0.5, beat: 2.5, measure: 5, fingerRightHand: 5, noteName: 'C4' },
       { midi: 71, clef: 'treble', duration: 1, beat: 3, measure: 5, fingerRightHand: 4, noteName: 'B3' },
       { midi: 69, clef: 'treble', duration: 1, beat: 4, measure: 5, fingerRightHand: 3, noteName: 'A3' },
 
       // Compasso 6 ("...como poderei viver...")
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 6, fingerLeftHand: 5, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 6, fingerLeftHand: 5, noteName: 'G1', chordName: 'G' },
       { midi: 71, clef: 'treble', duration: 1.5, beat: 1, measure: 6, fingerRightHand: 4, noteName: 'B3' },
       { midi: 71, clef: 'treble', duration: 0.5, beat: 2.5, measure: 6, fingerRightHand: 4, noteName: 'B3' },
       { midi: 69, clef: 'treble', duration: 1, beat: 3, measure: 6, fingerRightHand: 3, noteName: 'A3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 4, measure: 6, fingerRightHand: 2, noteName: 'G3' },
 
       // Compasso 7 ("Sem a tua, sem a tua...")
-      { midi: 50, clef: 'bass', duration: 4, beat: 1, measure: 7, fingerLeftHand: 1, noteName: 'D3', chordName: 'D7' },
+      { midi: 50, clef: 'bass', duration: 4, beat: 1, measure: 7, fingerLeftHand: 1, noteName: 'D2', chordName: 'D7' },
       { midi: 69, clef: 'treble', duration: 1, beat: 1, measure: 7, fingerRightHand: 3, noteName: 'A3' },
       { midi: 69, clef: 'treble', duration: 1, beat: 2, measure: 7, fingerRightHand: 3, noteName: 'A3' },
       { midi: 66, clef: 'treble', duration: 1, beat: 3, measure: 7, fingerRightHand: 1, noteName: 'F#3' },
       { midi: 69, clef: 'treble', duration: 1, beat: 4, measure: 7, fingerRightHand: 3, noteName: 'A3' },
 
       // Compasso 8 ("...sem a tua companhia?")
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 8, fingerLeftHand: 5, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 8, fingerLeftHand: 5, noteName: 'G1', chordName: 'G' },
       { midi: 67, clef: 'treble', duration: 4, beat: 1, measure: 8, fingerRightHand: 2, noteName: 'G3' },
 
       // Compasso 9 ("Os pastores desta vila...")
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 9, fingerLeftHand: 5, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 9, fingerLeftHand: 5, noteName: 'G1', chordName: 'G' },
       { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 9, fingerRightHand: 3, noteName: 'G3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 2, measure: 9, fingerRightHand: 3, noteName: 'G3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 3, measure: 9, fingerRightHand: 3, noteName: 'G3' },
       { midi: 69, clef: 'treble', duration: 1, beat: 4, measure: 9, fingerRightHand: 4, noteName: 'A3' },
 
       // Compasso 10 ("...já me fazem zombaria...")
-      { midi: 50, clef: 'bass', duration: 4, beat: 1, measure: 10, fingerLeftHand: 1, noteName: 'D3', chordName: 'D7' },
+      { midi: 50, clef: 'bass', duration: 4, beat: 1, measure: 10, fingerLeftHand: 1, noteName: 'D2', chordName: 'D7' },
       { midi: 71, clef: 'treble', duration: 1, beat: 1, measure: 10, fingerRightHand: 5, noteName: 'B3' },
       { midi: 69, clef: 'treble', duration: 1, beat: 2, measure: 10, fingerRightHand: 4, noteName: 'A3' },
       { midi: 67, clef: 'treble', duration: 2, beat: 3, measure: 10, fingerRightHand: 3, noteName: 'G3' },
 
       // Compasso 11 ("Os pastores desta vila...")
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 11, fingerLeftHand: 5, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 11, fingerLeftHand: 5, noteName: 'G1', chordName: 'G' },
       { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 11, fingerRightHand: 3, noteName: 'G3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 2, measure: 11, fingerRightHand: 3, noteName: 'G3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 3, measure: 11, fingerRightHand: 3, noteName: 'G3' },
       { midi: 69, clef: 'treble', duration: 1, beat: 4, measure: 11, fingerRightHand: 4, noteName: 'A3' },
 
       // Compasso 12 ("...já me fazem zombaria...")
-      { midi: 50, clef: 'bass', duration: 4, beat: 1, measure: 12, fingerLeftHand: 1, noteName: 'D3', chordName: 'D7' },
+      { midi: 50, clef: 'bass', duration: 4, beat: 1, measure: 12, fingerLeftHand: 1, noteName: 'D2', chordName: 'D7' },
       { midi: 71, clef: 'treble', duration: 1, beat: 1, measure: 12, fingerRightHand: 5, noteName: 'B3' },
       { midi: 69, clef: 'treble', duration: 1, beat: 2, measure: 12, fingerRightHand: 4, noteName: 'A3' },
       { midi: 67, clef: 'treble', duration: 2, beat: 3, measure: 12, fingerRightHand: 3, noteName: 'G3' },
 
       // Compasso 13 ("Por me verem assim chorando...")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 13, fingerLeftHand: 4, noteName: 'C3', chordName: 'C' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 13, fingerLeftHand: 4, noteName: 'C2', chordName: 'C' },
       { midi: 72, clef: 'treble', duration: 1.5, beat: 1, measure: 13, fingerRightHand: 5, noteName: 'C4' },
       { midi: 72, clef: 'treble', duration: 0.5, beat: 2.5, measure: 13, fingerRightHand: 5, noteName: 'C4' },
       { midi: 71, clef: 'treble', duration: 1, beat: 3, measure: 13, fingerRightHand: 4, noteName: 'B3' },
       { midi: 69, clef: 'treble', duration: 1, beat: 4, measure: 13, fingerRightHand: 3, noteName: 'A3' },
 
       // Compasso 14 ("...sem a tua companhia.")
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 14, fingerLeftHand: 5, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 14, fingerLeftHand: 5, noteName: 'G1', chordName: 'G' },
       { midi: 71, clef: 'treble', duration: 1.5, beat: 1, measure: 14, fingerRightHand: 4, noteName: 'B3' },
       { midi: 71, clef: 'treble', duration: 0.5, beat: 2.5, measure: 14, fingerRightHand: 4, noteName: 'B3' },
       { midi: 69, clef: 'treble', duration: 1, beat: 3, measure: 14, fingerRightHand: 3, noteName: 'A3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 4, measure: 14, fingerRightHand: 2, noteName: 'G3' },
 
       // Compasso 15 ("Sem a tua, sem a tua...")
-      { midi: 50, clef: 'bass', duration: 4, beat: 1, measure: 15, fingerLeftHand: 1, noteName: 'D3', chordName: 'D7' },
+      { midi: 50, clef: 'bass', duration: 4, beat: 1, measure: 15, fingerLeftHand: 1, noteName: 'D2', chordName: 'D7' },
       { midi: 69, clef: 'treble', duration: 1, beat: 1, measure: 15, fingerRightHand: 3, noteName: 'A3' },
       { midi: 69, clef: 'treble', duration: 1, beat: 2, measure: 15, fingerRightHand: 3, noteName: 'A3' },
       { midi: 66, clef: 'treble', duration: 1, beat: 3, measure: 15, fingerRightHand: 1, noteName: 'F#3' },
       { midi: 69, clef: 'treble', duration: 1, beat: 4, measure: 15, fingerRightHand: 3, noteName: 'A3' },
 
       // Compasso 16 (Acorde Final em Sol Maior Sustentado)
-      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 16, fingerLeftHand: 5, noteName: 'G2', chordName: 'G' },
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 16, fingerLeftHand: 5, noteName: 'G1', chordName: 'G' },
       { midi: 59, clef: 'treble', duration: 4, beat: 1, measure: 16, fingerRightHand: 1, noteName: 'B2' },
       { midi: 62, clef: 'treble', duration: 4, beat: 1, measure: 16, fingerRightHand: 2, noteName: 'D3' },
       { midi: 67, clef: 'treble', duration: 4, beat: 1, measure: 16, fingerRightHand: 4, noteName: 'G3' },
@@ -1788,96 +1788,96 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
     chords: ['F', 'C7', 'Bb'],
     scoreTrack: [
       // Compasso 1 ("Cai, cai, ba-lão...")
-      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 1, fingerLeftHand: 5, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 1, fingerLeftHand: 5, noteName: 'F1', chordName: 'F' },
       { midi: 65, clef: 'treble', duration: 1, beat: 1, measure: 1, fingerRightHand: 3, noteName: 'F3' },
       { midi: 65, clef: 'treble', duration: 1, beat: 2, measure: 1, fingerRightHand: 3, noteName: 'F3' },
       { midi: 69, clef: 'treble', duration: 2, beat: 3, measure: 1, fingerRightHand: 5, noteName: 'A3' },
 
       // Compasso 2 ("...cai, cai, ba-lão...")
-      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 2, fingerLeftHand: 5, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 2, fingerLeftHand: 5, noteName: 'F1', chordName: 'F' },
       { midi: 65, clef: 'treble', duration: 1, beat: 1, measure: 2, fingerRightHand: 3, noteName: 'F3' },
       { midi: 65, clef: 'treble', duration: 1, beat: 2, measure: 2, fingerRightHand: 3, noteName: 'F3' },
       { midi: 69, clef: 'treble', duration: 2, beat: 3, measure: 2, fingerRightHand: 5, noteName: 'A3' },
 
       // Compasso 3 ("...aqui na minha mão...")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 3, fingerLeftHand: 1, noteName: 'C3', chordName: 'C7' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 3, fingerLeftHand: 1, noteName: 'C2', chordName: 'C7' },
       { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 3, fingerRightHand: 4, noteName: 'G3' },
       { midi: 65, clef: 'treble', duration: 1, beat: 2, measure: 3, fingerRightHand: 3, noteName: 'F3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 3, measure: 3, fingerRightHand: 2, noteName: 'E3' },
       { midi: 62, clef: 'treble', duration: 1, beat: 4, measure: 3, fingerRightHand: 1, noteName: 'D3' },
 
       // Compasso 4 ("...não cai, não...")
-      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 4, fingerLeftHand: 5, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 4, fingerLeftHand: 5, noteName: 'F1', chordName: 'F' },
       { midi: 65, clef: 'treble', duration: 4, beat: 1, measure: 4, fingerRightHand: 3, noteName: 'F3' },
 
       // Compasso 5 ("Não cai não, não cai não...")
-      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 5, fingerLeftHand: 5, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 5, fingerLeftHand: 5, noteName: 'F1', chordName: 'F' },
       { midi: 69, clef: 'treble', duration: 1, beat: 1, measure: 5, fingerRightHand: 5, noteName: 'A3' },
       { midi: 69, clef: 'treble', duration: 1, beat: 2, measure: 5, fingerRightHand: 5, noteName: 'A3' },
       { midi: 69, clef: 'treble', duration: 2, beat: 3, measure: 5, fingerRightHand: 5, noteName: 'A3' },
 
       // Compasso 6 ("...não cai na rua do sabão...")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 6, fingerLeftHand: 1, noteName: 'C3', chordName: 'C7' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 6, fingerLeftHand: 1, noteName: 'C2', chordName: 'C7' },
       { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 6, fingerRightHand: 4, noteName: 'G3' },
       { midi: 65, clef: 'treble', duration: 1, beat: 2, measure: 6, fingerRightHand: 3, noteName: 'F3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 3, measure: 6, fingerRightHand: 2, noteName: 'E3' },
       { midi: 62, clef: 'treble', duration: 1, beat: 4, measure: 6, fingerRightHand: 1, noteName: 'D3' },
 
       // Compasso 7 ("Cai aqui, cai aqui...")
-      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 7, fingerLeftHand: 5, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 7, fingerLeftHand: 5, noteName: 'F1', chordName: 'F' },
       { midi: 65, clef: 'treble', duration: 1, beat: 1, measure: 7, fingerRightHand: 3, noteName: 'F3' },
       { midi: 65, clef: 'treble', duration: 1, beat: 2, measure: 7, fingerRightHand: 3, noteName: 'F3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 3, measure: 7, fingerRightHand: 2, noteName: 'E3' },
       { midi: 62, clef: 'treble', duration: 1, beat: 4, measure: 7, fingerRightHand: 1, noteName: 'D3' },
 
       // Compasso 8 ("...na minha mão.")
-      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 8, fingerLeftHand: 5, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 8, fingerLeftHand: 5, noteName: 'F1', chordName: 'F' },
       { midi: 65, clef: 'treble', duration: 4, beat: 1, measure: 8, fingerRightHand: 3, noteName: 'F3' },
 
       // Compasso 9 ("Não vou lá, não vou lá...")
-      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 9, fingerLeftHand: 5, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 9, fingerLeftHand: 5, noteName: 'F1', chordName: 'F' },
       { midi: 69, clef: 'treble', duration: 1, beat: 1, measure: 9, fingerRightHand: 5, noteName: 'A3' },
       { midi: 67, clef: 'treble', duration: 1, beat: 2, measure: 9, fingerRightHand: 4, noteName: 'G3' },
       { midi: 65, clef: 'treble', duration: 2, beat: 3, measure: 9, fingerRightHand: 3, noteName: 'F3' },
 
       // Compasso 10 ("...não vou lá, tenho medo de apanhar!")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 10, fingerLeftHand: 1, noteName: 'C3', chordName: 'C7' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 10, fingerLeftHand: 1, noteName: 'C2', chordName: 'C7' },
       { midi: 64, clef: 'treble', duration: 1, beat: 1, measure: 10, fingerRightHand: 2, noteName: 'E3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 10, fingerRightHand: 2, noteName: 'E3' },
       { midi: 62, clef: 'treble', duration: 2, beat: 3, measure: 10, fingerRightHand: 1, noteName: 'D3' },
 
       // Compasso 11 ("Cai, cai, balão...")
-      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 11, fingerLeftHand: 5, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 11, fingerLeftHand: 5, noteName: 'F1', chordName: 'F' },
       { midi: 65, clef: 'treble', duration: 1, beat: 1, measure: 11, fingerRightHand: 3, noteName: 'F3' },
       { midi: 65, clef: 'treble', duration: 1, beat: 2, measure: 11, fingerRightHand: 3, noteName: 'F3' },
       { midi: 69, clef: 'treble', duration: 2, beat: 3, measure: 11, fingerRightHand: 5, noteName: 'A3' },
 
       // Compasso 12 ("...cai na minha mão!")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 12, fingerLeftHand: 1, noteName: 'C3', chordName: 'C7' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 12, fingerLeftHand: 1, noteName: 'C2', chordName: 'C7' },
       { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 12, fingerRightHand: 4, noteName: 'G3' },
       { midi: 65, clef: 'treble', duration: 1, beat: 2, measure: 12, fingerRightHand: 3, noteName: 'F3' },
       { midi: 64, clef: 'treble', duration: 2, beat: 3, measure: 12, fingerRightHand: 2, noteName: 'E3' },
 
       // Compasso 13 ("Não cai no mato...")
-      { midi: 46, clef: 'bass', duration: 4, beat: 1, measure: 13, fingerLeftHand: 4, noteName: 'Bb2', chordName: 'Bb' },
+      { midi: 46, clef: 'bass', duration: 4, beat: 1, measure: 13, fingerLeftHand: 4, noteName: 'Bb1', chordName: 'Bb' },
       { midi: 70, clef: 'treble', duration: 1, beat: 1, measure: 13, fingerRightHand: 5, noteName: 'Bb3' },
       { midi: 70, clef: 'treble', duration: 1, beat: 2, measure: 13, fingerRightHand: 5, noteName: 'Bb3' },
       { midi: 69, clef: 'treble', duration: 2, beat: 3, measure: 13, fingerRightHand: 4, noteName: 'A3' },
 
       // Compasso 14 ("...nem no ribeirão...")
-      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 14, fingerLeftHand: 5, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 14, fingerLeftHand: 5, noteName: 'F1', chordName: 'F' },
       { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 14, fingerRightHand: 3, noteName: 'G3' },
       { midi: 65, clef: 'treble', duration: 1, beat: 2, measure: 14, fingerRightHand: 2, noteName: 'F3' },
       { midi: 64, clef: 'treble', duration: 2, beat: 3, measure: 14, fingerRightHand: 1, noteName: 'E3' },
 
       // Compasso 15 ("Cai aqui na minha mão...")
-      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 15, fingerLeftHand: 1, noteName: 'C3', chordName: 'C7' },
+      { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 15, fingerLeftHand: 1, noteName: 'C2', chordName: 'C7' },
       { midi: 62, clef: 'treble', duration: 1, beat: 1, measure: 15, fingerRightHand: 1, noteName: 'D3' },
       { midi: 64, clef: 'treble', duration: 1, beat: 2, measure: 15, fingerRightHand: 2, noteName: 'E3' },
       { midi: 67, clef: 'treble', duration: 2, beat: 3, measure: 15, fingerRightHand: 4, noteName: 'G3' },
 
       // Compasso 16 (Acorde Final em Fá Maior)
-      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 16, fingerLeftHand: 5, noteName: 'F2', chordName: 'F' },
+      { midi: 41, clef: 'bass', duration: 4, beat: 1, measure: 16, fingerLeftHand: 5, noteName: 'F1', chordName: 'F' },
       { midi: 57, clef: 'treble', duration: 4, beat: 1, measure: 16, fingerRightHand: 1, noteName: 'A2' },
       { midi: 60, clef: 'treble', duration: 4, beat: 1, measure: 16, fingerRightHand: 2, noteName: 'C3' },
       { midi: 65, clef: 'treble', duration: 4, beat: 1, measure: 16, fingerRightHand: 4, noteName: 'F3' },

@@ -27,11 +27,11 @@ export const TrebleStaffReadingDiagram: React.FC = () => (
 
       {/* Linhas (Mi, Sol, Si, Ré, Fá) */}
       {[
-        { x: 140, y: 108, name: 'Mi4 (E4)', l: '1ª Linha', c: '#6366f1' },
-        { x: 260, y: 86, name: 'Sol4 (G4)', l: '2ª Linha (Chave)', c: '#38bdf8' },
-        { x: 380, y: 64, name: 'Si4 (B4)', l: '3ª Linha', c: '#10b981' },
-        { x: 500, y: 42, name: 'Ré5 (D5)', l: '4ª Linha', c: '#f59e0b' },
-        { x: 620, y: 20, name: 'Fá5 (F5)', l: '5ª Linha', c: '#f43f5e' },
+        { x: 140, y: 108, name: 'Mi3 (E3)', l: '1ª Linha', c: '#6366f1' },
+        { x: 260, y: 86, name: 'Sol3 (G3)', l: '2ª Linha (Chave)', c: '#38bdf8' },
+        { x: 380, y: 64, name: 'Si3 (B3)', l: '3ª Linha', c: '#10b981' },
+        { x: 500, y: 42, name: 'Ré4 (D4)', l: '4ª Linha', c: '#f59e0b' },
+        { x: 620, y: 20, name: 'Fá4 (F4)', l: '5ª Linha', c: '#f43f5e' },
       ].map((n, i) => (
         <g key={i}>
           <ellipse cx={n.x} cy={n.y} rx="12" ry="8" fill={n.c} transform={`rotate(-20 ${n.x} ${n.y})`} />
@@ -43,10 +43,10 @@ export const TrebleStaffReadingDiagram: React.FC = () => (
       {/* Espaços destacados à direita */}
       <rect x="710" y="10" width="130" height="110" rx="8" fill="rgba(99, 102, 241, 0.1)" stroke="#6366f1" strokeWidth="1" />
       <text x="775" y="32" textAnchor="middle" fill="#c7d2fe" fontSize="11" fontWeight="bold">4 ESPAÇOS:</text>
-      <text x="775" y="52" textAnchor="middle" fill="#cbd5e1" fontSize="10">4º Espaço: Mi5</text>
-      <text x="775" y="68" textAnchor="middle" fill="#cbd5e1" fontSize="10">3º Espaço: Dó5</text>
-      <text x="775" y="84" textAnchor="middle" fill="#cbd5e1" fontSize="10">2º Espaço: Lá4</text>
-      <text x="775" y="100" textAnchor="middle" fill="#cbd5e1" fontSize="10">1º Espaço: Fá4</text>
+      <text x="775" y="52" textAnchor="middle" fill="#cbd5e1" fontSize="10">4º Espaço: Mi4 (E4)</text>
+      <text x="775" y="68" textAnchor="middle" fill="#cbd5e1" fontSize="10">3º Espaço: Dó4 (C4)</text>
+      <text x="775" y="84" textAnchor="middle" fill="#cbd5e1" fontSize="10">2º Espaço: Lá3 (A3)</text>
+      <text x="775" y="100" textAnchor="middle" fill="#cbd5e1" fontSize="10">1º Espaço: Fá3 (F3)</text>
     </g>
   </svg>
 );
@@ -72,11 +72,11 @@ export const BassStaffReadingDiagram: React.FC = () => (
 
       {/* Linhas (Sol, Si, Ré, Fá, Lá) */}
       {[
-        { x: 140, y: 108, name: 'Sol2 (G2)', l: '1ª Linha', c: '#10b981' },
-        { x: 260, y: 86, name: 'Si2 (B2)', l: '2ª Linha', c: '#06b6d4' },
-        { x: 380, y: 64, name: 'Ré3 (D3)', l: '3ª Linha', c: '#818cf8' },
-        { x: 500, y: 42, name: 'Fá3 (F3)', l: '4ª Linha (Foco)', c: '#f59e0b' },
-        { x: 620, y: 20, name: 'Lá3 (A3)', l: '5ª Linha', c: '#f43f5e' },
+        { x: 140, y: 108, name: 'Sol1 (G1)', l: '1ª Linha', c: '#10b981' },
+        { x: 260, y: 86, name: 'Si1 (B1)', l: '2ª Linha', c: '#06b6d4' },
+        { x: 380, y: 64, name: 'Ré2 (D2)', l: '3ª Linha', c: '#818cf8' },
+        { x: 500, y: 42, name: 'Fá2 (F2)', l: '4ª Linha (Foco)', c: '#f59e0b' },
+        { x: 620, y: 20, name: 'Lá2 (A2)', l: '5ª Linha', c: '#f43f5e' },
       ].map((n, i) => (
         <g key={i}>
           <ellipse cx={n.x} cy={n.y} rx="12" ry="8" fill={n.c} transform={`rotate(-20 ${n.x} ${n.y})`} />

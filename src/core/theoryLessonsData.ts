@@ -125,9 +125,9 @@ export const THEORY_MODULES: TheoryModuleData[] = [
               'Cada linha ou espaço sucessivo representa o salto de uma nota diatônica (segunda natural). Para sons muito agudos ou muito graves que ultrapassam os limites das 5 linhas, utilizamos as Linhas Suplementares Superiores e Inferiores.'
             ],
             bulletPoints: [
-              'Clave de Sol: Usada para instrumentos de registro médio e agudo (violão, flauta, violino, mão direita do piano). Seu desenho começa na 2ª linha, batizando-a como Sol3 (G3/G4).',
-              'Clave de Fá: Usada para instrumentos graves (violoncelo, contrabaixo, mão esquerda do piano). Os dois pontos circundam a 4ª linha, batizando-a como Fá2 (F2/F3).',
-              'O Sistema de Grande Pauta (Grand Staff): Une a Clave de Sol (acima) e a Clave de Fá (abaixo). O Dó Central fica exatamente entre as duas pautas sobre uma linha suplementar neutra.'
+              'Clave de Sol: Usada para instrumentos de registro médio e agudo (violão, flauta, violino, mão direita do piano). Seu desenho começa na 2ª linha, batizando-a como Sol3 (G3).',
+              'Clave de Fá: Usada para instrumentos graves (violoncelo, contrabaixo, mão esquerda do piano). Os dois pontos circundam a 4ª linha, batizando-a como Fá2 (F2).',
+              'O Sistema de Grande Pauta (Grand Staff): Une a Clave de Sol (acima) e a Clave de Fá (abaixo). O Dó Central (C3) fica exatamente entre as duas pautas sobre uma linha suplementar neutra.'
             ]
           }
         ],
@@ -135,7 +135,7 @@ export const THEORY_MODULES: TheoryModuleData[] = [
         audioExamples: [
           {
             title: 'Grande Pauta: Do Grave da Clave de Fá ao Agudo da Clave de Sol',
-            description: 'Ouça o percurso sonoro que conecta Fá2, Dó Central e Sol4.',
+            description: 'Ouça o percurso sonoro que conecta Fá2, Dó Central (C3) e Sol3.',
             notes: [41, 60, 67],
             type: 'melodic'
           }

@@ -175,7 +175,8 @@ export function drawScoreNotes({
       ctx.fillStyle = isTrad ? '#0f172a' : '#f8fafc';
       ctx.font = 'bold 10px JetBrains Mono, monospace';
       ctx.textAlign = 'center';
-      ctx.fillText(note.noteName, rx, nameY);
+      const nInfo = getNoteInfo(note.midi);
+      ctx.fillText(`${nInfo.name}${nInfo.octave}`, rx, nameY);
     }
 
     if (displayOptions.showFingering) {
