@@ -29,13 +29,43 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
   onPlayPauseToggle,
   onTempoChange,
 }) => {
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [containerWidth, setContainerWidth] = useState<number>(1200);
   const lastProcessedKeyRef = useRef<string>('');
   const [internalIsPlaying, setInternalIsPlaying] = useState<boolean>(false);
   const isPlaying = controlledIsPlaying !== undefined ? controlledIsPlaying : internalIsPlaying;
 
   const [mode, setMode] = useState<'wait' | 'flow'>(initialMode);
   const [tempo, setTempo] = useState<number>(bpm);
+
+  // Monitora a largura real disponível para ocupar 100% da área do teclado
+  useEffect(() => {
+    const updateWidth = () => {
+      if (containerRef.current) {
+        const measured = containerRef.current.clientWidth;
+        if (measured > 200) {
+          setContainerWidth(measured);
+        }
+      }
+    };
+
+    updateWidth();
+
+    const observer = new ResizeObserver(() => {
+      updateWidth();
+    });
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    window.addEventListener('resize', updateWidth);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateWidth);
+    };
+  }, []);
 
   useEffect(() => {
     setTempo(bpm);
@@ -177,8 +207,8 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
       for (let i = 0; i < 5; i++) {
         const y = trebleBaseY - i * trebleLineStep;
         ctx.beginPath();
-        ctx.moveTo(20, y);
-        ctx.lineTo(width - 20, y);
+        ctx.moveTo(24, y);
+        ctx.lineTo(width - 24, y);
         ctx.stroke();
       }
 
@@ -191,8 +221,8 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
       for (let i = 0; i < 5; i++) {
         const y = bassBaseY - i * bassLineStep;
         ctx.beginPath();
-        ctx.moveTo(20, y);
-        ctx.lineTo(width - 20, y);
+        ctx.moveTo(24, y);
+        ctx.lineTo(width - 24, y);
         ctx.stroke();
       }
 
@@ -205,8 +235,8 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
       ctx.setLineDash([4, 4]);
       ctx.beginPath();
-      ctx.moveTo(20, 140);
-      ctx.lineTo(width - 20, 140);
+      ctx.moveTo(24, 140);
+      ctx.lineTo(width - 24, 140);
       ctx.stroke();
       ctx.setLineDash([]);
 
@@ -318,7 +348,7 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [isPlaying, mode, tempo, currentIndex, notes]);
+  }, [isPlaying, mode, tempo, currentIndex, notes, containerWidth]);
 
   const handlePlayPause = () => {
     setIsPlaying(!isPlaying);
@@ -343,9 +373,9 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
   const currentTargetNote = notes[currentIndex] || notes[0];
 
   return (
-    <div className="w-full flex flex-col items-center select-none no-select space-y-4">
-      {/* HUD Superior: Modo, Pontuação e Precisão */}
-      <div className="w-full flex flex-wrap items-center justify-between gap-3 px-5 py-3 rounded-2xl bg-white/5 border border-white/10 text-xs">
+    <div className="w-full flex flex-col items-stretch select-none no-select space-y-3">
+      {/* HUD Superior: Modo, Pontuação e Precisão (100% de Largura) */}
+      <div className="w-full flex flex-wrap items-center justify-between gap-3 px-4 sm:px-5 py-3 rounded-2xl bg-white/[0.03] border border-white/5 text-xs backdrop-blur-md">
         <div className="flex items-center gap-3">
           {/* Seletor de Modo */}
           <div className="flex bg-black/40 p-1 rounded-xl border border-white/5">
@@ -393,11 +423,14 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* Canvas da Partitura Deslizante (Widescreen 100% com Bordas Sutis) */}
-      <div className="relative w-full h-64 rounded-3xl overflow-hidden border border-white/5 shadow-2xl glass-panel">
+      {/* Canvas da Partitura Deslizante (Ocupa Exatamente 100% da Largura, Idêntico ao Teclado) */}
+      <div
+        ref={containerRef}
+        className="relative w-full h-64 rounded-3xl overflow-hidden border border-white/5 shadow-2xl glass-panel bg-[#090814]/95"
+      >
         <canvas
           ref={canvasRef}
-          width={1200}
+          width={containerWidth}
           height={256}
           className="w-full h-full block cursor-pointer"
           onClick={handleTapCurrent}
@@ -407,7 +440,7 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
         {!isPlaying && (
           <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-black/60 backdrop-blur-xs">
             <Sparkles className="w-8 h-8 text-cyan-400 mb-2" />
-            <h4 className="text-base font-bold text-white">Partitura Interativa Deslizante</h4>
+            <h4 className="text-base font-bold text-white font-display">Partitura Interativa Deslizante</h4>
             <p className="text-xs text-slate-300 mt-1 max-w-md">
               {mode === 'wait'
                 ? 'A partitura pausa na barra azul até que você acerte a nota no teclado. Toque "Iniciar" para praticar!'
@@ -417,16 +450,16 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
         )}
       </div>
 
-      {/* Rótulo da Próxima Tecla & Dedo */}
+      {/* Rótulo da Próxima Tecla & Dedo (100% de Largura com Bordas Sutis) */}
       {isPlaying && currentTargetNote && (
-        <div className="w-full px-4 py-2.5 rounded-2xl bg-indigo-950/30 border border-indigo-500/20 flex items-center justify-between text-xs text-slate-200">
+        <div className="w-full px-4 sm:px-5 py-2.5 rounded-2xl bg-indigo-950/30 border border-indigo-500/20 flex items-center justify-between text-xs text-slate-200 backdrop-blur-md">
           <div className="flex items-center gap-2">
             <span className="text-slate-400 font-mono">Próxima Nota:</span>
-            <span className="text-base font-black text-white font-display px-2 py-0.5 rounded-lg bg-indigo-600">
+            <span className="text-base font-black text-white font-display px-2.5 py-0.5 rounded-lg bg-indigo-600 shadow-md shadow-indigo-600/30">
               {currentTargetNote.noteName}
             </span>
             {currentTargetNote.chordName && (
-              <span className="text-amber-400 font-bold font-mono">
+              <span className="text-amber-400 font-bold font-mono px-2 py-0.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
                 Acorde: {currentTargetNote.chordName}
               </span>
             )}
@@ -439,8 +472,8 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
         </div>
       )}
 
-      {/* Controles de Reprodução e Andamento */}
-      <div className="w-full flex flex-wrap items-center justify-between gap-3 pt-1">
+      {/* Controles de Reprodução e Andamento (Ocupa 100% de Largura, Idêntico ao Teclado) */}
+      <div className="w-full flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-white/[0.03] border border-white/5 backdrop-blur-md">
         <div className="flex items-center gap-2.5">
           <button
             onClick={handlePlayPause}
@@ -453,12 +486,12 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
             {isPlaying ? (
               <>
                 <Pause className="w-4 h-4 fill-current" />
-                <span>Pausar Partitura</span>
+                <span>Pausar</span>
               </>
             ) : (
               <>
                 <Play className="w-4 h-4 fill-current" />
-                <span>Iniciar Partitura</span>
+                <span>Tocar</span>
               </>
             )}
           </button>
@@ -473,8 +506,8 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
         </div>
 
         {/* Andamento (BPM) com Steppers [- 5] e [+ 5] */}
-        <div className="flex items-center gap-2 bg-white/[0.03] px-3.5 py-1.5 rounded-2xl border border-white/5">
-          <span className="text-[11px] text-slate-400 font-mono">BPM:</span>
+        <div className="flex items-center gap-2 bg-black/40 px-3.5 py-1.5 rounded-xl border border-white/5">
+          <span className="text-[11px] text-slate-400 font-mono">Andamento:</span>
           <button
             onClick={() => handleTempoChange(tempo - 5)}
             className="w-6 h-6 rounded-lg bg-white/5 hover:bg-white/10 text-white font-mono font-bold text-xs flex items-center justify-center cursor-pointer transition-colors"
@@ -482,7 +515,7 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
           >
             -
           </button>
-          <span className="text-xs font-bold font-mono text-white w-14 text-center">{tempo} BPM</span>
+          <span className="text-xs font-bold font-mono text-cyan-300 w-16 text-center">{tempo} BPM</span>
           <button
             onClick={() => handleTempoChange(tempo + 5)}
             className="w-6 h-6 rounded-lg bg-white/5 hover:bg-white/10 text-white font-mono font-bold text-xs flex items-center justify-center cursor-pointer transition-colors"
@@ -496,7 +529,7 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
             max="180"
             value={tempo}
             onChange={(e) => handleTempoChange(parseInt(e.target.value))}
-            className="w-24 sm:w-32 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+            className="w-24 sm:w-36 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
           />
         </div>
       </div>
