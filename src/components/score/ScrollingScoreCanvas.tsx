@@ -22,6 +22,8 @@ interface Props {
   toleranceMs?: number;
   isDemoMode?: boolean;
   currentNoteIndex?: number;
+  autoPlayAudio?: boolean;
+  enableMetronomeSound?: boolean;
 }
 
 function parseTimeSignature(ts = '4/4') {
@@ -50,7 +52,9 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
   instrument = 'piano',
   toleranceMs = 70,
   isDemoMode = false,
-  currentNoteIndex = 0,
+  currentNoteIndex,
+  autoPlayAudio = false,
+  enableMetronomeSound = false,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -293,6 +297,15 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
   const isPausedWaitingRef = useRef<boolean>(false);
   const animationFrameRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(performance.now());
+  const playedNotesRef = useRef<Set<number>>(new Set());
+  const playedBeatsRef = useRef<Set<number>>(new Set());
+
+  // Sincroniza índice de nota externo se fornecido
+  useEffect(() => {
+    if (currentNoteIndex !== undefined) {
+      setCurrentIndex(currentNoteIndex);
+    }
+  }, [currentNoteIndex]);
 
   // =========================================================================
   // GEOMETRIA AMPLIADA DA PARTITURA: Alta Legibilidade e Conforto Visual
@@ -407,7 +420,6 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
   };
 
   const triggerNoteHit = useCallback((noteIndex: number, diffMs = 0) => {
-    if (isDemoMode) return;
     if (noteIndex >= notes.length) return;
     const note = notes[noteIndex];
 
@@ -417,23 +429,25 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
       soundEngine.playPianoNote(note.midi, 1.2);
     }
 
-    const tol = toleranceMs ?? 70;
-    const perfectLimit = Math.max(12, Math.round(tol * 0.4));
-    const goodLimit = tol;
-    const absDiff = Math.abs(diffMs);
+    if (!isDemoMode) {
+      const tol = toleranceMs ?? 70;
+      const perfectLimit = Math.max(12, Math.round(tol * 0.4));
+      const goodLimit = tol;
+      const absDiff = Math.abs(diffMs);
 
-    let evaluation = { label: `PERFEITO! (±${Math.round(absDiff)}ms)`, color: 'text-emerald-400', points: 100 };
-    if (absDiff > goodLimit) {
-      evaluation = { label: diffMs > 0 ? `ATRASADO (+${Math.round(absDiff)}ms)` : `ADIANTADO (-${Math.round(absDiff)}ms)`, color: 'text-amber-400', points: 50 };
-    } else if (absDiff > perfectLimit) {
-      evaluation = { label: `BOM (±${Math.round(absDiff)}ms)`, color: 'text-cyan-400', points: 80 };
+      let evaluation = { label: `PERFEITO! (±${Math.round(absDiff)}ms)`, color: 'text-emerald-400', points: 100 };
+      if (absDiff > goodLimit) {
+        evaluation = { label: diffMs > 0 ? `ATRASADO (+${Math.round(absDiff)}ms)` : `ADIANTADO (-${Math.round(absDiff)}ms)`, color: 'text-amber-400', points: 50 };
+      } else if (absDiff > perfectLimit) {
+        evaluation = { label: `BOM (±${Math.round(absDiff)}ms)`, color: 'text-cyan-400', points: 80 };
+      }
+
+      setFeedback({ text: evaluation.label, color: evaluation.color });
+      setScore(s => s + evaluation.points);
+      setStreak(str => str + 1);
+
+      if (onNoteHit) onNoteHit(note, diffMs);
     }
-
-    setFeedback({ text: evaluation.label, color: evaluation.color });
-    setScore(s => s + evaluation.points);
-    setStreak(str => str + 1);
-
-    if (onNoteHit) onNoteHit(note, diffMs);
 
     // Destrava o modo "esperar"
     isPausedWaitingRef.current = false;
@@ -450,9 +464,9 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
     if (isDemoMode) return;
     if (currentMidiPressed === null || currentMidiPressed === undefined) return;
 
-    const midi = typeof currentMidiPressed === 'number' ? currentMidiPressed : currentMidiPressed.midi;
+    const rawMidi = typeof currentMidiPressed === 'number' ? currentMidiPressed : currentMidiPressed.midi;
     const timestamp = typeof currentMidiPressed === 'number' ? Date.now() : (currentMidiPressed.timestamp ?? Date.now());
-    const eventKey = `${midi}_${timestamp}`;
+    const eventKey = `${rawMidi}_${timestamp}`;
 
     if (lastProcessedKeyRef.current === eventKey) return;
     lastProcessedKeyRef.current = eventKey;
@@ -464,11 +478,12 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
       const currentScrollSec = scrollOffsetRef.current / ((tempo / 60) * pixelsPerBeat);
       const diffMs = (currentScrollSec - targetTimeSec) * 1000;
 
-      if (targetNote.midi === midi) {
+      // Se for toque rítmico genérico (-1) OU coincidir com a nota da partitura:
+      if (rawMidi === -1 || targetNote.midi === rawMidi) {
         triggerNoteHit(currentIndex, diffMs);
       } else {
         setStreak(0);
-        setFeedback({ text: 'Tente novamente', color: 'text-rose-400' });
+        setFeedback({ text: 'Nota incorreta', color: 'text-rose-400' });
       }
     }
   }, [currentMidiPressed, isPlaying, currentIndex, notes, triggerNoteHit, isDemoMode, timeline, tempo, pixelsPerBeat]);
@@ -495,9 +510,44 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
         const speedPixelsPerSec = (tempo / 60) * pixelsPerBeat;
         scrollOffsetRef.current += speedPixelsPerSec * deltaSec;
 
+        const currentBeat = scrollOffsetRef.current / pixelsPerBeat;
+
+        // Reprodução sonora sincronizada com a linha de ataque (Modo Demonstração ou Áudio Ativo)
+        const shouldPlayNotes = (isDemoMode || autoPlayAudio) && currentNoteIndex === undefined;
+        if (shouldPlayNotes) {
+          for (let i = 0; i < timeline.noteOffsets.length; i++) {
+            const noteBeat = timeline.noteOffsets[i];
+            if (noteBeat <= currentBeat + 0.05 && !playedNotesRef.current.has(i)) {
+              playedNotesRef.current.add(i);
+              const note = notes[i];
+              if (note) {
+                const noteDur = (note.duration || 1) * (60 / tempo);
+                if (instrument === 'guitar') {
+                  soundEngine.playGuitarPluck(note.midi, noteDur * 1.4);
+                } else {
+                  soundEngine.playPianoNote(note.midi, noteDur * 1.2);
+                }
+                setCurrentIndex(i);
+              }
+            }
+          }
+        }
+
+        // Metrônomo sonoro no compasso
+        if (enableMetronomeSound) {
+          const currentIntBeat = Math.floor(currentBeat);
+          if (currentIntBeat >= 0 && currentIntBeat <= timeline.totalBeats && !playedBeatsRef.current.has(currentIntBeat)) {
+            playedBeatsRef.current.add(currentIntBeat);
+            const isDownbeat = (currentIntBeat % beatsPerMeasure) === 0;
+            soundEngine.playMetronomeClick(isDownbeat, false);
+          }
+        }
+
         // Se a partitura ultrapassou o fim da obra, reinicia em loop suavemente sem esvaziar a tela
         const maxScroll = (timeline.totalBeats + 1) * pixelsPerBeat;
         if (scrollOffsetRef.current > maxScroll) {
+          playedNotesRef.current.clear();
+          playedBeatsRef.current.clear();
           if (isDemoMode) {
             scrollOffsetRef.current = 0;
           } else if (onLessonComplete) {
@@ -1208,6 +1258,9 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
     beatsPerMeasure,
     instrument,
     isDemoMode,
+    autoPlayAudio,
+    enableMetronomeSound,
+    currentNoteIndex,
     scoreTheme,
     pixelsPerBeat,
     trebleBaseY,
@@ -1219,13 +1272,19 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
     attackLineX,
   ]);
 
-  const handlePlayPause = () => {
-    setIsPlaying(!isPlaying);
+  const handlePlayPause = async () => {
+    await soundEngine.ensureAudioReady();
+    const nextState = !isPlaying;
+    setIsPlaying(nextState);
+    if (onPlayPauseToggle) onPlayPauseToggle(nextState);
   };
 
   const handleReset = () => {
     setIsPlaying(false);
+    if (onPlayPauseToggle) onPlayPauseToggle(false);
     scrollOffsetRef.current = 0;
+    playedNotesRef.current.clear();
+    playedBeatsRef.current.clear();
     setCurrentIndex(0);
     setScore(0);
     setStreak(0);

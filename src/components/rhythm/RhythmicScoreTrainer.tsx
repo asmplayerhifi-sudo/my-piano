@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { RHYTHM_EXERCISES } from '../../core/rhythmExercisesData';
 import { ScrollingScoreCanvas } from '../score/ScrollingScoreCanvas';
 import { soundEngine } from '../../core/soundEngine';
@@ -71,71 +71,22 @@ export const RhythmicScoreTrainer: React.FC<Props> = ({
 
   // 4. Modo Áudio Demonstrativo ("Ouvir Exemplo")
   const [isAuditionPlaying, setIsAuditionPlaying] = useState<boolean>(false);
-  const auditionTimeoutsRef = useRef<number[]>([]);
 
   const stopDemoAudio = useCallback(() => {
-    auditionTimeoutsRef.current.forEach(t => clearTimeout(t));
-    auditionTimeoutsRef.current = [];
     setIsAuditionPlaying(false);
+    setIsPlaying(false);
   }, []);
 
-  const playDemoAudio = () => {
+  const playDemoAudio = async () => {
     if (isAuditionPlaying) {
       stopDemoAudio();
       return;
     }
 
-    stopDemoAudio();
+    await soundEngine.ensureAudioReady();
     setIsAuditionPlaying(true);
-
-    const secondsPerBeat = 60 / bpm;
-    const notes = currentExercise.scoreTrack;
-    if (!notes || notes.length === 0) return;
-
-    // Calcula tempo inicial
-    const startTimeAudio = soundEngine.getCurrentTime() + 0.2;
-
-    // Toca cliques de metrônomo e notas musicais sincronizadas
-    const totalMeasures = Math.max(...notes.map(n => n.measure || 1));
-    const beatsPerMeasure = currentExercise.timeSignature === '3/4' ? 3 : currentExercise.timeSignature === '2/4' ? 2 : 4;
-    const totalBeats = totalMeasures * beatsPerMeasure;
-
-    // Agenda cliques de metrônomo
-    for (let b = 0; b < totalBeats; b++) {
-      const beatTime = startTimeAudio + b * secondsPerBeat;
-      const isDownbeat = b % beatsPerMeasure === 0;
-      soundEngine.playMetronomeClick(isDownbeat, false, beatTime);
-    }
-
-    // Agenda notas musicais com instrumentos fiéis
-    notes.forEach((note) => {
-      const measureOffset = ((note.measure || 1) - 1) * beatsPerMeasure;
-      const beatOffset = (note.beat !== undefined ? note.beat - 1 : 0);
-      const noteAbsoluteBeat = measureOffset + beatOffset;
-      const noteTime = startTimeAudio + noteAbsoluteBeat * secondsPerBeat;
-      const noteDurationSec = note.duration * secondsPerBeat;
-
-      // Executa no soundEngine
-      if (instrument === 'guitar') {
-        soundEngine.playGuitarPluck(note.midi, noteDurationSec * 1.5, noteTime);
-      } else {
-        soundEngine.playPianoNote(note.midi, noteDurationSec * 1.2, noteTime);
-      }
-    });
-
-    // Timeout de encerramento do playback demonstrativo
-    const totalDurationMs = (totalBeats * secondsPerBeat + 0.6) * 1000;
-    const endTimeout = window.setTimeout(() => {
-      setIsAuditionPlaying(false);
-    }, totalDurationMs);
-    auditionTimeoutsRef.current.push(endTimeout);
+    setIsPlaying(true);
   };
-
-  useEffect(() => {
-    return () => {
-      stopDemoAudio();
-    };
-  }, [stopDemoAudio]);
 
   // 5. Estatísticas de Treino Rítmico
   const [combo, setCombo] = useState<number>(0);
@@ -180,12 +131,11 @@ export const RhythmicScoreTrainer: React.FC<Props> = ({
   }, [toleranceMs]);
 
   // Handler para toque interativo manual no ritmo (Botão ou Barra de Espaço)
-  const handleManualTap = useCallback(() => {
-    // Dispara a nota atual do exercício
-    const sampleNote = currentExercise.scoreTrack[0];
-    const midiToPlay = sampleNote ? sampleNote.midi : 60;
-    setSimulatedMidiPress({ midi: midiToPlay, timestamp: Date.now() });
-  }, [currentExercise]);
+  const handleManualTap = useCallback(async () => {
+    await soundEngine.ensureAudioReady();
+    // Envia midi: -1 indicando toque rítmico (aceita a nota exata da posição atual no exercício)
+    setSimulatedMidiPress({ midi: -1, timestamp: Date.now() });
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -479,6 +429,7 @@ export const RhythmicScoreTrainer: React.FC<Props> = ({
         {/* Canvas da Partitura Deslizante com Grand Staff */}
         <div className="w-full">
           <ScrollingScoreCanvas
+            key={`${selectedExerciseId}-${isAuditionPlaying ? 'audition' : 'live'}`}
             notes={currentExercise.scoreTrack}
             bpm={bpm}
             timeSignature={currentExercise.timeSignature}
@@ -487,9 +438,19 @@ export const RhythmicScoreTrainer: React.FC<Props> = ({
             toleranceMs={toleranceMs}
             onNoteHit={handleNoteHit}
             currentMidiPressed={simulatedMidiPress}
-            isPlaying={isPlaying}
-            onPlayPauseToggle={(playing) => setIsPlaying(playing)}
+            isPlaying={isPlaying || isAuditionPlaying}
+            isDemoMode={isAuditionPlaying}
+            autoPlayAudio={isAuditionPlaying}
+            enableMetronomeSound={true}
+            onPlayPauseToggle={(playing) => {
+              setIsPlaying(playing);
+              if (!playing) setIsAuditionPlaying(false);
+            }}
             onTempoChange={(newTempo) => setBpm(newTempo)}
+            onLessonComplete={() => {
+              setIsAuditionPlaying(false);
+              setIsPlaying(false);
+            }}
           />
         </div>
 
