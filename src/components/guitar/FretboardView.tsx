@@ -8,13 +8,24 @@ interface Props {
   chordShape?: GuitarChordShape;
   fretCount?: number;        // Padrão: 12 a 15 casas
   showNoteNames?: boolean;
+  showFingerPointer?: boolean;
 }
+
+export const GUITAR_FINGER_INFO: Record<number, { name: string; short: string; color: string; bg: string }> = {
+  1: { name: 'Indicador', short: 'D1', color: '#06b6d4', bg: '#164e63' },
+  2: { name: 'Médio', short: 'D2', color: '#10b981', bg: '#064e3b' },
+  3: { name: 'Anelar', short: 'D3', color: '#f59e0b', bg: '#78350f' },
+  4: { name: 'Mínimo', short: 'D4', color: '#f43f5e', bg: '#881337' },
+};
 
 export const FretboardView: React.FC<Props> = ({
   chordShape,
   fretCount = 14,
-  showNoteNames = false,
+  showNoteNames = true,
+  showFingerPointer = true,
 }) => {
+  const [showFingerGuide, setShowFingerGuide] = React.useState<boolean>(showFingerPointer);
+  const [displayNoteNames, setDisplayNoteNames] = React.useState<boolean>(showNoteNames);
   // Trastes onde ficam os marcadores de posição (inlays de madrepérola)
   const singleDotFrets = [3, 5, 7, 9, 15];
   const doubleDotFrets = [12];
@@ -67,23 +78,79 @@ export const FretboardView: React.FC<Props> = ({
 
   return (
     <div className="w-full flex flex-col items-center select-none no-select">
-      {/* Botões de Ação Sonora */}
-      <div className="flex items-center gap-3 mb-3">
-        <button
-          onClick={handlePlayChord}
-          className="px-4 py-2 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-amber-500/20 cursor-pointer active:scale-95 transition-all"
-        >
-          <Play className="w-4 h-4 fill-current" />
-          <span>Palhetar Acorde</span>
-        </button>
+      {/* Botões de Ação Sonora & Alternador de Apontamento de Dedos */}
+      <div className="w-full flex flex-wrap items-center justify-between gap-3 mb-3">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handlePlayChord}
+            className="px-4 py-2 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-amber-500/20 cursor-pointer active:scale-95 transition-all"
+          >
+            <Play className="w-4 h-4 fill-current" />
+            <span>Palhetar Acorde</span>
+          </button>
 
-        <button
-          onClick={handlePlayArpeggio}
-          className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 text-slate-200 font-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer active:scale-95 transition-all"
-        >
-          <Music className="w-4 h-4 text-amber-400" />
-          <span>Dedilhado Lento</span>
-        </button>
+          <button
+            onClick={handlePlayArpeggio}
+            className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 text-slate-200 font-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer active:scale-95 transition-all"
+          >
+            <Music className="w-4 h-4 text-amber-400" />
+            <span>Dedilhado Lento</span>
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setDisplayNoteNames(v => !v)}
+            className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              displayNoteNames
+                ? 'bg-white/15 text-white border border-white/20'
+                : 'bg-white/5 text-slate-400 hover:text-white'
+            }`}
+          >
+            {displayNoteNames ? 'Notas: ON' : 'Notas: OFF'}
+          </button>
+
+          <button
+            onClick={() => setShowFingerGuide(v => !v)}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              showFingerGuide
+                ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30'
+                : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
+            }`}
+          >
+            <span>🖐️</span>
+            <span>{showFingerGuide ? 'Dedos nos Trastes: ON' : 'Dedos: OFF'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Banner Didático de Dedos da Mão Esquerda (Trastes) e Mão Direita */}
+      <div className="w-full max-w-4xl mb-3 px-4 py-2.5 rounded-2xl bg-black/50 border border-white/10 shadow-xl flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-amber-400 font-black uppercase tracking-wider text-[11px] flex items-center gap-1">
+            <span>🖐️</span>
+            <span>Mão Esquerda (Trastes):</span>
+          </span>
+          <div className="flex flex-wrap items-center gap-1.5 font-mono text-[11px]">
+            <span className="px-2 py-0.5 rounded-lg bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30">
+              D1: Indicador
+            </span>
+            <span className="px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
+              D2: Médio
+            </span>
+            <span className="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
+              D3: Anelar
+            </span>
+            <span className="px-2 py-0.5 rounded-lg bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">
+              D4: Mínimo
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 text-[11px] text-slate-400 border-t sm:border-t-0 sm:border-l border-white/10 pt-1.5 sm:pt-0 sm:pl-3">
+          <span className="text-slate-300 font-bold">Mão Direita:</span>
+          <span className="font-mono text-amber-300">P (Polegar) • I (Indicador) • M (Médio) • A (Anelar)</span>
+        </div>
       </div>
 
       {/* Braço de Violão SVG Responsivo com Scroll Horizontal */}
@@ -180,15 +247,46 @@ export const FretboardView: React.FC<Props> = ({
 
             {/* Pestana / Barra de Acorde (Se houver) */}
             {chordShape && chordShape.barreFret && chordShape.barreStrings && (
-              <rect
-                x={nutWidth + (chordShape.barreFret - 0.6) * fretWidth}
-                y={18 + (chordShape.barreStrings[0] - 1) * stringSpacing}
-                width={12}
-                height={(chordShape.barreStrings[1] - chordShape.barreStrings[0]) * stringSpacing}
-                rx={6}
-                fill="#fbbf24"
-                opacity={0.85}
-              />
+              <g>
+                <rect
+                  x={nutWidth + (chordShape.barreFret - 0.6) * fretWidth}
+                  y={18 + (chordShape.barreStrings[0] - 1) * stringSpacing}
+                  width={12}
+                  height={(chordShape.barreStrings[1] - chordShape.barreStrings[0]) * stringSpacing}
+                  rx={6}
+                  fill="#06b6d4"
+                  opacity={0.85}
+                />
+                {showFingerGuide && (
+                  <g>
+                    <polygon
+                      points={`${nutWidth + (chordShape.barreFret - 0.5) * fretWidth - 3},15 ${nutWidth + (chordShape.barreFret - 0.5) * fretWidth + 3},15 ${nutWidth + (chordShape.barreFret - 0.5) * fretWidth},18`}
+                      fill="#06b6d4"
+                    />
+                    <rect
+                      x={nutWidth + (chordShape.barreFret - 0.5) * fretWidth - 28}
+                      y={0}
+                      width={56}
+                      height={15}
+                      rx={3.5}
+                      fill="#06b6d4"
+                      stroke="#0c0a09"
+                      strokeWidth={0.8}
+                    />
+                    <text
+                      x={nutWidth + (chordShape.barreFret - 0.5) * fretWidth}
+                      y={10.5}
+                      textAnchor="middle"
+                      fill="#0c0a09"
+                      fontSize={8}
+                      fontWeight="900"
+                      fontFamily="JetBrains Mono, monospace"
+                    >
+                      👆 D1 Pestana
+                    </text>
+                  </g>
+                )}
+              </g>
             )}
 
             {/* 6 Cordas do Violão (Espessuras variadas do bordão às primas) */}
@@ -237,39 +335,42 @@ export const FretboardView: React.FC<Props> = ({
               // Corda abafada (X)
               if (fret === -1) {
                 return (
-                  <text
-                    key={`muted-${strNum}`}
-                    x={nutWidth - 4}
-                    y={yPos + 4}
-                    textAnchor="middle"
-                    fill="#f43f5e"
-                    fontSize={13}
-                    fontWeight="black"
-                  >
-                    ✕
-                  </text>
+                  <g key={`muted-${strNum}`}>
+                    <text
+                      x={nutWidth - 4}
+                      y={yPos + 4}
+                      textAnchor="middle"
+                      fill="#f43f5e"
+                      fontSize={13}
+                      fontWeight="black"
+                    >
+                      ✕
+                    </text>
+                  </g>
                 );
               }
 
               // Corda Solta (O)
               if (fret === 0) {
                 return (
-                  <circle
-                    key={`open-${strNum}`}
-                    cx={nutWidth - 4}
-                    cy={yPos}
-                    r={4}
-                    fill="none"
-                    stroke="#10b981"
-                    strokeWidth={2}
-                  />
+                  <g key={`open-${strNum}`}>
+                    <circle
+                      cx={nutWidth - 4}
+                      cy={yPos}
+                      r={4.5}
+                      fill="none"
+                      stroke="#10b981"
+                      strokeWidth={2}
+                    />
+                  </g>
                 );
               }
 
-              // Casa premida (bolinha de dedo)
+              // Casa premida (bolinha de dedo com apontador)
               const xPos = nutWidth + (fret - 0.5) * fretWidth;
               const noteInfo = getGuitarFretNote(strNum, fret);
               const isRoot = noteInfo.name === chordShape.rootNote;
+              const fingerInfo = GUITAR_FINGER_INFO[finger] || { name: 'Dedo', short: `D${finger}`, color: '#fbbf24' };
 
               return (
                 <g key={`fret-pressed-${strNum}`} onClick={() => handlePluckString(strNum)} className="cursor-pointer">
@@ -285,27 +386,62 @@ export const FretboardView: React.FC<Props> = ({
                     />
                   )}
 
+                  {/* Círculo da nota no traste */}
                   <circle
                     cx={xPos}
                     cy={yPos}
                     r={11}
-                    fill={isRoot ? '#f43f5e' : '#fbbf24'}
+                    fill={isRoot ? '#f43f5e' : fingerInfo.color}
                     stroke="#0c0a09"
                     strokeWidth={2}
                   />
 
-                  {/* Número do dedo ou nome da nota */}
+                  {/* Nome da nota ou número do dedo no centro da casa */}
                   <text
                     x={xPos}
-                    y={yPos + 4}
+                    y={yPos + 3.5}
                     textAnchor="middle"
                     fill="#0c0a09"
                     fontSize={10}
                     fontWeight="black"
-                    fontFamily="JetBrains Mono, monospace"
+                    fontFamily="Outfit, sans-serif"
                   >
-                    {showNoteNames ? noteInfo.name : finger > 0 ? finger : ''}
+                    {displayNoteNames ? noteInfo.name : finger > 0 ? `D${finger}` : ''}
                   </text>
+
+                  {/* Apontamento Visual de Dedo (Pointer Badge) */}
+                  {showFingerGuide && finger > 0 && (
+                    <g className="finger-pointer-badge">
+                      {/* Triângulo indicador apontando diretamente para o centro da casa */}
+                      <polygon
+                        points={`${xPos - 3.5},${yPos - 12} ${xPos + 3.5},${yPos - 12} ${xPos},${yPos - 9}`}
+                        fill={fingerInfo.color}
+                      />
+                      {/* Cápsula com borda de alto contraste */}
+                      <rect
+                        x={xPos - 18}
+                        y={yPos - 27}
+                        width={36}
+                        height={15}
+                        rx={3.5}
+                        fill={fingerInfo.color}
+                        stroke="#0c0a09"
+                        strokeWidth={0.8}
+                      />
+                      {/* Texto do Dedo com indicação explícita */}
+                      <text
+                        x={xPos}
+                        y={yPos - 16.5}
+                        textAnchor="middle"
+                        fill="#0c0a09"
+                        fontSize={8.5}
+                        fontWeight="900"
+                        fontFamily="JetBrains Mono, monospace"
+                      >
+                        👆 {fingerInfo.short}
+                      </text>
+                    </g>
+                  )}
                 </g>
               );
             })}

@@ -99,6 +99,15 @@ export const RepertoireView: React.FC = () => {
   const noteOffsetsRef = useRef<number[]>(noteOffsets);
   noteOffsetsRef.current = noteOffsets;
 
+  // Apontamento de dedos para as teclas do piano com base na música atual
+  const highlightedSongKeys = useMemo(() => {
+    return activeSong.scoreTrack.map(n => ({
+      midi: n.midi,
+      finger: n.fingerRightHand || n.fingerLeftHand,
+      degreeName: n.noteName,
+    }));
+  }, [activeSong]);
+
   // Motor de Reprodução em Áudio Fiel à Partitura (Polifonia, Baixo e Melodia Sincronizados)
   const playNextNote = (noteIndex: number) => {
     if (!isPlayingRef.current) return;
@@ -389,6 +398,7 @@ export const RepertoireView: React.FC = () => {
             startOctave={2}
             octaveCount={3}
             allowOctaveControls={true}
+            highlightedKeys={highlightedSongKeys}
             activeExternalNotes={lastMidiEvent ? [lastMidiEvent.midi] : []}
             onKeyPlay={(midi) => handleNoteInput(midi)}
           />

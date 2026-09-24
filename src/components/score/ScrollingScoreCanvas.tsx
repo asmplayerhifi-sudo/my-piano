@@ -277,6 +277,88 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
     }
   };
 
+  // Helper para desenhar cápsulas arredondadas com compatibilidade total
+  const drawRoundedPill = (
+    c: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    r: number
+  ) => {
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.lineTo(x + w - r, y);
+    c.arcTo(x + w, y, x + w, y + r, r);
+    c.lineTo(x + w, y + h - r);
+    c.arcTo(x + w, y + h, x + w - r, y + h, r);
+    c.lineTo(x + r, y + h);
+    c.arcTo(x, y + h, x, y + h - r, r);
+    c.lineTo(x, y + r);
+    c.arcTo(x, y, x + r, y, r);
+    c.closePath();
+  };
+
+  // Resolvedor inteligente de dedilhado e apontamento visual de dedo
+  const getScoreNoteFingering = (note: ScoreNote, instMode: 'piano' | 'guitar') => {
+    // 1. Dedo explícito da Mão Direita
+    if (note.fingerRightHand) {
+      const f = note.fingerRightHand;
+      const names = ['', 'Polegar', 'Indicador', 'Médio', 'Anelar', 'Mínimo'];
+      const colors = ['', '#f59e0b', '#38bdf8', '#10b981', '#c084fc', '#f43f5e'];
+      return {
+        finger: f,
+        hand: 'MD',
+        label: `MD ${f}`,
+        fingerName: names[f] || `D${f}`,
+        color: colors[f] || '#38bdf8',
+      };
+    }
+
+    // 2. Dedo explícito da Mão Esquerda
+    if (note.fingerLeftHand) {
+      const f = note.fingerLeftHand;
+      const names = ['', 'Polegar', 'Indicador', 'Médio', 'Anelar', 'Mínimo'];
+      return {
+        finger: f,
+        hand: 'ME',
+        label: `ME ${f}`,
+        fingerName: names[f] || `D${f}`,
+        color: '#c084fc',
+      };
+    }
+
+    // 3. Apontamento específico para Violão
+    if (instMode === 'guitar') {
+      if (note.clef === 'bass' || note.midi <= 52) {
+        return { finger: 'P', hand: 'RH', label: 'P', fingerName: 'Polegar', color: '#f59e0b' };
+      }
+      const midi = note.midi;
+      if (midi <= 59) return { finger: 'i', hand: 'RH', label: 'i', fingerName: 'Indicador', color: '#38bdf8' };
+      if (midi <= 62) return { finger: 'm', hand: 'RH', label: 'm', fingerName: 'Médio', color: '#10b981' };
+      return { finger: 'a', hand: 'RH', label: 'a', fingerName: 'Anelar', color: '#c084fc' };
+    }
+
+    // 4. Mapeamento diatônico para Piano (Posição de 5 Dedos)
+    const midi = note.midi;
+    if (note.clef === 'treble') {
+      if (midi === 60) return { finger: 1, hand: 'MD', label: 'D1', fingerName: 'Polegar', color: '#f59e0b' };
+      if (midi === 62) return { finger: 2, hand: 'MD', label: 'D2', fingerName: 'Indicador', color: '#38bdf8' };
+      if (midi === 64) return { finger: 3, hand: 'MD', label: 'D3', fingerName: 'Médio', color: '#10b981' };
+      if (midi === 65) return { finger: 4, hand: 'MD', label: 'D4', fingerName: 'Anelar', color: '#c084fc' };
+      if (midi >= 67 && midi <= 68) return { finger: 5, hand: 'MD', label: 'D5', fingerName: 'Mínimo', color: '#f43f5e' };
+      if (midi >= 69) return { finger: 1, hand: 'MD', label: 'D1', fingerName: 'Polegar', color: '#f59e0b' };
+      return { finger: 1, hand: 'MD', label: 'D1', fingerName: 'Polegar', color: '#f59e0b' };
+    } else {
+      if (midi === 48) return { finger: 5, hand: 'ME', label: 'D5', fingerName: 'Mínimo', color: '#f43f5e' };
+      if (midi === 50) return { finger: 4, hand: 'ME', label: 'D4', fingerName: 'Anelar', color: '#c084fc' };
+      if (midi === 52) return { finger: 3, hand: 'ME', label: 'D3', fingerName: 'Médio', color: '#10b981' };
+      if (midi === 53) return { finger: 2, hand: 'ME', label: 'D2', fingerName: 'Indicador', color: '#38bdf8' };
+      if (midi === 55) return { finger: 1, hand: 'ME', label: 'D1', fingerName: 'Polegar', color: '#f59e0b' };
+      return { finger: 3, hand: 'ME', label: 'D3', fingerName: 'Médio', color: '#c084fc' };
+    }
+  };
+
   const triggerNoteHit = useCallback((noteIndex: number, diffMs = 0) => {
     if (noteIndex >= notes.length) return;
     const note = notes[noteIndex];
@@ -785,17 +867,41 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
             ctx.fillText(labelText, noteX, noteY + 20);
           }
 
-          // G. Posição dos Dedos (MD / ME)
+          // G. Apontamento de Dedo na Partitura (MD / ME / Violão)
           if (displayOptions.showFingering) {
-            const yOffset = displayOptions.showNoteNames ? 32 : 20;
-            if (note.fingerRightHand) {
-              ctx.fillStyle = '#38bdf8';
-              ctx.font = 'bold 10px JetBrains Mono, monospace';
-              ctx.fillText(`MD ${note.fingerRightHand}`, noteX, noteY + yOffset);
-            } else if (note.fingerLeftHand) {
-              ctx.fillStyle = '#c084fc';
-              ctx.font = 'bold 10px JetBrains Mono, monospace';
-              ctx.fillText(`ME ${note.fingerLeftHand}`, noteX, noteY + yOffset);
+            const fingering = getScoreNoteFingering(note, instrument);
+            if (fingering) {
+              const badgeY = noteY - 26;
+              const badgeW = 44;
+              const badgeH = 16;
+              const cx = noteX;
+
+              ctx.save();
+              // Triângulo apontador em direção à cabeça da nota
+              ctx.fillStyle = fingering.color;
+              ctx.beginPath();
+              ctx.moveTo(cx - 3.5, badgeY + badgeH);
+              ctx.lineTo(cx + 3.5, badgeY + badgeH);
+              ctx.lineTo(cx, badgeY + badgeH + 4);
+              ctx.closePath();
+              ctx.fill();
+
+              // Cápsula com borda de alto contraste
+              ctx.fillStyle = fingering.color;
+              drawRoundedPill(ctx, cx - badgeW / 2, badgeY, badgeW, badgeH, 4);
+              ctx.fill();
+
+              ctx.strokeStyle = '#090814';
+              ctx.lineWidth = 1;
+              ctx.stroke();
+
+              // Texto do Dedo com indicação explícita
+              ctx.fillStyle = '#090814';
+              ctx.font = 'bold 9.5px JetBrains Mono, monospace';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText(`👆 ${fingering.label}`, cx, badgeY + badgeH / 2);
+              ctx.restore();
             }
           }
 
@@ -1045,10 +1151,22 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
             </span>
           </div>
 
-          <div className="font-mono text-cyan-300 font-bold">
-            {currentTargetNote.fingerRightHand ? `Mão Direita: Dedo ${currentTargetNote.fingerRightHand}` : ''}
-            {currentTargetNote.fingerLeftHand ? `Mão Esquerda: Dedo ${currentTargetNote.fingerLeftHand}` : ''}
-          </div>
+          {/* Apontamento de Dedo em Destaque no HUD */}
+          {(() => {
+            const fingering = getScoreNoteFingering(currentTargetNote, instrument);
+            if (!fingering) return null;
+            return (
+              <div className="flex items-center gap-2 px-3 py-1 rounded-xl bg-cyan-950/60 border border-cyan-400/40 shadow-lg">
+                <span className="text-white text-xs">👆 Dedo:</span>
+                <span className="font-mono font-black text-xs px-2 py-0.5 rounded-lg bg-cyan-500 text-slate-950">
+                  {fingering.label}
+                </span>
+                <span className="text-cyan-300 font-bold text-xs">
+                  ({fingering.fingerName})
+                </span>
+              </div>
+            );
+          })()}
         </div>
       )}
 

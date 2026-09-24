@@ -20,7 +20,16 @@ interface Props {
   allowOctaveControls?: boolean;
   showWaterfall?: boolean;
   activeExternalNotes?: number[];
+  showFingerPointer?: boolean;
 }
+
+export const FINGER_INFO: Record<number, { name: string; short: string; color: string; bg: string }> = {
+  1: { name: 'Polegar', short: 'D1', color: '#f59e0b', bg: '#78350f' },
+  2: { name: 'Indicador', short: 'D2', color: '#06b6d4', bg: '#164e63' },
+  3: { name: 'Médio', short: 'D3', color: '#10b981', bg: '#064e3b' },
+  4: { name: 'Anelar', short: 'D4', color: '#c084fc', bg: '#581c87' },
+  5: { name: 'Mínimo', short: 'D5', color: '#f43f5e', bg: '#881337' },
+};
 
 export const PianoKeyboard: React.FC<Props> = ({
   startOctave: initialStartOctave = 2,
@@ -30,6 +39,7 @@ export const PianoKeyboard: React.FC<Props> = ({
   allowOctaveControls = true,
   showWaterfall = true,
   activeExternalNotes = [],
+  showFingerPointer = true,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [containerWidth, setContainerWidth] = useState<number>(1000);
@@ -37,6 +47,7 @@ export const PianoKeyboard: React.FC<Props> = ({
   const [startOctave, setStartOctave] = useState<number>(initialStartOctave);
   const [octaveCount, setOctaveCount] = useState<number>(initialOctaveCount);
   const [isWaterfallActive, setIsWaterfallActive] = useState<boolean>(showWaterfall);
+  const [showFingerGuide, setShowFingerGuide] = useState<boolean>(showFingerPointer);
   const [trailTheme, setTrailTheme] = useState<TrailColorTheme>('coral');
   const [trailSpeed, setTrailSpeed] = useState<number>(180);
   const [activePressedKeys, setActivePressedKeys] = useState<number[]>([]);
@@ -121,6 +132,31 @@ export const PianoKeyboard: React.FC<Props> = ({
     if (degree.includes('5')) return '#10b981'; // Quinta: Verde Esmeralda
     if (degree.includes('7')) return '#a855f7'; // Sétima: Roxo
     return '#f59e0b';
+  };
+
+  // Identificador do dedo correspondente à tecla (Apontamento de Dedo)
+  const getKeyFinger = (midi: number, highlight?: HighlightedKey): number | null => {
+    if (highlight && highlight.finger) return highlight.finger;
+    if (!showFingerGuide) return null;
+
+    // Se a tecla está destacada sem dedo explícito, calcula pelo grau harmônico
+    if (highlight) {
+      if (highlight.degreeName === '1') return 1;
+      if (highlight.degreeName?.includes('3')) return 3;
+      if (highlight.degreeName?.includes('5')) return 5;
+    }
+
+    // Posição de 5 dedos padrão na mão direita (C4–G4)
+    if (midi >= 60 && midi <= 67) {
+      const map: Record<number, number> = { 60: 1, 62: 2, 64: 3, 65: 4, 67: 5 };
+      if (map[midi]) return map[midi];
+    }
+    // Posição de 5 dedos padrão na mão esquerda (C3–G3)
+    if (midi >= 48 && midi <= 55) {
+      const map: Record<number, number> = { 48: 5, 50: 4, 52: 3, 53: 2, 55: 1 };
+      if (map[midi]) return map[midi];
+    }
+    return null;
   };
 
   const handleShiftOctave = (delta: number) => {
@@ -252,6 +288,44 @@ export const PianoKeyboard: React.FC<Props> = ({
           </div>
         </div>
       )}
+
+      {/* Barra de Dedos da Mão (Apontamento Visual com Rótulos e Cores) */}
+      <div className="w-full flex flex-wrap items-center justify-between gap-3 px-3.5 py-2 rounded-2xl bg-black/40 border border-white/10 shadow-lg text-xs">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <span className="text-indigo-300 font-black text-xs uppercase tracking-wider flex items-center gap-1.5">
+            <span>🖐️</span>
+            <span>Apontamento de Dedos:</span>
+          </span>
+          <div className="flex flex-wrap items-center gap-1.5 font-mono text-[11px]">
+            <span className="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
+              D1: Polegar
+            </span>
+            <span className="px-2 py-0.5 rounded-lg bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30">
+              D2: Indicador
+            </span>
+            <span className="px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
+              D3: Médio
+            </span>
+            <span className="px-2 py-0.5 rounded-lg bg-purple-500/20 text-purple-300 font-bold border border-purple-500/30">
+              D4: Anelar
+            </span>
+            <span className="px-2 py-0.5 rounded-lg bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">
+              D5: Mínimo
+            </span>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setShowFingerGuide(v => !v)}
+          className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            showFingerGuide
+              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
+              : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
+          }`}
+        >
+          {showFingerGuide ? '🖐️ Dedos na Tecla: ON' : '🖐️ Dedos: OFF'}
+        </button>
+      </div>
 
       {/* Legenda de Cores de Graus Harmônicos & Dó Central */}
       <div className="flex flex-wrap items-center justify-center gap-4 text-xs">
@@ -405,28 +479,63 @@ export const PianoKeyboard: React.FC<Props> = ({
                         )}
                       </text>
 
-                      {/* Dedo sugerido (1 a 5) se destacado (ocultado se ultra compacto) */}
-                      {highlight && highlight.finger && !isUltraCompact && (
-                        <circle
-                          cx={x + whiteKeyWidth / 2}
-                          cy={whiteKeyHeight - 28}
-                          r={Math.min(9, whiteKeyWidth * 0.24)}
-                          fill="#0f172a"
-                        />
-                      )}
-                      {highlight && highlight.finger && !isUltraCompact && (
-                        <text
-                          x={x + whiteKeyWidth / 2}
-                          y={whiteKeyHeight - 25}
-                          textAnchor="middle"
-                          fill="#ffffff"
-                          fontSize={Math.max(7, labelFontSize * 0.9)}
-                          fontWeight="black"
-                          fontFamily="JetBrains Mono, monospace"
-                        >
-                          {highlight.finger}
-                        </text>
-                      )}
+                      {/* Apontamento de Dedo (Pointer Badge) na Tecla Branca */}
+                      {(() => {
+                        const finger = getKeyFinger(midi, highlight);
+                        if (!finger || !FINGER_INFO[finger] || isUltraCompact) return null;
+                        const info = FINGER_INFO[finger];
+                        const badgeW = whiteKeyWidth > 38 ? 32 : 22;
+                        const badgeH = 17;
+                        const badgeY = whiteKeyHeight - 34;
+                        const cx = x + whiteKeyWidth / 2;
+
+                        return (
+                          <g className="finger-pointer-badge">
+                            {/* Triângulo indicador apontando para a base da tecla */}
+                            <polygon
+                              points={`${cx - 3.5},${badgeY + badgeH - 1} ${cx + 3.5},${badgeY + badgeH - 1} ${cx},${badgeY + badgeH + 3.5}`}
+                              fill={info.color}
+                            />
+                            {/* Cápsula com borda de alto contraste */}
+                            <rect
+                              x={cx - badgeW / 2}
+                              y={badgeY}
+                              width={badgeW}
+                              height={badgeH}
+                              rx={4}
+                              fill={info.color}
+                              stroke="#090814"
+                              strokeWidth={1}
+                            />
+                            {/* Rótulo D1, D2, D3, D4, D5 */}
+                            <text
+                              x={cx}
+                              y={badgeY + 12}
+                              textAnchor="middle"
+                              fill="#090814"
+                              fontSize={Math.max(8, Math.min(10.5, whiteKeyWidth * 0.22))}
+                              fontWeight="900"
+                              fontFamily="JetBrains Mono, monospace"
+                            >
+                              {info.short}
+                            </text>
+                            {/* Nome por extenso se houver espaço */}
+                            {whiteKeyWidth > 46 && (
+                              <text
+                                x={cx}
+                                y={badgeY - 3}
+                                textAnchor="middle"
+                                fill={info.color}
+                                fontSize={7.5}
+                                fontWeight="bold"
+                                fontFamily="Outfit, sans-serif"
+                              >
+                                {info.name}
+                              </text>
+                            )}
+                          </g>
+                        );
+                      })()}
                     </g>
                   );
                 });
@@ -491,28 +600,46 @@ export const PianoKeyboard: React.FC<Props> = ({
                         </text>
                       )}
 
-                      {/* Dedo sugerido */}
-                      {highlight && highlight.finger && !isUltraCompact && (
-                        <circle
-                          cx={x + blackKeyWidth / 2}
-                          cy={blackKeyHeight - 24}
-                          r={Math.min(7.5, blackKeyWidth * 0.28)}
-                          fill="#0f172a"
-                        />
-                      )}
-                      {highlight && highlight.finger && !isUltraCompact && (
-                        <text
-                          x={x + blackKeyWidth / 2}
-                          y={blackKeyHeight - 21}
-                          textAnchor="middle"
-                          fill="#ffffff"
-                          fontSize={Math.max(6.5, blackLabelFontSize * 0.85)}
-                          fontWeight="black"
-                          fontFamily="JetBrains Mono, monospace"
-                        >
-                          {highlight.finger}
-                        </text>
-                      )}
+                      {/* Apontamento de Dedo na Tecla Preta */}
+                      {(() => {
+                        const finger = getKeyFinger(midi, highlight);
+                        if (!finger || !FINGER_INFO[finger] || isUltraCompact) return null;
+                        const info = FINGER_INFO[finger];
+                        const badgeW = Math.max(16, blackKeyWidth - 4);
+                        const badgeH = 15;
+                        const badgeY = blackKeyHeight - 26;
+                        const cx = x + blackKeyWidth / 2;
+
+                        return (
+                          <g className="finger-pointer-badge-black">
+                            <polygon
+                              points={`${cx - 3},${badgeY + badgeH - 1} ${cx + 3},${badgeY + badgeH - 1} ${cx},${badgeY + badgeH + 3}`}
+                              fill={info.color}
+                            />
+                            <rect
+                              x={cx - badgeW / 2}
+                              y={badgeY}
+                              width={badgeW}
+                              height={badgeH}
+                              rx={3.5}
+                              fill={info.color}
+                              stroke="#090814"
+                              strokeWidth={0.8}
+                            />
+                            <text
+                              x={cx}
+                              y={badgeY + 11}
+                              textAnchor="middle"
+                              fill="#090814"
+                              fontSize={Math.max(7, Math.min(9.5, blackKeyWidth * 0.32))}
+                              fontWeight="900"
+                              fontFamily="JetBrains Mono, monospace"
+                            >
+                              {info.short}
+                            </text>
+                          </g>
+                        );
+                      })()}
                     </g>
                   );
                 });
