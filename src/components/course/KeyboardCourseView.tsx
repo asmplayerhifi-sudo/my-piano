@@ -277,6 +277,7 @@ export const KeyboardCourseView: React.FC = () => {
 
                 <ScrollingScoreCanvas
                   notes={activeLesson.scoreTrack}
+                  timeSignature="4/4"
                   bpm={75}
                   currentMidiPressed={lastMidiEvent}
                   onLessonComplete={() => handleLessonComplete(activeLesson.id)}

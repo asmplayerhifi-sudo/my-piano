@@ -1,14 +1,15 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import confetti from 'canvas-confetti';
 import { soundEngine } from '../../core/soundEngine';
 import type { ScoreNote } from '../../core/coursesData';
-import { Play, Pause, RotateCcw, Sparkles, Flame, Award } from 'lucide-react';
+import { Play, Pause, RotateCcw, Sparkles, Flame, Award, Clock } from 'lucide-react';
 
 export type MidiInputNote = number | { midi: number; timestamp?: number } | null;
 
 interface Props {
   notes: ScoreNote[];
   bpm?: number;
+  timeSignature?: string;
   initialMode?: 'wait' | 'flow';
   onNoteHit?: (note: ScoreNote, diffMs: number) => void;
   onLessonComplete?: () => void;
@@ -18,9 +19,21 @@ interface Props {
   onTempoChange?: (tempo: number) => void;
 }
 
+function parseTimeSignature(ts = '4/4') {
+  const parts = ts.split('/');
+  const num = parseInt(parts[0], 10) || 4;
+  const den = parseInt(parts[1], 10) || 4;
+  let beatsPerMeasure = num;
+  if (den === 8 && num >= 6) {
+    beatsPerMeasure = num / 3;
+  }
+  return { numerator: num, denominator: den, beatsPerMeasure };
+}
+
 export const ScrollingScoreCanvas: React.FC<Props> = ({
   notes,
   bpm = 75,
+  timeSignature = '4/4',
   initialMode = 'wait',
   onNoteHit,
   onLessonComplete,
@@ -38,6 +51,148 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
 
   const [mode, setMode] = useState<'wait' | 'flow'>(initialMode);
   const [tempo, setTempo] = useState<number>(bpm);
+
+  const { numerator, denominator, beatsPerMeasure } = useMemo(
+    () => parseTimeSignature(timeSignature),
+    [timeSignature]
+  );
+
+  // Pré-computa linha do tempo com barras de compasso e posições rítmicas exatas
+  const timeline = useMemo(() => {
+    const measureStartBeats = new Map<number, number>();
+    const noteOffsets: number[] = [];
+
+    if (!notes || notes.length === 0) {
+      return { noteOffsets, measureStartBeats, maxMeasure: 1, totalBeats: 0 };
+    }
+
+    let currentMeasure = notes[0]?.measure || 1;
+    let currentMeasureStart = 0;
+    measureStartBeats.set(currentMeasure, 0);
+
+    let maxBeatInCurrentMeasure = 0;
+    let prevNoteMeasure = currentMeasure;
+
+    for (let i = 0; i < notes.length; i++) {
+      const note = notes[i];
+      const m = note.measure || 1;
+      const b = (note.beat !== undefined ? Math.max(0, note.beat - 1) : 0);
+
+      if (m !== prevNoteMeasure) {
+        currentMeasureStart += Math.max(beatsPerMeasure, maxBeatInCurrentMeasure);
+        measureStartBeats.set(m, currentMeasureStart);
+        maxBeatInCurrentMeasure = 0;
+        prevNoteMeasure = m;
+      }
+
+      const noteOffset = currentMeasureStart + b;
+      noteOffsets.push(noteOffset);
+
+      const noteEnd = b + (note.duration || 1);
+      if (noteEnd > maxBeatInCurrentMeasure) {
+        maxBeatInCurrentMeasure = noteEnd;
+      }
+    }
+
+    const finalMeasure = prevNoteMeasure + 1;
+    const finalStart = currentMeasureStart + Math.max(beatsPerMeasure, maxBeatInCurrentMeasure);
+    measureStartBeats.set(finalMeasure, finalStart);
+
+    return {
+      noteOffsets,
+      measureStartBeats,
+      maxMeasure: prevNoteMeasure,
+      totalBeats: finalStart,
+    };
+  }, [notes, beatsPerMeasure]);
+
+  // Opções ON / OFF para anotações didáticas e símbolos de partitura completa
+  const [displayOptions, setDisplayOptions] = useState<{
+    showFingering: boolean;
+    showNoteNames: boolean;
+    showRests: boolean;
+    showBarlines: boolean;
+    showChords: boolean;
+  }>({
+    showFingering: true,
+    showNoteNames: true,
+    showRests: true,
+    showBarlines: true,
+    showChords: true,
+  });
+
+  const toggleOption = (key: 'showFingering' | 'showNoteNames' | 'showRests' | 'showBarlines' | 'showChords') => {
+    setDisplayOptions(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  // Identifica pausas e silêncios musicais para notação formal completa
+  const restsList = useMemo(() => {
+    const list: Array<{ clef: 'treble' | 'bass'; beatOffset: number; duration: number; measure: number }> = [];
+    if (!notes || notes.length === 0) return list;
+
+    const measuresMap = new Map<number, { treble: ScoreNote[]; bass: ScoreNote[] }>();
+    for (let m = 1; m <= timeline.maxMeasure; m++) {
+      measuresMap.set(m, { treble: [], bass: [] });
+    }
+
+    notes.forEach((note) => {
+      const m = note.measure || 1;
+      const entry = measuresMap.get(m);
+      if (entry) {
+        if (note.clef === 'treble') {
+          entry.treble.push(note);
+        } else {
+          entry.bass.push(note);
+        }
+      }
+    });
+
+    measuresMap.forEach((entry, m) => {
+      const measureStartBeat = timeline.measureStartBeats.get(m) ?? (m - 1) * beatsPerMeasure;
+
+      // 1. Silêncio em Clave de Sol
+      if (entry.treble.length === 0) {
+        list.push({
+          clef: 'treble',
+          beatOffset: measureStartBeat + (beatsPerMeasure / 2),
+          duration: beatsPerMeasure,
+          measure: m,
+        });
+      } else {
+        const firstBeat = Math.min(...entry.treble.map(n => n.beat || 1));
+        if (firstBeat > 1) {
+          list.push({
+            clef: 'treble',
+            beatOffset: measureStartBeat,
+            duration: firstBeat - 1,
+            measure: m,
+          });
+        }
+      }
+
+      // 2. Silêncio em Clave de Fá
+      if (entry.bass.length === 0) {
+        list.push({
+          clef: 'bass',
+          beatOffset: measureStartBeat + (beatsPerMeasure / 2),
+          duration: beatsPerMeasure,
+          measure: m,
+        });
+      } else {
+        const firstBeat = Math.min(...entry.bass.map(n => n.beat || 1));
+        if (firstBeat > 1) {
+          list.push({
+            clef: 'bass',
+            beatOffset: measureStartBeat,
+            duration: firstBeat - 1,
+            measure: m,
+          });
+        }
+      }
+    });
+
+    return list;
+  }, [notes, timeline, beatsPerMeasure]);
 
   // Monitora a largura real disponível para ocupar 100% da área do teclado
   useEffect(() => {
@@ -231,6 +386,22 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
       ctx.font = 'bold 30px serif';
       ctx.fillText('𝄢', 35, bassBaseY - 14);
 
+      // Fórmula de Compasso (Time Signature) na Cabeça da Pauta (X = 78)
+      ctx.save();
+      ctx.font = 'bold 18px Outfit, sans-serif';
+      ctx.textAlign = 'center';
+
+      // Treble Staff (Clave de Sol)
+      ctx.fillStyle = '#818cf8';
+      ctx.fillText(numerator.toString(), 78, trebleBaseY - 22);
+      ctx.fillText(denominator.toString(), 78, trebleBaseY - 2);
+
+      // Bass Staff (Clave de Fá)
+      ctx.fillStyle = '#a855f7';
+      ctx.fillText(numerator.toString(), 78, bassBaseY - 22);
+      ctx.fillText(denominator.toString(), 78, bassBaseY - 2);
+      ctx.restore();
+
       // Linha suplementar de Dó Central C4
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
       ctx.setLineDash([4, 4]);
@@ -240,7 +411,152 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // 3. Barra de Ataque Fixa (Glow Neon Ciano / Violeta)
+      // 3. Divisão de Compassos (Barlines) e Subdivisão dos Tempos
+      if (displayOptions.showBarlines) {
+        timeline.measureStartBeats.forEach((measureBeat, m) => {
+          const barX = attackLineX + (measureBeat * pixelsPerBeat) - scrollOffsetRef.current;
+          const isFinalBar = (m > timeline.maxMeasure);
+
+          // Subdivisão dos Tempos internos do compasso (pulsos 2, 3, 4...)
+          if (!isFinalBar) {
+            for (let b = 1; b < beatsPerMeasure; b++) {
+              const beatX = attackLineX + ((measureBeat + b) * pixelsPerBeat) - scrollOffsetRef.current;
+              if (beatX > -30 && beatX < width + 30) {
+                ctx.save();
+                ctx.setLineDash([2, 4]);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(beatX, 50);
+                ctx.lineTo(beatX, 190);
+                ctx.stroke();
+                ctx.restore();
+
+                // Indicador discreto da contagem do tempo
+                ctx.fillStyle = 'rgba(148, 163, 184, 0.35)';
+                ctx.font = 'bold 9px JetBrains Mono, monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText((b + 1).toString(), beatX, 44);
+              }
+            }
+          }
+
+          // Barra de Compasso (Barline vertical atravessando todo o grande pentagrama)
+          if (barX > -40 && barX < width + 40) {
+            ctx.save();
+            if (isFinalBar) {
+              // Barra Dupla Final de Conclusão da Obra
+              ctx.strokeStyle = '#94a3b8';
+              ctx.lineWidth = 1.8;
+              ctx.beginPath();
+              ctx.moveTo(barX - 5, 50);
+              ctx.lineTo(barX - 5, 190);
+              ctx.stroke();
+
+              ctx.lineWidth = 4;
+              ctx.beginPath();
+              ctx.moveTo(barX, 50);
+              ctx.lineTo(barX, 190);
+              ctx.stroke();
+            } else {
+              // Barra de Compasso Vertical Padrão
+              ctx.strokeStyle = '#64748b';
+              ctx.lineWidth = 1.8;
+              ctx.beginPath();
+              ctx.moveTo(barX, 50);
+              ctx.lineTo(barX, 190);
+              ctx.stroke();
+
+              // Badge Elegante com o Número do Compasso (c.1, c.2, c.3...)
+              ctx.fillStyle = 'rgba(99, 102, 241, 0.2)';
+              ctx.strokeStyle = 'rgba(129, 140, 248, 0.5)';
+              ctx.lineWidth = 1;
+              ctx.beginPath();
+              if (ctx.roundRect) {
+                ctx.roundRect(barX - 14, 25, 28, 18, 5);
+              } else {
+                ctx.rect(barX - 14, 25, 28, 18);
+              }
+              ctx.fill();
+              ctx.stroke();
+
+              ctx.fillStyle = '#c7d2fe';
+              ctx.font = 'bold 10px JetBrains Mono, monospace';
+              ctx.textAlign = 'center';
+              ctx.fillText(m.toString(), barX, 38);
+            }
+            ctx.restore();
+          }
+        });
+      }
+
+      // 4. Desenha os Silêncios / Pausas Musicais Formais (Semibreve, Mínima, Semínima, Colcheia)
+      if (displayOptions.showRests) {
+        restsList.forEach((rest) => {
+          const restX = attackLineX + (rest.beatOffset * pixelsPerBeat) - scrollOffsetRef.current;
+          if (restX > -40 && restX < width + 40) {
+            ctx.save();
+            const baseY = rest.clef === 'treble' ? trebleBaseY : bassBaseY;
+
+            if (rest.duration >= 3) {
+              // Pausa de Semibreve (Whole Rest - retângulo suspenso sob a 4ª linha da pauta)
+              ctx.fillStyle = '#94a3b8';
+              ctx.fillRect(restX - 7, baseY - 30, 14, 5.5);
+
+              ctx.fillStyle = 'rgba(148, 163, 184, 0.45)';
+              ctx.font = 'bold 9px JetBrains Mono, monospace';
+              ctx.textAlign = 'center';
+              ctx.fillText('Pausa 4t', restX, baseY - 35);
+            } else if (rest.duration >= 1.8) {
+              // Pausa de Mínima (Half Rest - retângulo apoiado sobre a 3ª linha da pauta)
+              ctx.fillStyle = '#94a3b8';
+              ctx.fillRect(restX - 7, baseY - 25.5, 14, 5.5);
+
+              ctx.fillStyle = 'rgba(148, 163, 184, 0.45)';
+              ctx.font = 'bold 9px JetBrains Mono, monospace';
+              ctx.textAlign = 'center';
+              ctx.fillText('Pausa 2t', restX, baseY - 32);
+            } else if (rest.duration >= 0.8) {
+              // Pausa de Semínima (Quarter Rest - zigue-zague estilizado clássico)
+              ctx.strokeStyle = '#94a3b8';
+              ctx.fillStyle = '#94a3b8';
+              ctx.lineWidth = 2.2;
+              ctx.lineCap = 'round';
+              ctx.lineJoin = 'round';
+              const midY = baseY - 20;
+              ctx.beginPath();
+              ctx.moveTo(restX - 3, midY - 14);
+              ctx.lineTo(restX + 3, midY - 6);
+              ctx.lineTo(restX - 4, midY + 2);
+              ctx.lineTo(restX + 2, midY + 8);
+              ctx.arc(restX - 1, midY + 11, 2.5, 0, Math.PI);
+              ctx.stroke();
+              ctx.fill();
+
+              ctx.fillStyle = 'rgba(148, 163, 184, 0.45)';
+              ctx.font = 'bold 8.5px JetBrains Mono, monospace';
+              ctx.textAlign = 'center';
+              ctx.fillText('Pausa 1t', restX, baseY - 34);
+            } else {
+              // Pausa de Colcheia (Eighth Rest - bandeirola com ponto)
+              ctx.strokeStyle = '#94a3b8';
+              ctx.fillStyle = '#94a3b8';
+              ctx.lineWidth = 2;
+              const midY = baseY - 20;
+              ctx.beginPath();
+              ctx.arc(restX - 2, midY - 4, 3, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.beginPath();
+              ctx.moveTo(restX + 1, midY - 4);
+              ctx.quadraticCurveTo(restX + 4, midY + 2, restX - 3, midY + 12);
+              ctx.stroke();
+            }
+            ctx.restore();
+          }
+        });
+      }
+
+      // 5. Barra de Ataque Fixa (Glow Neon Ciano / Violeta)
       ctx.save();
       ctx.strokeStyle = '#06b6d4';
       ctx.lineWidth = 3;
@@ -258,12 +574,13 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
       ctx.fill();
       ctx.restore();
 
-      // 4. Desenha as Notas Musicais Rolando da Direita para a Esquerda
-      let cumulativeBeats = 0;
+      // 6. Desenha as Notas Musicais com Posicionamento Rítmico Preciso
+      let fallbackBeats = 0;
 
       notes.forEach((note, idx) => {
-        const noteX = attackLineX + (cumulativeBeats * pixelsPerBeat) - scrollOffsetRef.current;
-        cumulativeBeats += note.duration;
+        const noteOffset = timeline.noteOffsets[idx] !== undefined ? timeline.noteOffsets[idx] : fallbackBeats;
+        const noteX = attackLineX + (noteOffset * pixelsPerBeat) - scrollOffsetRef.current;
+        fallbackBeats += note.duration;
 
         const noteY = getNoteY(note.midi);
         const isCurrentTarget = (idx === currentIndex);
@@ -312,22 +629,30 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
           }
           ctx.stroke();
 
-          ctx.fillStyle = isCurrentTarget ? '#fbbf24' : '#94a3b8';
-          ctx.font = 'bold 11px Outfit, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText(note.noteName, noteX, noteY + 20);
-
-          if (note.fingerRightHand) {
-            ctx.fillStyle = '#38bdf8';
-            ctx.font = 'bold 10px JetBrains Mono, monospace';
-            ctx.fillText(`MD ${note.fingerRightHand}`, noteX, noteY + 32);
-          } else if (note.fingerLeftHand) {
-            ctx.fillStyle = '#c084fc';
-            ctx.font = 'bold 10px JetBrains Mono, monospace';
-            ctx.fillText(`ME ${note.fingerLeftHand}`, noteX, noteY + 32);
+          // Nomes das Notas (Opção ON / OFF)
+          if (displayOptions.showNoteNames) {
+            ctx.fillStyle = isCurrentTarget ? '#fbbf24' : '#94a3b8';
+            ctx.font = 'bold 11px Outfit, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(note.noteName, noteX, noteY + 20);
           }
 
-          if (note.chordName) {
+          // Posição dos Dedos (Opção ON / OFF)
+          if (displayOptions.showFingering) {
+            const yOffset = displayOptions.showNoteNames ? 32 : 20;
+            if (note.fingerRightHand) {
+              ctx.fillStyle = '#38bdf8';
+              ctx.font = 'bold 10px JetBrains Mono, monospace';
+              ctx.fillText(`MD ${note.fingerRightHand}`, noteX, noteY + yOffset);
+            } else if (note.fingerLeftHand) {
+              ctx.fillStyle = '#c084fc';
+              ctx.font = 'bold 10px JetBrains Mono, monospace';
+              ctx.fillText(`ME ${note.fingerLeftHand}`, noteX, noteY + yOffset);
+            }
+          }
+
+          // Cifras de Acordes (Opção ON / OFF)
+          if (displayOptions.showChords && note.chordName) {
             ctx.fillStyle = '#f59e0b';
             ctx.font = 'bold 14px Outfit, sans-serif';
             ctx.fillText(note.chordName, noteX, 40);
@@ -348,7 +673,7 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [isPlaying, mode, tempo, currentIndex, notes, containerWidth]);
+  }, [isPlaying, mode, tempo, currentIndex, notes, containerWidth, timeline, numerator, denominator, beatsPerMeasure, displayOptions, restsList]);
 
   const handlePlayPause = () => {
     setIsPlaying(!isPlaying);
@@ -409,8 +734,13 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
           )}
         </div>
 
-        {/* Estatísticas */}
-        <div className="flex items-center gap-4 font-mono">
+        {/* Compasso & Estatísticas */}
+        <div className="flex items-center gap-3 font-mono">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-300 font-bold text-[11px]">
+            <Clock className="w-3.5 h-3.5 text-purple-400" />
+            <span>Fórmula: {timeSignature}</span>
+          </div>
+
           <div className="flex items-center gap-1.5 text-amber-400 font-bold">
             <Flame className="w-4 h-4 fill-current" />
             <span>Combo: {streak}x</span>
@@ -420,6 +750,96 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
             <Award className="w-4 h-4" />
             <span>Pontos: {score}</span>
           </div>
+        </div>
+      </div>
+
+      {/* Barra de Filtros de Notação: Opções ON / OFF de Símbolos, Silêncios, Dedilhado e Compassos */}
+      <div className="w-full flex flex-wrap items-center justify-between gap-2 p-2 sm:px-4 rounded-2xl bg-white/[0.02] border border-white/5 text-xs backdrop-blur-md">
+        <span className="text-[11px] font-mono text-slate-400 font-bold flex items-center gap-1.5">
+          <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+          <span>Anotações &amp; Símbolos:</span>
+        </span>
+
+        <div className="flex flex-wrap items-center gap-1.5 font-mono text-[10px]">
+          {/* 1. Silêncios / Pausas */}
+          <button
+            onClick={() => toggleOption('showRests')}
+            className={`px-2.5 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+              displayOptions.showRests
+                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30 shadow-xs'
+                : 'bg-black/30 text-slate-500 border border-white/5 hover:text-slate-300'
+            }`}
+            title="Ativar/desativar pausas e símbolos de silêncio na partitura"
+          >
+            <span>Silêncios (Pausas):</span>
+            <strong className={`font-bold ${displayOptions.showRests ? 'text-amber-200' : 'text-slate-500'}`}>
+              {displayOptions.showRests ? 'ON' : 'OFF'}
+            </strong>
+          </button>
+
+          {/* 2. Posição de Dedo (Dedilhado) */}
+          <button
+            onClick={() => toggleOption('showFingering')}
+            className={`px-2.5 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+              displayOptions.showFingering
+                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shadow-xs'
+                : 'bg-black/30 text-slate-500 border border-white/5 hover:text-slate-300'
+            }`}
+            title="Ativar/desativar indicação de digitação MD e ME"
+          >
+            <span>Dedilhado (MD/ME):</span>
+            <strong className={`font-bold ${displayOptions.showFingering ? 'text-cyan-200' : 'text-slate-500'}`}>
+              {displayOptions.showFingering ? 'ON' : 'OFF'}
+            </strong>
+          </button>
+
+          {/* 3. Nomes das Notas */}
+          <button
+            onClick={() => toggleOption('showNoteNames')}
+            className={`px-2.5 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+              displayOptions.showNoteNames
+                ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shadow-xs'
+                : 'bg-black/30 text-slate-500 border border-white/5 hover:text-slate-300'
+            }`}
+            title="Ativar/desativar rótulos das notas C4, E4..."
+          >
+            <span>Nomes das Notas:</span>
+            <strong className={`font-bold ${displayOptions.showNoteNames ? 'text-indigo-200' : 'text-slate-500'}`}>
+              {displayOptions.showNoteNames ? 'ON' : 'OFF'}
+            </strong>
+          </button>
+
+          {/* 4. Divisão de Compassos */}
+          <button
+            onClick={() => toggleOption('showBarlines')}
+            className={`px-2.5 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+              displayOptions.showBarlines
+                ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30 shadow-xs'
+                : 'bg-black/30 text-slate-500 border border-white/5 hover:text-slate-300'
+            }`}
+            title="Ativar/desativar divisão de compassos e linhas de tempo"
+          >
+            <span>Compassos:</span>
+            <strong className={`font-bold ${displayOptions.showBarlines ? 'text-purple-200' : 'text-slate-500'}`}>
+              {displayOptions.showBarlines ? 'ON' : 'OFF'}
+            </strong>
+          </button>
+
+          {/* 5. Cifras / Acordes */}
+          <button
+            onClick={() => toggleOption('showChords')}
+            className={`px-2.5 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+              displayOptions.showChords
+                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30 shadow-xs'
+                : 'bg-black/30 text-slate-500 border border-white/5 hover:text-slate-300'
+            }`}
+            title="Ativar/desativar símbolos de acordes cifrados"
+          >
+            <span>Acordes:</span>
+            <strong className={`font-bold ${displayOptions.showChords ? 'text-rose-200' : 'text-slate-500'}`}>
+              {displayOptions.showChords ? 'ON' : 'OFF'}
+            </strong>
+          </button>
         </div>
       </div>
 
@@ -452,8 +872,8 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
 
       {/* Rótulo da Próxima Tecla & Dedo (100% de Largura com Bordas Sutis) */}
       {isPlaying && currentTargetNote && (
-        <div className="w-full px-4 sm:px-5 py-2.5 rounded-2xl bg-indigo-950/30 border border-indigo-500/20 flex items-center justify-between text-xs text-slate-200 backdrop-blur-md">
-          <div className="flex items-center gap-2">
+        <div className="w-full px-4 sm:px-5 py-2.5 rounded-2xl bg-indigo-950/30 border border-indigo-500/20 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-200 backdrop-blur-md">
+          <div className="flex items-center gap-2.5">
             <span className="text-slate-400 font-mono">Próxima Nota:</span>
             <span className="text-base font-black text-white font-display px-2.5 py-0.5 rounded-lg bg-indigo-600 shadow-md shadow-indigo-600/30">
               {currentTargetNote.noteName}
@@ -463,6 +883,18 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
                 Acorde: {currentTargetNote.chordName}
               </span>
             )}
+          </div>
+
+          {/* Divisão e Posição Rítmica no Compasso */}
+          <div className="flex items-center gap-2 font-mono text-[11px]">
+            <span className="px-2.5 py-1 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-300 font-bold flex items-center gap-1.5">
+              <span className="text-purple-400 font-medium">Compasso:</span>
+              <strong className="text-white text-xs">{currentTargetNote.measure || 1}</strong>
+            </span>
+            <span className="px-2.5 py-1 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 font-bold flex items-center gap-1.5">
+              <span className="text-cyan-400 font-medium">Tempo:</span>
+              <strong className="text-white text-xs">{currentTargetNote.beat || 1}</strong>
+            </span>
           </div>
 
           <div className="font-mono text-cyan-300 font-bold">

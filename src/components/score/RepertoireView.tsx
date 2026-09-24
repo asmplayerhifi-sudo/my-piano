@@ -300,10 +300,11 @@ export const RepertoireView: React.FC = () => {
           onNoteDetected={(midi) => handleNoteInput(midi)}
         />
 
-        {/* Partitura Deslizante 60 FPS */}
+        {/* Partitura Deslizante 60 FPS com Divisão de Compasso */}
         <ScrollingScoreCanvas
           key={activeSong.id}
           notes={activeSong.scoreTrack}
+          timeSignature={activeSong.timeSignature}
           bpm={tempo}
           isPlaying={isPlaying}
           onPlayPauseToggle={(playing) => {
