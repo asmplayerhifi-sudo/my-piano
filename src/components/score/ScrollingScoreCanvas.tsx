@@ -265,12 +265,13 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
   const animationFrameRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(performance.now());
 
-  // Mapeamento diatônico preciso para posições verticais (Y)
-  const trebleBaseY = 90;    // Linha 1 da Clave de Sol (E4)
+  // Mapeamento diatônico preciso para posições verticais (Y) com separação ampla entre pautas
+  const trebleBaseY = 94;    // Linha 1 da Clave de Sol (E4), Linha 5 (F5) em Y = 54
   const trebleLineStep = 10; // Espaçamento entre linhas da pauta
-  const middleCY = 105;      // Linha suplementar de Dó Central (C4)
-  const bassBaseY = 160;     // Linha 1 da Clave de Fá (G2), Linha 5 (A3) fica em Y = 120
+  const middleCY = 154;      // Linha suplementar de Dó Central (C4)
+  const bassBaseY = 230;     // Linha 1 da Clave de Fá (G2)
   const bassLineStep = 10;
+  const bassTopY = 190;      // Linha 5 da Clave de Fá (A3)
   const attackLineX = 140;   // Posição horizontal fixa da barra de ataque
   const pixelsPerBeat = 120; // Espaçamento horizontal por tempo
 
@@ -284,11 +285,11 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
     if (midi === 60) return middleCY;
 
     if (clef === 'treble' || midi > 60) {
-      // E4 tem diatonicStep = 30 e fica exatamente em Y = 90 (Linha 1 do Treble)
+      // E4 tem diatonicStep = 30 e fica exatamente em Y = trebleBaseY (Linha 1 do Treble)
       return trebleBaseY - (diatonicStep - 30) * 5;
     } else {
-      // A3 tem diatonicStep = 26 e fica exatamente em Y = 120 (Linha 5 do Bass)
-      return 120 + (26 - diatonicStep) * 5;
+      // A3 tem diatonicStep = 26 e fica exatamente em Y = bassTopY (Linha 5 do Bass)
+      return bassTopY + (26 - diatonicStep) * 5;
     }
   };
 
@@ -357,20 +358,20 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
     // 4. Mapeamento diatônico para Piano (Posição de 5 Dedos)
     const midi = note.midi;
     if (note.clef === 'treble') {
-      if (midi === 60) return { finger: 1, hand: 'MD', label: 'D1', fingerName: 'Polegar', color: '#f59e0b' };
-      if (midi === 62) return { finger: 2, hand: 'MD', label: 'D2', fingerName: 'Indicador', color: '#38bdf8' };
-      if (midi === 64) return { finger: 3, hand: 'MD', label: 'D3', fingerName: 'Médio', color: '#10b981' };
-      if (midi === 65) return { finger: 4, hand: 'MD', label: 'D4', fingerName: 'Anelar', color: '#c084fc' };
-      if (midi >= 67 && midi <= 68) return { finger: 5, hand: 'MD', label: 'D5', fingerName: 'Mínimo', color: '#f43f5e' };
-      if (midi >= 69) return { finger: 1, hand: 'MD', label: 'D1', fingerName: 'Polegar', color: '#f59e0b' };
-      return { finger: 1, hand: 'MD', label: 'D1', fingerName: 'Polegar', color: '#f59e0b' };
+      if (midi === 60) return { finger: 1, hand: 'MD', label: 'MD 1', fingerName: 'Polegar', color: '#f59e0b' };
+      if (midi === 62) return { finger: 2, hand: 'MD', label: 'MD 2', fingerName: 'Indicador', color: '#38bdf8' };
+      if (midi === 64) return { finger: 3, hand: 'MD', label: 'MD 3', fingerName: 'Médio', color: '#10b981' };
+      if (midi === 65) return { finger: 4, hand: 'MD', label: 'MD 4', fingerName: 'Anelar', color: '#c084fc' };
+      if (midi >= 67 && midi <= 68) return { finger: 5, hand: 'MD', label: 'MD 5', fingerName: 'Mínimo', color: '#f43f5e' };
+      if (midi >= 69) return { finger: 1, hand: 'MD', label: 'MD 1', fingerName: 'Polegar', color: '#f59e0b' };
+      return { finger: 1, hand: 'MD', label: 'MD 1', fingerName: 'Polegar', color: '#f59e0b' };
     } else {
-      if (midi === 48) return { finger: 5, hand: 'ME', label: 'D5', fingerName: 'Mínimo', color: '#f43f5e' };
-      if (midi === 50) return { finger: 4, hand: 'ME', label: 'D4', fingerName: 'Anelar', color: '#c084fc' };
-      if (midi === 52) return { finger: 3, hand: 'ME', label: 'D3', fingerName: 'Médio', color: '#10b981' };
-      if (midi === 53) return { finger: 2, hand: 'ME', label: 'D2', fingerName: 'Indicador', color: '#38bdf8' };
-      if (midi === 55) return { finger: 1, hand: 'ME', label: 'D1', fingerName: 'Polegar', color: '#f59e0b' };
-      return { finger: 3, hand: 'ME', label: 'D3', fingerName: 'Médio', color: '#c084fc' };
+      if (midi === 48) return { finger: 5, hand: 'ME', label: 'ME 5', fingerName: 'Mínimo', color: '#f43f5e' };
+      if (midi === 50) return { finger: 4, hand: 'ME', label: 'ME 4', fingerName: 'Anelar', color: '#c084fc' };
+      if (midi === 52) return { finger: 3, hand: 'ME', label: 'ME 3', fingerName: 'Médio', color: '#10b981' };
+      if (midi === 53) return { finger: 2, hand: 'ME', label: 'ME 2', fingerName: 'Indicador', color: '#38bdf8' };
+      if (midi === 55) return { finger: 1, hand: 'ME', label: 'ME 1', fingerName: 'Polegar', color: '#f59e0b' };
+      return { finger: 3, hand: 'ME', label: 'ME 3', fingerName: 'Médio', color: '#c084fc' };
     }
   };
 
@@ -485,7 +486,7 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
       // Clave de Sol
       ctx.fillStyle = '#818cf8';
       ctx.font = 'bold 38px serif';
-      ctx.fillText('𝄞', 35, 84);
+      ctx.fillText('𝄞', 35, 88);
 
       // 2. Linha com Destaque Formal para o Dó Central (C4 a Y = 105)
       ctx.save();
@@ -529,7 +530,7 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
       // Clave de Fá
       ctx.fillStyle = '#a855f7';
       ctx.font = 'bold 30px serif';
-      ctx.fillText('𝄢', 35, 142);
+      ctx.fillText('𝄢', 35, 212);
 
       // Fórmula de Compasso (Time Signature) na Cabeça da Pauta (X = 76)
       ctx.save();
@@ -538,13 +539,13 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
 
       // Treble Staff (Clave de Sol)
       ctx.fillStyle = '#818cf8';
-      ctx.fillText(numerator.toString(), 76, 68);
-      ctx.fillText(denominator.toString(), 76, 88);
+      ctx.fillText(numerator.toString(), 76, 70);
+      ctx.fillText(denominator.toString(), 76, 90);
 
       // Bass Staff (Clave de Fá)
       ctx.fillStyle = '#a855f7';
-      ctx.fillText(numerator.toString(), 76, 138);
-      ctx.fillText(denominator.toString(), 76, 158);
+      ctx.fillText(numerator.toString(), 76, 206);
+      ctx.fillText(denominator.toString(), 76, 226);
       ctx.restore();
 
       // 4. Divisão de Compassos (Barlines), Tempos (1, 2, 3, 4) e Subdivisões ("e")
@@ -613,7 +614,7 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
                 ctx.lineWidth = 1;
                 ctx.beginPath();
                 ctx.moveTo(subBeatX, 46);
-                ctx.lineTo(subBeatX, 164);
+                ctx.lineTo(subBeatX, bassBaseY + 8);
                 ctx.stroke();
 
                 // Marcador da subdivisão "e" (contratempo colcheia)
@@ -657,7 +658,7 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
                   ctx.lineWidth = 1.2;
                   ctx.beginPath();
                   ctx.moveTo(beatX, 48);
-                  ctx.lineTo(beatX, 164);
+                  ctx.lineTo(beatX, bassBaseY + 8);
                   ctx.stroke();
                   ctx.restore();
 
@@ -692,14 +693,14 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
               ctx.lineWidth = 1.8;
               ctx.beginPath();
               ctx.moveTo(barX - 6, 26);
-              ctx.lineTo(barX - 6, 168);
+              ctx.lineTo(barX - 6, bassBaseY + 8);
               ctx.stroke();
 
               ctx.lineWidth = 4.5;
               ctx.strokeStyle = '#cbd5e1';
               ctx.beginPath();
               ctx.moveTo(barX, 26);
-              ctx.lineTo(barX, 168);
+              ctx.lineTo(barX, bassBaseY + 8);
               ctx.stroke();
 
               // Badge de Fim
@@ -719,7 +720,7 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
               ctx.lineWidth = isCurrentActiveMeasure ? 2.2 : 1.8;
               ctx.beginPath();
               ctx.moveTo(barX, 26);
-              ctx.lineTo(barX, 168);
+              ctx.lineTo(barX, bassBaseY + 8);
               ctx.stroke();
 
               // Badge estilizado com o Número do Compasso (c.1, c.2, c.3...)
@@ -750,7 +751,7 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
 
             if (rest.duration >= 3) {
               // Pausa de Semibreve (retângulo suspenso sob a 4ª linha da pauta)
-              const yHang = rest.clef === 'treble' ? 60 : 130;
+              const yHang = rest.clef === 'treble' ? 64 : 200;
               ctx.fillStyle = '#94a3b8';
               ctx.fillRect(restX - 7, yHang, 14, 5.5);
 
@@ -760,7 +761,7 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
               ctx.fillText('Pausa 4t', restX, yHang - 6);
             } else if (rest.duration >= 1.8) {
               // Pausa de Mínima (retângulo apoiado sobre a 3ª linha da pauta)
-              const ySit = rest.clef === 'treble' ? 70 : 140;
+              const ySit = rest.clef === 'treble' ? 74 : 210;
               ctx.fillStyle = '#94a3b8';
               ctx.fillRect(restX - 7, ySit - 5.5, 14, 5.5);
 
@@ -775,7 +776,7 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
               ctx.lineWidth = 2.2;
               ctx.lineCap = 'round';
               ctx.lineJoin = 'round';
-              const midY = rest.clef === 'treble' ? 70 : 140;
+              const midY = rest.clef === 'treble' ? 74 : 210;
               ctx.beginPath();
               ctx.moveTo(restX - 3, midY - 14);
               ctx.lineTo(restX + 3, midY - 6);
@@ -794,7 +795,7 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
               ctx.strokeStyle = '#94a3b8';
               ctx.fillStyle = '#94a3b8';
               ctx.lineWidth = 2;
-              const midY = rest.clef === 'treble' ? 70 : 140;
+              const midY = rest.clef === 'treble' ? 74 : 210;
               ctx.beginPath();
               ctx.arc(restX - 2, midY - 4, 3, 0, Math.PI * 2);
               ctx.fill();
@@ -871,24 +872,24 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
             ctx.lineTo(noteX + 14, middleCY);
             ctx.stroke();
             ctx.restore();
-          } else if (noteY <= 40) {
+          } else if (noteY <= trebleBaseY - 40 - 5) {
             // Linhas suplementares acima da pauta de Sol
             ctx.save();
             ctx.lineWidth = 1.6;
             ctx.strokeStyle = '#94a3b8';
-            for (let ly = 40; ly >= noteY - 1; ly -= 10) {
+            for (let ly = trebleBaseY - 40 - 10; ly >= noteY - 1; ly -= 10) {
               ctx.beginPath();
               ctx.moveTo(noteX - 12, ly);
               ctx.lineTo(noteX + 12, ly);
               ctx.stroke();
             }
             ctx.restore();
-          } else if (noteY >= 170) {
+          } else if (noteY >= bassBaseY + 5) {
             // Linhas suplementares abaixo da pauta de Fá
             ctx.save();
             ctx.lineWidth = 1.6;
             ctx.strokeStyle = '#94a3b8';
-            for (let ly = 170; ly <= noteY + 1; ly += 10) {
+            for (let ly = bassBaseY + 10; ly <= noteY + 1; ly += 10) {
               ctx.beginPath();
               ctx.moveTo(noteX - 12, ly);
               ctx.lineTo(noteX + 12, ly);
@@ -938,7 +939,7 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
           // D. Haste (Stem) e Bandeirolas (Flags) da Notação Completa
           if (!isWholeNote) {
             // Regra formal: notas na 3ª linha ou acima têm haste para baixo; abaixo têm haste para cima
-            const middleLineY = note.clef === 'treble' ? 70 : 140;
+            const middleLineY = note.clef === 'treble' ? 74 : 210;
             const stemPointsDown = noteY <= middleLineY;
             const stemX = stemPointsDown ? noteX - 7 : noteX + 7;
             const stemStartY = noteY;
@@ -992,40 +993,54 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
           }
 
           // F. Destaque Especial e Nome da Nota
+          const isBass = note.clef === 'bass' || (!note.clef && note.midi < 60);
           if (displayOptions.showNoteNames) {
             ctx.fillStyle = isCurrentTarget ? '#fbbf24' : isMiddleC ? '#38bdf8' : '#94a3b8';
             ctx.font = isMiddleC ? 'bold 11px Outfit, sans-serif' : 'bold 10.5px Outfit, sans-serif';
             ctx.textAlign = 'center';
             const labelText = isMiddleC ? `${note.noteName} (Dó Central)` : note.noteName;
-            ctx.fillText(labelText, noteX, noteY + 20);
+            const nameY = isMiddleC
+              ? middleCY + 18
+              : isBass
+              ? Math.max(bassBaseY + 14, noteY + 18)
+              : Math.max(trebleBaseY + 14, noteY + 18);
+            ctx.fillText(labelText, noteX, nameY);
           }
 
-          // G. Apontamento de Dedo na Partitura (MD / ME / Violão)
+          // G. Apontamento de Dedo na Partitura (MD / ME / Violão) - ABAIXO DA PAUTA
           if (displayOptions.showFingering) {
             const fingering = getScoreNoteFingering(note, instrument);
             if (fingering) {
-              const badgeY = noteY - 26;
-              const badgeW = 44;
-              const badgeH = 16;
+              // Os dedos NÃO ficam em cima do desenho musical, e sim posicionados abaixo da pauta com apontador UP
+              const badgeY = isMiddleC
+                ? middleCY + 26
+                : isBass
+                ? Math.max(bassBaseY + 30, noteY + 28)
+                : Math.max(trebleBaseY + 30, noteY + 28);
+              const badgeW = 46;
+              const badgeH = 17;
               const cx = noteX;
 
               ctx.save();
-              // Triângulo apontador em direção à cabeça da nota
+              // Triângulo apontador voltado para CIMA (em direção à nota/pauta)
               ctx.fillStyle = fingering.color;
               ctx.beginPath();
-              ctx.moveTo(cx - 3.5, badgeY + badgeH);
-              ctx.lineTo(cx + 3.5, badgeY + badgeH);
-              ctx.lineTo(cx, badgeY + badgeH + 4);
+              ctx.moveTo(cx - 4, badgeY);
+              ctx.lineTo(cx + 4, badgeY);
+              ctx.lineTo(cx, badgeY - 5);
               ctx.closePath();
               ctx.fill();
 
-              // Cápsula com borda de alto contraste
+              // Cápsula com borda de alto contraste e sombra suave
+              ctx.shadowColor = fingering.color;
+              ctx.shadowBlur = 6;
               ctx.fillStyle = fingering.color;
-              drawRoundedPill(ctx, cx - badgeW / 2, badgeY, badgeW, badgeH, 4);
+              drawRoundedPill(ctx, cx - badgeW / 2, badgeY, badgeW, badgeH, 4.5);
               ctx.fill();
+              ctx.shadowBlur = 0;
 
               ctx.strokeStyle = '#090814';
-              ctx.lineWidth = 1;
+              ctx.lineWidth = 1.2;
               ctx.stroke();
 
               // Texto do Dedo com indicação explícita
@@ -1290,12 +1305,12 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
       {/* Canvas da Partitura Deslizante (Ocupa Exatamente 100% da Largura, Idêntico ao Teclado) */}
       <div
         ref={containerRef}
-        className="relative w-full h-64 rounded-3xl overflow-hidden border border-white/5 shadow-2xl glass-panel bg-[#090814]/95"
+        className="relative w-full h-[340px] rounded-3xl overflow-hidden border border-white/5 shadow-2xl glass-panel bg-[#090814]/95"
       >
         <canvas
           ref={canvasRef}
           width={containerWidth}
-          height={256}
+          height={340}
           className="w-full h-full block cursor-pointer"
           onClick={handleTapCurrent}
         />
