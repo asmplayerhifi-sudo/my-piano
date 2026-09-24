@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { REPERTOIRE_SONGS } from '../../core/repertoireData';
+import { REPERTOIRE_SONGS, REPERTOIRE_CATEGORIES } from '../../core/repertoireData';
 import type { RepertoireSong, SongGenre } from '../../core/repertoireData';
 import { ScrollingScoreCanvas } from './ScrollingScoreCanvas';
 import { PianoKeyboard } from '../piano/PianoKeyboard';
@@ -10,22 +10,36 @@ import {
   Play,
   Compass,
   Lightbulb,
+  GraduationCap,
+  Heart,
+  Disc,
+  Zap,
+  Sparkles,
+  LayoutGrid,
 } from 'lucide-react';
 
+const CATEGORY_ICON_MAP: Record<string, React.ElementType> = {
+  'Todos': LayoutGrid,
+  'Clássico & Mestres': GraduationCap,
+  'MPB & Pop Nacional': Heart,
+  'Pop & Rock Clássico': Disc,
+  'Rock Anos 80 & New Wave': Zap,
+  'Infantis, Cirandas & Folclore': Sparkles,
+};
+
 export const RepertoireView: React.FC = () => {
-  const [selectedGenre, setSelectedGenre] = useState<SongGenre | 'Todos'>('Todos');
+  const [selectedCategory, setSelectedCategory] = useState<SongGenre | 'Todos'>('Todos');
   const [activeSong, setActiveSong] = useState<RepertoireSong>(REPERTOIRE_SONGS[0]);
   const [lastMidiPressed, setLastMidiPressed] = useState<number | null>(null);
   const [isPlayingDemo, setIsPlayingDemo] = useState<boolean>(false);
 
-  const filteredSongs = selectedGenre === 'Todos'
+  const filteredSongs = selectedCategory === 'Todos'
     ? REPERTOIRE_SONGS
-    : REPERTOIRE_SONGS.filter(s => s.genre === selectedGenre);
+    : REPERTOIRE_SONGS.filter(s => s.genre === selectedCategory);
 
   const handlePlayDemo = () => {
     if (isPlayingDemo) return;
     setIsPlayingDemo(true);
-    // Toca os primeiros 8 passos da partitura com o som do instrumento
     const speedMs = (60 / activeSong.recommendedBpm) * 1000;
     activeSong.scoreTrack.slice(0, 10).forEach((note, idx) => {
       window.setTimeout(() => {
@@ -35,6 +49,10 @@ export const RepertoireView: React.FC = () => {
         }
       }, idx * speedMs * (note.duration || 1));
     });
+  };
+
+  const handleSelectSong = (song: RepertoireSong) => {
+    setActiveSong(song);
   };
 
   return (
@@ -52,93 +70,148 @@ export const RepertoireView: React.FC = () => {
                   Repertório Interativo
                 </span>
                 <span className="text-xs text-slate-400 font-mono">
-                  {REPERTOIRE_SONGS.length} Obras Clássicas, Rock &amp; MPB
+                  {REPERTOIRE_SONGS.length} Obras Transcritas em Pentagrama Duplo
                 </span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-black font-display text-white">
                 Partituras Reais com Rolagem Contínua
               </h2>
               <p className="text-xs sm:text-sm text-purple-200/80 mt-1 max-w-2xl">
-                Pratique grandes obras no piano e teclado com a partitura deslizante de pentagrama duplo (Clave de Sol e Fá), modo "Esperar Pela Nota" e fluxo em tempo real.
+                Pratique grandes mestres da música clássica, clássicos do rock internacional, baladas do Roupa Nova, MPB e cantigas do folclore brasileiro.
               </p>
             </div>
-          </div>
-
-          {/* Filtros por Gênero */}
-          <div className="flex flex-wrap gap-2 self-start md:self-auto">
-            {(['Todos', 'Clássico', 'Rock Clássico', 'MPB & Bossa Nova'] as const).map((genre) => (
-              <button
-                key={genre}
-                onClick={() => setSelectedGenre(genre)}
-                className={`px-3.5 py-2 rounded-2xl text-xs font-bold font-display transition-all cursor-pointer ${
-                  selectedGenre === genre
-                    ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/40 border border-purple-400'
-                    : 'bg-white/5 border border-white/5 text-slate-400 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                {genre}
-              </button>
-            ))}
           </div>
         </div>
       </div>
 
-      {/* Grid: Lista de Músicas (Esquerda) e Palco da Partitura (Direita) */}
+      {/* SEPARADOR DE CATEGORIAS VISUAL (Interactive Category Separator) */}
+      <div className="glass-card rounded-3xl p-4 border border-white/10 space-y-2">
+        <div className="flex items-center justify-between px-2 pb-1">
+          <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+            <BookOpen className="w-4 h-4 text-purple-400" />
+            <span>Separador de Categorias &amp; Gêneros:</span>
+          </span>
+          <span className="text-[11px] font-mono text-purple-300">
+            {filteredSongs.length} obras exibidas
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+          {REPERTOIRE_CATEGORIES.map((cat) => {
+            const isSelected = selectedCategory === cat.id;
+            const Icon = CATEGORY_ICON_MAP[cat.id] || Music;
+
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-2 ${
+                  isSelected
+                    ? 'bg-purple-600/30 border-purple-400 text-white shadow-lg shadow-purple-600/20 scale-[1.02]'
+                    : 'bg-white/5 border-white/5 text-slate-400 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-1">
+                  <div className={`p-1.5 rounded-xl ${isSelected ? 'bg-purple-500 text-white' : 'bg-white/5 text-purple-400'}`}>
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md ${
+                    isSelected ? 'bg-purple-400/20 text-purple-200' : 'bg-white/5 text-slate-400'
+                  }`}>
+                    {cat.badge}
+                  </span>
+                </div>
+
+                <div>
+                  <div className="font-bold text-xs leading-tight text-white">
+                    {cat.shortLabel}
+                  </div>
+                  <div className="text-[9px] text-slate-400 line-clamp-1 mt-0.5">
+                    {cat.description}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Grid: Lista de Músicas com Separadores (Esquerda) e Palco da Partitura (Direita) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Coluna 1: Lista de Músicas */}
+        {/* Coluna 1: Lista de Músicas com Agrupamentos */}
         <div className="lg:col-span-4 space-y-4">
           <div className="glass-card rounded-3xl p-5 border border-white/10 space-y-3">
             <div className="flex items-center justify-between pb-2 border-b border-white/5">
               <h3 className="text-sm font-bold font-display text-white flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-purple-400" />
-                <span>Catálogo de Obras</span>
+                <Music className="w-4 h-4 text-purple-400" />
+                <span>Obras ({selectedCategory === 'Todos' ? 'Todas as Categorias' : selectedCategory})</span>
               </h3>
-              <span className="text-[10px] font-mono text-slate-400 font-bold">
-                {filteredSongs.length} músicas
-              </span>
             </div>
 
-            <div className="space-y-2.5 max-h-[620px] overflow-y-auto pr-1 no-scrollbar">
-              {filteredSongs.map((song) => {
-                const isSelected = activeSong.id === song.id;
+            <div className="space-y-4 max-h-[620px] overflow-y-auto pr-1 no-scrollbar">
+              {/* Se "Todos" estiver selecionado, agrupa visualmente com divisórias */}
+              {(selectedCategory === 'Todos'
+                ? ['Clássico & Mestres', 'MPB & Pop Nacional', 'Pop & Rock Clássico', 'Rock Anos 80 & New Wave', 'Infantis, Cirandas & Folclore'] as const
+                : [selectedCategory] as const
+              ).map((categoryName) => {
+                const songsInCategory = REPERTOIRE_SONGS.filter(s => s.genre === categoryName);
+                if (songsInCategory.length === 0) return null;
+                const Icon = CATEGORY_ICON_MAP[categoryName] || Music;
 
                 return (
-                  <button
-                    key={song.id}
-                    onClick={() => setActiveSong(song)}
-                    className={`w-full p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col gap-1.5 ${
-                      isSelected
-                        ? 'bg-purple-600/30 border-purple-500 text-white shadow-md'
-                        : 'bg-white/5 border-white/5 text-slate-400 hover:text-slate-200 hover:bg-white/10'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-bold text-xs text-white truncate">
-                        {song.title}
-                      </span>
-                      <span className={`px-2 py-0.5 rounded-md text-[9px] font-mono font-bold ${
-                        song.difficulty === 'Iniciante'
-                          ? 'bg-emerald-500/20 text-emerald-300'
-                          : song.difficulty === 'Intermediário'
-                          ? 'bg-amber-500/20 text-amber-300'
-                          : 'bg-rose-500/20 text-rose-300'
-                      }`}>
-                        {song.difficulty}
-                      </span>
+                  <div key={categoryName} className="space-y-2">
+                    {/* Linha Divisória de Categoria */}
+                    <div className="flex items-center gap-2 px-1 pt-1 text-[11px] font-mono font-bold text-purple-300">
+                      <Icon className="w-3.5 h-3.5 text-purple-400" />
+                      <span>{categoryName}</span>
+                      <span className="text-[9px] text-slate-500 font-normal">({songsInCategory.length})</span>
                     </div>
 
-                    <div className="text-[11px] text-purple-300 font-medium truncate">
-                      {song.composerOrArtist}
-                    </div>
+                    <div className="space-y-1.5">
+                      {songsInCategory.map((song) => {
+                        const isSelected = activeSong.id === song.id;
 
-                    <div className="flex items-center gap-3 text-[10px] text-slate-400 font-mono mt-0.5">
-                      <span>{song.genre}</span>
-                      <span>•</span>
-                      <span>{song.tonality}</span>
-                      <span>•</span>
-                      <span>{song.recommendedBpm} BPM</span>
+                        return (
+                          <button
+                            key={song.id}
+                            onClick={() => handleSelectSong(song)}
+                            className={`w-full p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col gap-1 ${
+                              isSelected
+                                ? 'bg-purple-600/30 border-purple-500 text-white shadow-md'
+                                : 'bg-white/5 border-white/5 text-slate-400 hover:text-slate-200 hover:bg-white/10'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-bold text-xs text-white truncate">
+                                {song.title}
+                              </span>
+                              <span className={`px-1.5 py-0.5 rounded text-[8px] font-mono font-bold ${
+                                song.difficulty === 'Iniciante'
+                                  ? 'bg-emerald-500/20 text-emerald-300'
+                                  : song.difficulty === 'Intermediário'
+                                  ? 'bg-amber-500/20 text-amber-300'
+                                  : 'bg-rose-500/20 text-rose-300'
+                              }`}>
+                                {song.difficulty}
+                              </span>
+                            </div>
+
+                            <div className="text-[11px] text-purple-300 font-medium truncate">
+                              {song.composerOrArtist}
+                            </div>
+
+                            <div className="flex items-center gap-2 text-[10px] text-slate-400 font-mono mt-0.5">
+                              <span>{song.tonality}</span>
+                              <span>•</span>
+                              <span>{song.timeSignature}</span>
+                              <span>•</span>
+                              <span>{song.recommendedBpm} BPM</span>
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>
