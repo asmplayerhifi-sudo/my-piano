@@ -12,6 +12,7 @@ import {
   Music, ChevronLeft, ChevronRight, Save, FileMusic,
   Undo2, Redo2, SkipBack,
 } from 'lucide-react';
+import { FormalScoreSheet } from './editor/FormalScoreSheet';
 
 // ────────────────────────────────────────────────────────────────────────────
 // Tipos do Editor
@@ -438,6 +439,7 @@ export const ScoreEditor: React.FC = () => {
   const [history, setHistory] = useState<EditorNote[][]>([[]]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [isSaved, setIsSaved] = useState(true);
+  const [viewLayout, setViewLayout] = useState<'both' | 'score' | 'grid'>('both');
 
   const playbackRef = useRef<{ raf: number; startTime: number; startBeat: number } | null>(null);
   const projectRef = useRef(project);
@@ -867,6 +869,40 @@ export const ScoreEditor: React.FC = () => {
           </button>
         </div>
 
+        {/* Seletor de Modo de Visualização */}
+        <div className="flex items-center gap-1 bg-[#0a091e] rounded-xl p-1 border border-white/8 text-xs">
+          <button
+            onClick={() => setViewLayout('both')}
+            className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+              viewLayout === 'both'
+                ? 'bg-violet-500/25 border border-violet-500/50 text-white'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            🔀 Partitura + Grade
+          </button>
+          <button
+            onClick={() => setViewLayout('score')}
+            className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+              viewLayout === 'score'
+                ? 'bg-violet-500/25 border border-violet-500/50 text-white'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            🎼 Apenas Partitura
+          </button>
+          <button
+            onClick={() => setViewLayout('grid')}
+            className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+              viewLayout === 'grid'
+                ? 'bg-violet-500/25 border border-violet-500/50 text-white'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            🎹 Apenas Grade
+          </button>
+        </div>
+
         {/* Notas na Partitura */}
         <div className="ml-auto flex items-center gap-2 text-xs text-slate-400">
           <span className="font-mono">
@@ -885,16 +921,31 @@ export const ScoreEditor: React.FC = () => {
         </div>
       </div>
 
+      {/* ── Desenho Formal da Partitura em Tempo Real ── */}
+      {(viewLayout === 'both' || viewLayout === 'score') && (
+        <FormalScoreSheet
+          notes={project.notes}
+          timeSignature={project.timeSignature}
+          playheadBeat={playheadBeat}
+          selectedNoteId={selectedNoteId}
+          onSelectNote={setSelectedNoteId}
+          beatsPerMeasure={beatsPerMeasure}
+          totalMeasures={totalMeasures}
+        />
+      )}
+
       {/* ── Piano Roll / Grade de Notas ── */}
-      <NoteGrid
-        notes={project.notes}
-        beatsPerMeasure={beatsPerMeasure}
-        playheadBeat={playheadBeat}
-        selectedNoteId={selectedNoteId}
-        onSelectNote={setSelectedNoteId}
-        onDeleteNote={deleteNote}
-        totalMeasures={totalMeasures}
-      />
+      {(viewLayout === 'both' || viewLayout === 'grid') && (
+        <NoteGrid
+          notes={project.notes}
+          beatsPerMeasure={beatsPerMeasure}
+          playheadBeat={playheadBeat}
+          selectedNoteId={selectedNoteId}
+          onSelectNote={setSelectedNoteId}
+          onDeleteNote={deleteNote}
+          totalMeasures={totalMeasures}
+        />
+      )}
 
       {/* ── Teclado de Inserção de Notas ── */}
       <div className="glass-card rounded-2xl p-4 border border-white/10">
