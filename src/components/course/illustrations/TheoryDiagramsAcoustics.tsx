@@ -21,7 +21,7 @@ export const SoundPropertiesDiagram: React.FC = () => (
     <g transform="translate(50, 75)">
       {[
         { title: '1. ALTURA (Hz)', sub: 'Frequência de Vibração', desc: 'Rápida = Agudo / Lenta = Grave', color: '#6366f1' },
-        { title: '2. DURAÇÃO (s)', sub: 'Tempo de Sustentação', desc: 'Figuras rítmicas (𝅝, 𝅗𝅥, ♩, ♪)', color: '#06b6d4' },
+        { title: '2. DURAÇÃO (s)', sub: 'Tempo de Sustentação', desc: 'Semibreve, Mínima, Semínima...', color: '#06b6d4' },
         { title: '3. INTENSIDADE (dB)', sub: 'Amplitude da Onda', desc: 'Volume e dinâmica (pp até ff)', color: '#10b981' },
         { title: '4. TIMBRE', sub: 'Harmônicos / Identidade', desc: 'Diferencia Piano de Violão ou Voz', color: '#f59e0b' },
       ].map((p, i) => {
@@ -71,7 +71,12 @@ export const TimeSignatureAnatomyDiagram: React.FC = () => (
       {/* Explicação do Denominador */}
       <g transform="translate(200, 60)">
         <rect x="0" y="0" width="310" height="46" rx="8" fill="rgba(255,255,255,0.04)" stroke="#06b6d4" strokeWidth="1" />
-        <text x="15" y="22" fill="#a5f3fc" fontSize="11" fontWeight="black">DENOMINADOR (Inferior): 4 = Semínima (♩)</text>
+        <text x="15" y="22" fill="#a5f3fc" fontSize="11" fontWeight="black">DENOMINADOR (Inferior): 4 = Semínima</text>
+        {/* Ícone Vetorial da Semínima */}
+        <g transform="translate(265, 20)">
+          <ellipse cx="0" cy="0" rx="4.5" ry="3.2" fill="#38bdf8" transform="rotate(-25)" />
+          <line x1="3.5" y1="-1" x2="3.5" y2="-11" stroke="#38bdf8" strokeWidth="1.5" strokeLinecap="round" />
+        </g>
         <text x="15" y="36" fill="#94a3b8" fontSize="10">Determina qual figura rítmica vale exatamente 1 tempo</text>
       </g>
 

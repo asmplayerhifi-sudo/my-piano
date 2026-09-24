@@ -165,11 +165,11 @@ export const THEORY_MODULES: TheoryModuleData[] = [
               'Cada figura musical vale o dobro da figura imediatamente inferior e a metade da figura imediatamente superior. Essa hierarquia geométrica garante precisão matemática absoluta na execução musical.'
             ],
             bulletPoints: [
-              'Semibreve (O): Unidade máxima comum (vale 4 semínimas no 4/4).',
-              'Mínima (d): Vale 2 semínimas (2 tempos no 4/4).',
-              'Semínima (♩): O pulso padrão dos compassos quaternários, ternários e binários simples.',
-              'Colcheia (♪): Vale meio tempo (2 colcheias por pulso no 4/4).',
-              'Semicolcheia (♬): Vale um quarto de tempo (4 semicolcheias por pulso).'
+              'Semibreve (4 Tempos • Proporção 1): Cabeça oval branca vazada sem haste. Unidade de maior duração no compasso 4/4.',
+              'Mínima (2 Tempos • Proporção 1/2): Cabeça oval branca vazada com haste vertical. Vale a metade da semibreve (duas mínimas preenchem o compasso).',
+              'Semínima (1 Tempo • Proporção 1/4): Cabeça preta preenchida com haste vertical. Unidade de tempo e pulso fundamental da música.',
+              'Colcheia (½ Tempo • Proporção 1/8): Cabeça preta com haste e 1 bandeirola curva (ou barra horizontal em grupos). 2 colcheias completam 1 pulso.',
+              'Semicolcheia (¼ Tempo • Proporção 1/16): Cabeça preta com haste e 2 bandeirolas paralelas. 4 semicolcheias completam 1 pulso rápido.'
             ]
           },
           {
