@@ -118,18 +118,58 @@ export const PianoKeyboard: React.FC<Props> = ({
     { semitones: 10, posAfterWhite: 5 }, // A#
   ];
 
-  const handleKeyDown = (midi: number) => {
-    setActivePressedKeys(prev => (prev.includes(midi) ? prev : [...prev, midi]));
-    soundEngine.playPianoNote(midi);
-    if (onKeyPlay) onKeyPlay(midi);
+  // Rastreamento das teclas ativas seguradas pelo clique ou toque
+  const pressedKeysSetRef = useRef<Set<number>>(new Set());
+  const activePointersRef = useRef<Map<number, number>>(new Map()); // pointerId -> midi
+
+  const handleKeyDown = (midi: number, pointerId?: number) => {
+    if (pointerId !== undefined) {
+      activePointersRef.current.set(pointerId, midi);
+    }
+    if (!pressedKeysSetRef.current.has(midi)) {
+      pressedKeysSetRef.current.add(midi);
+      setActivePressedKeys(Array.from(pressedKeysSetRef.current));
+      soundEngine.startPianoNote(midi);
+      if (onKeyPlay) onKeyPlay(midi);
+    }
   };
 
-  const handleKeyUp = (midi: number) => {
-    // Pequeno delay de 180ms para que toques rápidos criem um rastro nítido no canvas
-    window.setTimeout(() => {
-      setActivePressedKeys(prev => prev.filter(m => m !== midi));
-    }, 180);
+  const handleKeyUp = (midi: number, pointerId?: number) => {
+    if (pointerId !== undefined) {
+      activePointersRef.current.delete(pointerId);
+    }
+    if (pressedKeysSetRef.current.has(midi)) {
+      soundEngine.stopPianoNote(midi);
+      pressedKeysSetRef.current.delete(midi);
+      setActivePressedKeys(Array.from(pressedKeysSetRef.current));
+    }
   };
+
+  // Garante liberação mesmo se o cursor for solto fora da tecla
+  useEffect(() => {
+    const handleGlobalPointerUp = (e: PointerEvent) => {
+      const midi = activePointersRef.current.get(e.pointerId);
+      if (midi !== undefined) {
+        handleKeyUp(midi, e.pointerId);
+      }
+    };
+
+    const handleGlobalPointerCancel = (e: PointerEvent) => {
+      const midi = activePointersRef.current.get(e.pointerId);
+      if (midi !== undefined) {
+        handleKeyUp(midi, e.pointerId);
+      }
+    };
+
+    window.addEventListener('pointerup', handleGlobalPointerUp);
+    window.addEventListener('pointercancel', handleGlobalPointerCancel);
+
+    return () => {
+      window.removeEventListener('pointerup', handleGlobalPointerUp);
+      window.removeEventListener('pointercancel', handleGlobalPointerCancel);
+      pressedKeysSetRef.current.forEach(midi => soundEngine.stopPianoNote(midi));
+    };
+  }, []);
 
   const combinedActiveNotes = Array.from(new Set([...activePressedKeys, ...(activeExternalNotes || [])]));
 
@@ -417,7 +457,8 @@ export const PianoKeyboard: React.FC<Props> = ({
               height={230}
               theme={trailTheme}
               speed={trailSpeed}
-              onKeyClick={handleKeyDown}
+              onKeyPointerDown={(midi) => handleKeyDown(midi)}
+              onKeyPointerUp={(midi) => handleKeyUp(midi)}
             />
           )}
 
@@ -469,10 +510,22 @@ export const PianoKeyboard: React.FC<Props> = ({
                       key={`white-${midi}`}
                       onPointerDown={(e) => {
                         e.preventDefault();
-                        handleKeyDown(midi);
+                        handleKeyDown(midi, e.pointerId);
                       }}
-                      onPointerUp={() => handleKeyUp(midi)}
-                      onPointerLeave={() => handleKeyUp(midi)}
+                      onPointerUp={(e) => {
+                        e.preventDefault();
+                        handleKeyUp(midi, e.pointerId);
+                      }}
+                      onPointerEnter={(e) => {
+                        if (e.buttons === 1 && !pressedKeysSetRef.current.has(midi)) {
+                          handleKeyDown(midi, e.pointerId);
+                        }
+                      }}
+                      onPointerLeave={(e) => {
+                        if (activePointersRef.current.get(e.pointerId) === midi) {
+                          handleKeyUp(midi, e.pointerId);
+                        }
+                      }}
                       className="cursor-pointer group"
                     >
                       {/* Tecla Branca Retangular */}
@@ -605,10 +658,23 @@ export const PianoKeyboard: React.FC<Props> = ({
                       onPointerDown={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        handleKeyDown(midi);
+                        handleKeyDown(midi, e.pointerId);
                       }}
-                      onPointerUp={() => handleKeyUp(midi)}
-                      onPointerLeave={() => handleKeyUp(midi)}
+                      onPointerUp={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleKeyUp(midi, e.pointerId);
+                      }}
+                      onPointerEnter={(e) => {
+                        if (e.buttons === 1 && !pressedKeysSetRef.current.has(midi)) {
+                          handleKeyDown(midi, e.pointerId);
+                        }
+                      }}
+                      onPointerLeave={(e) => {
+                        if (activePointersRef.current.get(e.pointerId) === midi) {
+                          handleKeyUp(midi, e.pointerId);
+                        }
+                      }}
                       className="cursor-pointer group"
                     >
                       <rect

@@ -23,6 +23,8 @@ interface Props {
   direction?: TrailDirection;
   speed?: number; // pixels per second
   onKeyClick?: (midi: number) => void;
+  onKeyPointerDown?: (midi: number) => void;
+  onKeyPointerUp?: (midi: number) => void;
   className?: string;
 }
 
@@ -103,9 +105,12 @@ export const PianoWaterfallCanvas: React.FC<Props> = ({
   direction = 'rising',
   speed = 180,
   onKeyClick,
+  onKeyPointerDown,
+  onKeyPointerUp,
   className = '',
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const currentCanvasMidiRef = useRef<number | null>(null);
   const trailsRef = useRef<TrailSegment[]>([]);
   const particlesRef = useRef<SparkleParticle[]>([]);
   const activeKeysMapRef = useRef<Map<number, string>>(new Map()); // midi -> segmentId
@@ -350,7 +355,7 @@ export const PianoWaterfallCanvas: React.FC<Props> = ({
         // Desenho do Rastro em Barra Arredondada
         const topY = Math.min(seg.startY, seg.endY);
         const bottomY = Math.max(seg.startY, seg.endY);
-        const barHeight = Math.max(8, bottomY - topY);
+        const barHeight = Math.max(14, bottomY - topY);
 
         ctx.save();
 
@@ -475,6 +480,35 @@ export const PianoWaterfallCanvas: React.FC<Props> = ({
     };
   }, [octaveCount, startOctave, whiteKeyWidth, blackKeyWidth, speed, direction, getThemeColors]);
 
+  const resolveMidiFromClientX = (clientX: number, target: HTMLElement): number | null => {
+    const rect = target.getBoundingClientRect();
+    const clickX = (clientX - rect.left) * (canvasWidth / rect.width);
+
+    // Checa pretas primeiro (ficam por cima)
+    for (let oct = 0; oct < octaveCount; oct++) {
+      const blackSemis = [1, 3, 6, 8, 10];
+      for (const semi of blackSemis) {
+        const midi = (startOctave + oct + 2) * 12 + semi;
+        const geo = getKeyPosition(midi, startOctave, whiteKeyWidth, blackKeyWidth);
+        if (geo && clickX >= geo.x && clickX <= geo.x + geo.width) {
+          return midi;
+        }
+      }
+    }
+    // Checa brancas
+    for (let oct = 0; oct < octaveCount; oct++) {
+      const whiteSemis = [0, 2, 4, 5, 7, 9, 11];
+      for (const semi of whiteSemis) {
+        const midi = (startOctave + oct + 2) * 12 + semi;
+        const geo = getKeyPosition(midi, startOctave, whiteKeyWidth, blackKeyWidth);
+        if (geo && clickX >= geo.x && clickX <= geo.x + geo.width) {
+          return midi;
+        }
+      }
+    }
+    return null;
+  };
+
   return (
     <div className={`relative overflow-hidden rounded-2xl border border-white/5 shadow-2xl w-full ${className}`}>
       <canvas
@@ -482,33 +516,38 @@ export const PianoWaterfallCanvas: React.FC<Props> = ({
         width={canvasWidth}
         height={height}
         className="block w-full cursor-pointer select-none no-select"
+        onPointerDown={(e) => {
+          const midi = resolveMidiFromClientX(e.clientX, e.currentTarget);
+          if (midi !== null) {
+            currentCanvasMidiRef.current = midi;
+            if (onKeyPointerDown) {
+              onKeyPointerDown(midi);
+            } else if (onKeyClick) {
+              onKeyClick(midi);
+            }
+          }
+        }}
+        onPointerUp={() => {
+          if (currentCanvasMidiRef.current !== null) {
+            if (onKeyPointerUp) {
+              onKeyPointerUp(currentCanvasMidiRef.current);
+            }
+            currentCanvasMidiRef.current = null;
+          }
+        }}
+        onPointerLeave={() => {
+          if (currentCanvasMidiRef.current !== null) {
+            if (onKeyPointerUp) {
+              onKeyPointerUp(currentCanvasMidiRef.current);
+            }
+            currentCanvasMidiRef.current = null;
+          }
+        }}
         onClick={(e) => {
-          if (!onKeyClick) return;
-          const rect = e.currentTarget.getBoundingClientRect();
-          const clickX = (e.clientX - rect.left) * (canvasWidth / rect.width);
-
-          // Descobre qual tecla foi clicada
-          for (let oct = 0; oct < octaveCount; oct++) {
-            // Checa pretas primeiro (ficam por cima)
-            const blackSemis = [1, 3, 6, 8, 10];
-            for (const semi of blackSemis) {
-              const midi = (startOctave + oct + 2) * 12 + semi;
-              const geo = getKeyPosition(midi, startOctave, whiteKeyWidth, blackKeyWidth);
-              if (geo && clickX >= geo.x && clickX <= geo.x + geo.width) {
-                onKeyClick(midi);
-                return;
-              }
-            }
-            // Checa brancas
-            const whiteSemis = [0, 2, 4, 5, 7, 9, 11];
-            for (const semi of whiteSemis) {
-              const midi = (startOctave + oct + 2) * 12 + semi;
-              const geo = getKeyPosition(midi, startOctave, whiteKeyWidth, blackKeyWidth);
-              if (geo && clickX >= geo.x && clickX <= geo.x + geo.width) {
-                onKeyClick(midi);
-                return;
-              }
-            }
+          if (onKeyPointerDown) return;
+          const midi = resolveMidiFromClientX(e.clientX, e.currentTarget);
+          if (midi !== null && onKeyClick) {
+            onKeyClick(midi);
           }
         }}
       />

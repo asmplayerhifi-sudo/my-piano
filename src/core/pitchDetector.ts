@@ -88,16 +88,19 @@ export class MicrophonePitchDetector {
 
   private onPitchCallback: ((pitch: DetectedPitch) => void) | null = null;
   private onVolumeCallback: ((rms: number) => void) | null = null;
+  private onActiveNoteCallback: ((midi: number | null, noteName: string | null) => void) | null = null;
   private lastDetectedMidi: number | null = null;
   private lastEmittedMidi: number | null = null;
   private lastEmittedTime = 0;
   private prevRms = 0;
   private noteReleased = true;
   private stableCount = 0;
+  private silenceFrameCount = 0;
 
   public async start(
     onPitch: (pitch: DetectedPitch) => void,
-    onVolume?: (rms: number) => void
+    onVolume?: (rms: number) => void,
+    onActiveNote?: (midi: number | null, noteName: string | null) => void
   ): Promise<boolean> {
     if (this.isListening) return true;
 
@@ -122,9 +125,11 @@ export class MicrophonePitchDetector {
       this.buffer = new Float32Array(new ArrayBuffer(this.analyser.fftSize * 4)) as Float32Array<ArrayBuffer>;
       this.onPitchCallback = onPitch;
       this.onVolumeCallback = onVolume || null;
+      this.onActiveNoteCallback = onActiveNote || null;
       this.isListening = true;
       this.noteReleased = true;
       this.lastEmittedMidi = null;
+      this.silenceFrameCount = 0;
 
       this.loop();
       return true;
@@ -166,7 +171,11 @@ export class MicrophonePitchDetector {
     this.lastDetectedMidi = null;
     this.lastEmittedMidi = null;
     this.stableCount = 0;
+    this.silenceFrameCount = 0;
     this.noteReleased = true;
+    if (this.onActiveNoteCallback) {
+      this.onActiveNoteCallback(null, null);
+    }
   }
 
   private loop = () => {
@@ -208,6 +217,12 @@ export class MicrophonePitchDetector {
           volumeRms: result.rms,
           isNewAttack,
         });
+
+        // Notifica que esta nota está sendo ativamente ouvida no momento
+        this.silenceFrameCount = 0;
+        if (this.onActiveNoteCallback) {
+          this.onActiveNoteCallback(midi, noteName);
+        }
       }
 
       this.prevRms = result.rms;
@@ -216,9 +231,20 @@ export class MicrophonePitchDetector {
         this.onVolumeCallback(result.rms);
       }
     } else {
-      // Sinal abaixo do threshold de sensibilidade: nota foi solta
-      this.noteReleased = true;
-      this.stableCount = 0;
+      // Sinal abaixo do threshold de sensibilidade: incrementa frames de silêncio
+      this.silenceFrameCount++;
+
+      // Após 3 frames consecutivos de silêncio (~45ms), confirma término da nota ouvida
+      if (this.silenceFrameCount >= 3) {
+        this.noteReleased = true;
+        this.stableCount = 0;
+        this.lastDetectedMidi = null;
+        this.lastEmittedMidi = null;
+
+        if (this.onActiveNoteCallback) {
+          this.onActiveNoteCallback(null, null);
+        }
+      }
 
       if (this.onVolumeCallback && this.buffer) {
         let sum = 0;

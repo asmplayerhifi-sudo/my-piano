@@ -5,6 +5,7 @@ import { Mic, MicOff, Activity, Radio, Volume2, ShieldAlert } from 'lucide-react
 
 interface Props {
   onNoteDetected?: (midi: number, noteName: string) => void;
+  onNoteHold?: (midi: number | null, noteName?: string) => void;
   className?: string;
   disabled?: boolean;
   disabledMessage?: string;
@@ -12,6 +13,7 @@ interface Props {
 
 export const MicrophonePitchBar: React.FC<Props> = ({
   onNoteDetected,
+  onNoteHold,
   className = '',
   disabled = false,
   disabledMessage,
@@ -25,6 +27,9 @@ export const MicrophonePitchBar: React.FC<Props> = ({
   const onNoteDetectedRef = useRef(onNoteDetected);
   onNoteDetectedRef.current = onNoteDetected;
 
+  const onNoteHoldRef = useRef(onNoteHold);
+  onNoteHoldRef.current = onNoteHold;
+
   const handleToggleMic = async () => {
     setErrorMsg(null);
     if (isActive) {
@@ -32,6 +37,9 @@ export const MicrophonePitchBar: React.FC<Props> = ({
       setIsActive(false);
       setCurrentPitch(null);
       setVolumeLevel(0);
+      if (onNoteHoldRef.current) {
+        onNoteHoldRef.current(null);
+      }
     } else {
       const success = await micPitchDetector.start(
         (pitch) => {
@@ -43,6 +51,11 @@ export const MicrophonePitchBar: React.FC<Props> = ({
         (rms) => {
           // Normaliza RMS (0 a 0.25 para barra de 0 a 100%)
           setVolumeLevel(Math.min(100, Math.round(rms * 400)));
+        },
+        (activeMidi, noteName) => {
+          if (onNoteHoldRef.current) {
+            onNoteHoldRef.current(activeMidi, noteName || undefined);
+          }
         }
       );
 
@@ -71,12 +84,18 @@ export const MicrophonePitchBar: React.FC<Props> = ({
       setIsActive(false);
       setCurrentPitch(null);
       setVolumeLevel(0);
+      if (onNoteHoldRef.current) {
+        onNoteHoldRef.current(null);
+      }
     }
   }, [disabled, isActive]);
 
   useEffect(() => {
     return () => {
       micPitchDetector.stop();
+      if (onNoteHoldRef.current) {
+        onNoteHoldRef.current(null);
+      }
     };
   }, []);
 

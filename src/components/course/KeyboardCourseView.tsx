@@ -24,6 +24,7 @@ export const KeyboardCourseView: React.FC = () => {
   const [completedLessonIds, setCompletedLessonIds] = useState<string[]>([]);
   const [practiceTab, setPracticeTab] = useState<'theory' | 'score' | 'chords'>('theory');
   const [lastMidiEvent, setLastMidiEvent] = useState<{ midi: number; timestamp: number } | null>(null);
+  const [micHearingMidi, setMicHearingMidi] = useState<number | null>(null);
   const [isWidescreenStage, setIsWidescreenStage] = useState<boolean>(false);
   const [isTrailExpanded, setIsTrailExpanded] = useState<boolean>(false);
   const [isFullscreenLesson, setIsFullscreenLesson] = useState<boolean>(false);
@@ -388,6 +389,7 @@ export const KeyboardCourseView: React.FC = () => {
                 <div className="pt-2 space-y-3">
                   <MicrophonePitchBar
                     onNoteDetected={(midi) => handleNoteInput(midi)}
+                    onNoteHold={(midi) => setMicHearingMidi(midi)}
                   />
 
                   <div>
@@ -398,7 +400,7 @@ export const KeyboardCourseView: React.FC = () => {
                       startOctave={2}
                       octaveCount={3}
                       allowOctaveControls={true}
-                      activeExternalNotes={lastMidiEvent ? [lastMidiEvent.midi] : []}
+                      activeExternalNotes={micHearingMidi !== null ? [micHearingMidi] : (lastMidiEvent ? [lastMidiEvent.midi] : [])}
                       onKeyPlay={(midi) => handleNoteInput(midi)}
                     />
                   </div>
@@ -411,6 +413,7 @@ export const KeyboardCourseView: React.FC = () => {
               <div className="space-y-4 pt-2 border-t border-white/5 animate-fade-in">
                 <MicrophonePitchBar
                   onNoteDetected={(midi) => handleNoteInput(midi)}
+                  onNoteHold={(midi) => setMicHearingMidi(midi)}
                 />
 
                 <ScrollingScoreCanvas
@@ -429,7 +432,7 @@ export const KeyboardCourseView: React.FC = () => {
                     startOctave={2}
                     octaveCount={3}
                     allowOctaveControls={true}
-                    activeExternalNotes={lastMidiEvent ? [lastMidiEvent.midi] : []}
+                    activeExternalNotes={micHearingMidi !== null ? [micHearingMidi] : (lastMidiEvent ? [lastMidiEvent.midi] : [])}
                     onKeyPlay={(midi) => handleNoteInput(midi)}
                   />
                 </div>

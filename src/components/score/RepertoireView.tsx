@@ -51,6 +51,7 @@ export const RepertoireView: React.FC = () => {
   const [currentNoteIdx, setCurrentNoteIdx] = useState<number>(0);
   const [lastMidiEvent, setLastMidiEvent] = useState<{ midi: number; timestamp: number } | null>(null);
   const [activeDemoMidi, setActiveDemoMidi] = useState<number[]>([]);
+  const [micHearingMidi, setMicHearingMidi] = useState<number | null>(null);
   const [isFullscreenStage, setIsFullscreenStage] = useState<boolean>(false);
 
   const toggleFullscreenStage = () => {
@@ -466,6 +467,9 @@ export const RepertoireView: React.FC = () => {
           onNoteDetected={(midi) => {
             if (!isPlaying) handleNoteInput(midi);
           }}
+          onNoteHold={(midi) => {
+            if (!isPlaying) setMicHearingMidi(midi);
+          }}
         />
 
         {/* Partitura Deslizante 60 FPS com Divisão de Compasso em Modo Demonstração */}
@@ -496,7 +500,7 @@ export const RepertoireView: React.FC = () => {
             allowOctaveControls={true}
             highlightedKeys={highlightedSongKeys}
             activeFingerPrompt={activeFingerPrompt}
-            activeExternalNotes={isPlaying ? activeDemoMidi : (lastMidiEvent ? [lastMidiEvent.midi] : [])}
+            activeExternalNotes={isPlaying ? activeDemoMidi : (micHearingMidi !== null ? [micHearingMidi] : (lastMidiEvent ? [lastMidiEvent.midi] : []))}
             onKeyPlay={(midi) => {
               if (!isPlaying) handleNoteInput(midi);
             }}

@@ -12,6 +12,7 @@ export const PianoModule: React.FC = () => {
   const [selectedInversion, setSelectedInversion] = useState<0 | 1 | 2>(0);
   const [hasMidiSupport, setHasMidiSupport] = useState<boolean>(false);
   const [midiDeviceName, setMidiDeviceName] = useState<string | null>(null);
+  const [micActiveMidi, setMicActiveMidi] = useState<number | null>(null);
 
   // Checa Web MIDI API
   React.useEffect(() => {
@@ -118,13 +119,16 @@ export const PianoModule: React.FC = () => {
         </div>
 
         <div className="space-y-4">
-          <MicrophonePitchBar />
+          <MicrophonePitchBar
+            onNoteHold={(midi) => setMicActiveMidi(midi)}
+          />
 
           <PianoKeyboard
             startOctave={2}
             octaveCount={3}
             allowOctaveControls={true}
             highlightedKeys={highlightedKeys}
+            activeExternalNotes={micActiveMidi !== null ? [micActiveMidi] : []}
           />
         </div>
       </div>

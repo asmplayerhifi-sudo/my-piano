@@ -62,7 +62,110 @@ class SoundEngine {
     return this.isMuted;
   }
 
-  // Toca uma nota de piano sintetizado com envelope ADSR acústico
+  private activeVoices: Map<number, {
+    osc1: OscillatorNode;
+    osc2: OscillatorNode;
+    gainNode: GainNode;
+    filter: BiquadFilterNode;
+    stopTimeout?: number;
+  }> = new Map();
+
+
+  // Inicia uma nota com sustentação ativa enquanto o clique ou som estiver ativo
+  public startPianoNote(midi: number, velocity = 0.8) {
+    try {
+      this.initContext();
+      if (!this.ctx || !this.masterGain) return;
+
+      // Se já houver uma voz ativa para essa nota, encerra suavemente a anterior
+      if (this.activeVoices.has(midi)) {
+        this.stopPianoNote(midi, 0.05);
+      }
+
+      const now = this.ctx.currentTime;
+      const freq = midiToFrequency(midi);
+
+      const osc1 = this.ctx.createOscillator();
+      const osc2 = this.ctx.createOscillator();
+      const gainNode = this.ctx.createGain();
+      const filter = this.ctx.createBiquadFilter();
+
+      osc1.type = 'triangle';
+      osc1.frequency.setValueAtTime(freq, now);
+
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(freq * 2, now);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(Math.min(freq * 4.5, 6500), now);
+      filter.frequency.exponentialRampToValueAtTime(Math.min(freq * 1.8, 2200), now + 1.5);
+
+      const peakGain = 0.42 * velocity;
+      const attackTime = 0.006;
+      const decayTime = 0.22;
+      const sustainLevel = Math.max(0.0001, peakGain * 0.40);
+
+      gainNode.gain.setValueAtTime(0.0001, now);
+      gainNode.gain.linearRampToValueAtTime(peakGain, now + attackTime);
+      gainNode.gain.exponentialRampToValueAtTime(sustainLevel, now + decayTime);
+      // Decaimento natural lento das cordas se mantida indefinidamente
+      gainNode.gain.exponentialRampToValueAtTime(0.00001, now + 8.0);
+
+      osc1.connect(filter);
+      osc2.connect(filter);
+      filter.connect(gainNode);
+      gainNode.connect(this.masterGain);
+
+      osc1.start(now);
+      osc2.start(now);
+
+      // Limpeza de segurança caso o stop nunca seja disparado
+      const stopTimeout = window.setTimeout(() => {
+        this.stopPianoNote(midi, 0.2);
+      }, 8500);
+
+      this.activeVoices.set(midi, { osc1, osc2, gainNode, filter, stopTimeout });
+    } catch (err) {
+      console.warn('Erro ao iniciar nota no soundEngine:', err);
+    }
+  }
+
+  // Interrompe a nota liberada com abafamento (damper) realista de piano
+  public stopPianoNote(midi: number, releaseDuration = 0.14) {
+    const voice = this.activeVoices.get(midi);
+    if (!voice || !this.ctx) return;
+
+    if (voice.stopTimeout) {
+      window.clearTimeout(voice.stopTimeout);
+    }
+
+    try {
+      const now = this.ctx.currentTime;
+      voice.gainNode.gain.cancelScheduledValues(now);
+      const curGain = Math.max(0.0001, voice.gainNode.gain.value);
+      voice.gainNode.gain.setValueAtTime(curGain, now);
+      voice.gainNode.gain.exponentialRampToValueAtTime(0.00001, now + releaseDuration);
+
+      setTimeout(() => {
+        try {
+          voice.osc1.stop();
+          voice.osc2.stop();
+          voice.osc1.disconnect();
+          voice.osc2.disconnect();
+          voice.gainNode.disconnect();
+          voice.filter.disconnect();
+        } catch {
+          // Ignora se já estiver desconectado
+        }
+      }, Math.round(releaseDuration * 1000 + 40));
+    } catch {
+      // Ignora erro
+    }
+
+    this.activeVoices.delete(midi);
+  }
+
+  // Toca uma nota de piano sintetizado com envelope ADSR acústico de duração fixa
   public playPianoNote(midi: number, duration = 1.2, time?: number, velocity = 0.8) {
     try {
       this.initContext();
