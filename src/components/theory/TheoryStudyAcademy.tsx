@@ -260,15 +260,15 @@ export const TheoryStudyAcademy: React.FC = () => {
       </div>
 
       {/* 3. Grid Principal: Grade de Módulos (Esquerda) e Leitor da Lição (Direita) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
         {/* COLUNA ESQUERDA (4 cols): Menu de Módulos e Lições */}
-        <div className="lg:col-span-4 space-y-3">
-          <div className="p-4 rounded-3xl glass-card border border-white/5 space-y-3">
-            <span className="text-[11px] font-mono text-slate-400 uppercase font-bold block pb-1 border-b border-white/5">
+        <div className="lg:col-span-4 h-full flex flex-col space-y-3">
+          <div className="p-4 rounded-3xl glass-card border border-white/5 space-y-3 flex flex-col flex-1 min-h-0">
+            <span className="text-[11px] font-mono text-slate-400 uppercase font-bold block pb-1 border-b border-white/5 shrink-0">
               Grade Curricular ({filteredLessons.length} Lições Disponíveis):
             </span>
 
-            <div className="space-y-3 max-h-[720px] overflow-y-auto pr-1">
+            <div className="space-y-3 flex-1 min-h-0 overflow-y-auto pr-1">
               {THEORY_MODULES.map((mod) => {
                 const modLessons = mod.lessons.filter(
                   (l) => filteredLessons.some((fl) => fl.id === l.id)
