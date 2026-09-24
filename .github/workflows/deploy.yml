@@ -1,0 +1,54 @@
+name: Deploy Automático para GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: 'pages'
+  cancel-in-progress: true
+
+jobs:
+  build_and_deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do Código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Instalar Dependências
+        run: npm ci
+
+      - name: Executar Testes Unitários Críticos (Zero Jitter & Core Musical)
+        run: npm run test:run
+
+      - name: Compilar Artefatos Estáticos
+        run: npm run build
+        env:
+          VITE_BASE_PATH: '/${{ github.event.repository.name }}/'
+
+      - name: Configurar Páginas
+        uses: actions/configure-pages@v4
+
+      - name: Upload do Artefato Compilado
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist'
+
+      - name: Publicar no GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

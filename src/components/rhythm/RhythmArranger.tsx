@@ -8,7 +8,7 @@ import {
 import { drumEngine } from '../../core/drumEngine';
 import {
   Play, Pause, Square, ChevronLeft, ChevronRight,
-  Save, Download, Plus, Trash2, RotateCcw, Music,
+  Download, Trash2, RotateCcw, Music,
   Sliders, Drumstick,
 } from 'lucide-react';
 
@@ -265,7 +265,7 @@ export const RhythmArranger: React.FC = () => {
 
       while (nextTime < now + scheduleAhead) {
         const pattern = styleRef.current.sections[sectionRef.current].pattern;
-        const vel = (padKey: string, s: DrumStep) =>
+        const vel = (_padKey: string, s: DrumStep) =>
           s.velocity?.[step] !== undefined ? (s.velocity[step]! / 127) : 0.85;
 
         // Toca todos os pads com step ativo

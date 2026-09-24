@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from './components/layout/Header';
 import { Navigation } from './components/layout/Navigation';
 import type { TabId } from './components/layout/Navigation';
@@ -12,8 +12,42 @@ import { TheoryModule } from './components/theory/TheoryModule';
 import { RepertoireView } from './components/score/RepertoireView';
 import { ScoreEditor } from './components/score/ScoreEditor';
 
+const VALID_TABS: TabId[] = [
+  'course-keyboard',
+  'course-guitar',
+  'repertoire',
+  'rhythm',
+  'piano',
+  'guitar',
+  'theory',
+  'score-editor',
+  'arranger',
+];
+
+function getInitialTab(): TabId {
+  if (typeof window === 'undefined') return 'course-keyboard';
+  const cleanHash = window.location.hash.replace(/^#\/?/, '').trim();
+  return (VALID_TABS.find(t => t === cleanHash) as TabId) || 'course-keyboard';
+}
+
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<TabId>('course-keyboard');
+  const [activeTab, setActiveTab] = useState<TabId>(getInitialTab);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const current = getInitialTab();
+      setActiveTab(current);
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  const handleSelectTab = (tab: TabId) => {
+    setActiveTab(tab);
+    if (window.location.hash !== `#/${tab}`) {
+      window.location.hash = `#/${tab}`;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#080811] text-slate-100 flex flex-col justify-between selection:bg-indigo-500 selection:text-white">
@@ -21,7 +55,7 @@ export const App: React.FC = () => {
       <Header />
 
       {/* 2. Barra de Navegação dos Módulos e Cursos */}
-      <Navigation activeTab={activeTab} onSelectTab={(tab) => setActiveTab(tab)} />
+      <Navigation activeTab={activeTab} onSelectTab={handleSelectTab} />
 
       {/* 3. Área Principal do Conteúdo (Totalmente Fluida e Responsiva para Todos os Monitores) */}
       <main className="flex-1 px-2 sm:px-4 md:px-6 2xl:px-8 py-3 sm:py-4 w-full">

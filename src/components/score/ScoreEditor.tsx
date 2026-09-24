@@ -302,7 +302,7 @@ const NoteGrid: React.FC<NoteGridProps> = ({
         </div>
 
         {/* Linhas de Notas */}
-        {allNoteRows.map((row, rowIdx) => {
+        {allNoteRows.map((row) => {
           const isTreble = row.midi >= 56;
           const rowNotes = notes.filter(n => n.midi === row.midi);
           const isBlack = isBlackKey(row.midi);
@@ -615,7 +615,7 @@ export const ScoreEditor: React.FC = () => {
 
   const exportMidi = useCallback(() => {
     const midi = projectToMidi(projectRef.current);
-    const blob = new Blob([midi], { type: 'audio/midi' });
+    const blob = new Blob([midi.buffer as ArrayBuffer], { type: 'audio/midi' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
