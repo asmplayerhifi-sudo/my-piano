@@ -5,10 +5,12 @@ import type { TabId } from './components/layout/Navigation';
 import { KeyboardCourseView } from './components/course/KeyboardCourseView';
 import { GuitarCourseView } from './components/course/GuitarCourseView';
 import { RhythmLab } from './components/rhythm/RhythmLab';
+import { RhythmArranger } from './components/rhythm/RhythmArranger';
 import { PianoModule } from './components/piano/PianoModule';
 import { GuitarModule } from './components/guitar/GuitarModule';
 import { TheoryModule } from './components/theory/TheoryModule';
 import { RepertoireView } from './components/score/RepertoireView';
+import { ScoreEditor } from './components/score/ScoreEditor';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabId>('course-keyboard');
@@ -30,6 +32,8 @@ export const App: React.FC = () => {
         {activeTab === 'piano' && <PianoModule />}
         {activeTab === 'guitar' && <GuitarModule />}
         {activeTab === 'theory' && <TheoryModule />}
+        {activeTab === 'score-editor' && <ScoreEditor />}
+        {activeTab === 'arranger' && <RhythmArranger />}
       </main>
 
       {/* 4. Rodapé Institucional e Tecnológico */}

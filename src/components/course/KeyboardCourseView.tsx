@@ -124,7 +124,7 @@ export const KeyboardCourseView: React.FC = () => {
       const f = fingerNum || (hand === 'MD' ? (firstNote.midi === 60 ? 1 : 2) : 5);
       return {
         finger: f,
-        label: `${hand} ${f}`,
+        label: `${f}`,
         fingerName: names[f] || `D${f}`,
         noteName: firstNote.noteName,
         color: colors[f] || '#38bdf8',

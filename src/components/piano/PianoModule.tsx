@@ -1,8 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useSyncExternalStore } from 'react';
 import { PianoKeyboard } from './PianoKeyboard';
 import { ChordSelector } from './ChordSelector';
 import { MicrophonePitchBar } from '../audio/MicrophonePitchBar';
+import { TimbreSelector } from '../audio/TimbreSelector';
 import { buildChord, getKeyboardInversions } from '../../core/musicTheory';
+import { activeMidiStore } from '../../core/activeMidiStore';
 import type { ChordQuality } from '../../core/types';
 import { Music2, Cable, CheckCircle2, ChevronRight, BookOpen } from 'lucide-react';
 
@@ -13,6 +15,12 @@ export const PianoModule: React.FC = () => {
   const [hasMidiSupport, setHasMidiSupport] = useState<boolean>(false);
   const [midiDeviceName, setMidiDeviceName] = useState<string | null>(null);
   const [micActiveMidi, setMicActiveMidi] = useState<number | null>(null);
+
+  // Subscreve ao store global de notas ativas (partitura, repertório, acordes, qualquer módulo)
+  const globalActiveMidi = useSyncExternalStore(
+    activeMidiStore.subscribe,
+    activeMidiStore.getSnapshotRef,
+  );
 
   // Checa Web MIDI API
   React.useEffect(() => {
@@ -80,16 +88,20 @@ export const PianoModule: React.FC = () => {
           </p>
         </div>
 
-        {/* Status Web MIDI / USB-OTG */}
-        <div className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-black/40 border border-white/5 self-start md:self-auto text-xs">
-          <Cable className={`w-4 h-4 ${midiDeviceName ? 'text-emerald-400' : 'text-slate-400'}`} />
-          <div>
-            <div className="font-bold text-white flex items-center gap-1.5">
-              <span>{midiDeviceName ? midiDeviceName : 'Entrada MIDI'}</span>
-              {midiDeviceName && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
-            </div>
-            <div className="text-[10px] text-slate-400">
-              {hasMidiSupport ? (midiDeviceName ? 'Conectado (USB-OTG / MIDI)' : 'Aguardando teclado USB') : 'Navegador sem suporte MIDI'}
+        {/* Controles do lado direito: Seletor de Timbre + Status MIDI */}
+        <div className="flex items-center gap-3 flex-wrap self-start md:self-auto">
+          <TimbreSelector />
+
+          <div className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-black/40 border border-white/5 text-xs">
+            <Cable className={`w-4 h-4 ${midiDeviceName ? 'text-emerald-400' : 'text-slate-400'}`} />
+            <div>
+              <div className="font-bold text-white flex items-center gap-1.5">
+                <span>{midiDeviceName ? midiDeviceName : 'Entrada MIDI'}</span>
+                {midiDeviceName && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
+              </div>
+              <div className="text-[10px] text-slate-400">
+                {hasMidiSupport ? (midiDeviceName ? 'Conectado (USB-OTG / MIDI)' : 'Aguardando teclado USB') : 'Navegador sem suporte MIDI'}
+              </div>
             </div>
           </div>
         </div>
@@ -128,7 +140,10 @@ export const PianoModule: React.FC = () => {
             octaveCount={3}
             allowOctaveControls={true}
             highlightedKeys={highlightedKeys}
-            activeExternalNotes={micActiveMidi !== null ? [micActiveMidi] : []}
+            activeExternalNotes={[
+              ...globalActiveMidi,
+              ...(micActiveMidi !== null ? [micActiveMidi] : []),
+            ]}
           />
         </div>
       </div>

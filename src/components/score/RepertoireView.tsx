@@ -6,6 +6,7 @@ import { ScrollingScoreCanvas } from './ScrollingScoreCanvas';
 import { PianoKeyboard } from '../piano/PianoKeyboard';
 import { MicrophonePitchBar } from '../audio/MicrophonePitchBar';
 import { RepertoireCatalogModal } from './RepertoireCatalogModal';
+import { TimbreSelector } from '../audio/TimbreSelector';
 import { soundEngine } from '../../core/soundEngine';
 import {
   Music,
@@ -53,6 +54,8 @@ export const RepertoireView: React.FC = () => {
   const [activeDemoMidi, setActiveDemoMidi] = useState<number[]>([]);
   const [micHearingMidi, setMicHearingMidi] = useState<number | null>(null);
   const [isFullscreenStage, setIsFullscreenStage] = useState<boolean>(false);
+  // Sustain: true = nota sustentada até o próximo evento (legato); false = staccato (~40% da duração)
+  const [sustainMode, setSustainMode] = useState<boolean>(true);
 
   const toggleFullscreenStage = () => {
     if (!isFullscreenStage) {
@@ -90,10 +93,12 @@ export const RepertoireView: React.FC = () => {
   const isPlayingRef = useRef<boolean>(false);
   const tempoRef = useRef<number>(tempo);
   const currentNoteIdxRef = useRef<number>(0);
+  const sustainModeRef = useRef<boolean>(sustainMode);
 
   isPlayingRef.current = isPlaying;
   tempoRef.current = tempo;
   currentNoteIdxRef.current = currentNoteIdx;
+  sustainModeRef.current = sustainMode;
 
   // Atualiza tempo recomendado ao trocar de música
   const handleSelectSong = (song: RepertoireSong) => {
@@ -165,7 +170,7 @@ export const RepertoireView: React.FC = () => {
     const f = fingerNum || (hand === 'MD' ? (currentSongTargetNote.midi === 60 ? 1 : 2) : 5);
     return {
       finger: f,
-      label: `${hand} ${f}`,
+      label: `${f}`,
       fingerName: names[f] || `D${f}`,
       noteName: currentSongTargetNote.noteName,
       color: colors[f] || '#38bdf8',
@@ -194,9 +199,31 @@ export const RepertoireView: React.FC = () => {
     let nextIndex = noteIndex;
     const currentNotesMidi: number[] = [];
 
+    // Calcula duração do intervalo até o próximo evento para modo sustain
+    let nextEventOffset: number | null = null;
+    {
+      let scanIdx = nextIndex;
+      while (scanIdx < track.length && Math.abs((offsets[scanIdx] ?? 0) - currentOffset) < 0.05) scanIdx++;
+      if (scanIdx < track.length) nextEventOffset = offsets[scanIdx] ?? null;
+    }
+
     while (nextIndex < track.length && Math.abs((offsets[nextIndex] ?? 0) - currentOffset) < 0.05) {
       const noteToPlay = track[nextIndex];
-      const durSec = Math.max(0.35, (noteToPlay.duration || 1) * (60 / tempoRef.current) * 1.3);
+      const beatSec = 60 / tempoRef.current;
+      const noteDurSec = (noteToPlay.duration || 1) * beatSec;
+
+      let durSec: number;
+      if (sustainModeRef.current) {
+        // Sustain: mantém a nota soando até o próximo evento + leve overlap
+        const intervalSec = nextEventOffset !== null
+          ? Math.max(0.1, (nextEventOffset - currentOffset) * beatSec + 0.06)
+          : noteDurSec * 1.3;
+        durSec = Math.max(noteDurSec * 0.8, intervalSec);
+      } else {
+        // Staccato: 40% da duração rítmica, mínimo 0.12s
+        durSec = Math.max(0.12, noteDurSec * 0.40);
+      }
+
       soundEngine.playPianoNote(noteToPlay.midi, durSec);
       currentNotesMidi.push(noteToPlay.midi);
       nextIndex++;
@@ -307,8 +334,11 @@ export const RepertoireView: React.FC = () => {
           </div>
         </div>
 
-        {/* Lado Direito: Controles Globais de Play / Pause e Ajuste de Andamento (BPM) */}
+        {/* Lado Direito: Controles Globais de Play / Pause, Timbre e Andamento */}
         <div className="flex flex-wrap items-center gap-3 self-start lg:self-auto">
+          {/* Seletor de Timbre */}
+          <TimbreSelector compact />
+
           {/* Botão Principal PLAY / PAUSE */}
           <div className="flex items-center gap-1.5">
             <button
@@ -404,6 +434,35 @@ export const RepertoireView: React.FC = () => {
               );
             })}
           </div>
+
+          {/* Toggle Sustain / Staccato */}
+          <button
+            id="sustain-toggle-btn"
+            onClick={() => setSustainMode(s => !s)}
+            title={sustainMode
+              ? 'Modo Sustain ativo — clique para Staccato (notas curtas)'
+              : 'Modo Staccato ativo — clique para Sustain (notas longas)'}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-2xl text-xs font-bold border transition-all cursor-pointer active:scale-95 ${
+              sustainMode
+                ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-200 hover:bg-indigo-500/30 shadow-sm shadow-indigo-900/30'
+                : 'bg-amber-500/20 border-amber-500/50 text-amber-200 hover:bg-amber-500/30 shadow-sm shadow-amber-900/30'
+            }`}
+          >
+            <span className="text-base leading-none select-none">
+              {sustainMode ? '🎹' : '🥁'}
+            </span>
+            <div className="flex flex-col items-start leading-tight">
+              <span className="text-[9px] uppercase tracking-wider opacity-70">
+                {sustainMode ? 'Com Sustain' : 'Sem Sustain'}
+              </span>
+              <span className="text-[11px]">
+                {sustainMode ? 'Legato' : 'Staccato'}
+              </span>
+            </div>
+            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+              sustainMode ? 'bg-indigo-400' : 'bg-amber-400'
+            }`} />
+          </button>
         </div>
       </div>
 

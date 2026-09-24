@@ -445,7 +445,7 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
       return {
         finger: f,
         hand: 'MD',
-        label: `MD ${f}`,
+        label: `${f}`,
         fingerName: names[f] || `D${f}`,
         color: colors[f] || '#2563eb',
       };
@@ -458,7 +458,7 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
       return {
         finger: f,
         hand: 'ME',
-        label: `ME ${f}`,
+        label: `${f}`,
         fingerName: names[f] || `D${f}`,
         color: '#7c3aed',
       };
@@ -478,20 +478,20 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
     // 4. Mapeamento diatônico para Piano (Posição de 5 Dedos)
     const midi = note.midi;
     if (note.clef === 'treble') {
-      if (midi === 60) return { finger: 1, hand: 'MD', label: 'MD 1', fingerName: 'Polegar', color: '#d97706' };
-      if (midi === 62) return { finger: 2, hand: 'MD', label: 'MD 2', fingerName: 'Indicador', color: '#2563eb' };
-      if (midi === 64) return { finger: 3, hand: 'MD', label: 'MD 3', fingerName: 'Médio', color: '#059669' };
-      if (midi === 65) return { finger: 4, hand: 'MD', label: 'MD 4', fingerName: 'Anelar', color: '#7c3aed' };
-      if (midi >= 67 && midi <= 68) return { finger: 5, hand: 'MD', label: 'MD 5', fingerName: 'Mínimo', color: '#e11d48' };
-      if (midi >= 69) return { finger: 1, hand: 'MD', label: 'MD 1', fingerName: 'Polegar', color: '#d97706' };
-      return { finger: 1, hand: 'MD', label: 'MD 1', fingerName: 'Polegar', color: '#d97706' };
+      if (midi === 60) return { finger: 1, hand: 'MD', label: '1', fingerName: 'Polegar',   color: '#d97706' };
+      if (midi === 62) return { finger: 2, hand: 'MD', label: '2', fingerName: 'Indicador', color: '#2563eb' };
+      if (midi === 64) return { finger: 3, hand: 'MD', label: '3', fingerName: 'Médio',     color: '#059669' };
+      if (midi === 65) return { finger: 4, hand: 'MD', label: '4', fingerName: 'Anelar',    color: '#7c3aed' };
+      if (midi >= 67 && midi <= 68) return { finger: 5, hand: 'MD', label: '5', fingerName: 'Mínimo',    color: '#e11d48' };
+      if (midi >= 69) return { finger: 1, hand: 'MD', label: '1', fingerName: 'Polegar',   color: '#d97706' };
+      return { finger: 1, hand: 'MD', label: '1', fingerName: 'Polegar', color: '#d97706' };
     } else {
-      if (midi === 48) return { finger: 5, hand: 'ME', label: 'ME 5', fingerName: 'Mínimo', color: '#e11d48' };
-      if (midi === 50) return { finger: 4, hand: 'ME', label: 'ME 4', fingerName: 'Anelar', color: '#7c3aed' };
-      if (midi === 52) return { finger: 3, hand: 'ME', label: 'ME 3', fingerName: 'Médio', color: '#059669' };
-      if (midi === 53) return { finger: 2, hand: 'ME', label: 'ME 2', fingerName: 'Indicador', color: '#2563eb' };
-      if (midi === 55) return { finger: 1, hand: 'ME', label: 'ME 1', fingerName: 'Polegar', color: '#d97706' };
-      return { finger: 3, hand: 'ME', label: 'ME 3', fingerName: 'Médio', color: '#7c3aed' };
+      if (midi === 48) return { finger: 5, hand: 'ME', label: '5', fingerName: 'Mínimo',    color: '#e11d48' };
+      if (midi === 50) return { finger: 4, hand: 'ME', label: '4', fingerName: 'Anelar',    color: '#7c3aed' };
+      if (midi === 52) return { finger: 3, hand: 'ME', label: '3', fingerName: 'Médio',     color: '#059669' };
+      if (midi === 53) return { finger: 2, hand: 'ME', label: '2', fingerName: 'Indicador', color: '#2563eb' };
+      if (midi === 55) return { finger: 1, hand: 'ME', label: '1', fingerName: 'Polegar',   color: '#d97706' };
+      return { finger: 3, hand: 'ME', label: '3', fingerName: 'Médio', color: '#7c3aed' };
     }
   };
 
@@ -875,28 +875,36 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
               if (isTrad) {
                 // Fundo P&B Tradicional
                 if (isCurrentActiveMeasure) {
+                  // Pill mais alta para acomodar duas linhas sem sobreposição
                   ctx.fillStyle = '#eff6ff';
                   ctx.strokeStyle = '#3b82f6';
                   ctx.lineWidth = 1.2;
-                  drawRoundedPill(ctx, rulerLeft + 2, 4, rulerWidth - 4, 15, 3.5);
+                  drawRoundedPill(ctx, rulerLeft + 2, 2, rulerWidth - 4, 24, 4);
                   ctx.fill();
                   ctx.stroke();
 
+                  // Ponto indicador azul
                   ctx.fillStyle = '#2563eb';
                   ctx.beginPath();
-                  ctx.arc(rulerLeft + 10, 11.5, 3, 0, Math.PI * 2);
+                  ctx.arc(rulerLeft + 10, 10, 3, 0, Math.PI * 2);
                   ctx.fill();
 
-                  ctx.fillStyle = '#1e3a8a';
-                  ctx.font = 'bold 9.5px JetBrains Mono, monospace';
+                  const cx = (rulerLeft + rulerRight) / 2;
                   ctx.textAlign = 'center';
                   ctx.textBaseline = 'middle';
-                  ctx.fillText(`COMPASSO ${m} • EM ANDAMENTO`, (rulerLeft + rulerRight) / 2, 12);
+                  // Linha 1: COMPASSO N
+                  ctx.fillStyle = '#1e3a8a';
+                  ctx.font = 'bold 9px JetBrains Mono, monospace';
+                  ctx.fillText(`COMPASSO ${m}`, cx, 9);
+                  // Linha 2: ▶ EM ANDAMENTO
+                  ctx.fillStyle = '#2563eb';
+                  ctx.font = 'bold 7.5px JetBrains Mono, monospace';
+                  ctx.fillText('\u25b6 EM ANDAMENTO', cx, 19);
                 } else {
                   ctx.fillStyle = '#f8fafc';
                   ctx.strokeStyle = '#cbd5e1';
                   ctx.lineWidth = 1;
-                  drawRoundedPill(ctx, rulerLeft + 2, 4, rulerWidth - 4, 15, 3.5);
+                  drawRoundedPill(ctx, rulerLeft + 2, 2, rulerWidth - 4, 24, 4);
                   ctx.fill();
                   ctx.stroke();
 
@@ -904,33 +912,40 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
                   ctx.font = 'bold 9px JetBrains Mono, monospace';
                   ctx.textAlign = 'center';
                   ctx.textBaseline = 'middle';
-                  ctx.fillText(`COMPASSO ${m}`, (rulerLeft + rulerRight) / 2, 12);
+                  ctx.fillText(`COMPASSO ${m}`, (rulerLeft + rulerRight) / 2, 14);
                 }
               } else {
                 // Fundo Noturno
                 if (isCurrentActiveMeasure) {
+                  // Pill maior para acomodar duas linhas
                   ctx.fillStyle = 'rgba(99, 102, 241, 0.16)';
                   ctx.strokeStyle = 'rgba(129, 140, 248, 0.6)';
                   ctx.lineWidth = 1.2;
-                  drawRoundedPill(ctx, rulerLeft + 2, 4, rulerWidth - 4, 15, 3.5);
+                  drawRoundedPill(ctx, rulerLeft + 2, 2, rulerWidth - 4, 24, 4);
                   ctx.fill();
                   ctx.stroke();
 
                   ctx.fillStyle = '#22d3ee';
                   ctx.beginPath();
-                  ctx.arc(rulerLeft + 10, 11.5, 2.5, 0, Math.PI * 2);
+                  ctx.arc(rulerLeft + 10, 10, 2.5, 0, Math.PI * 2);
                   ctx.fill();
 
+                  ctx.textAlign = 'center';
+                  const cx = (rulerLeft + rulerRight) / 2;
+                  // Linha 1: COMPASSO N
                   ctx.fillStyle = '#e0e7ff';
                   ctx.font = 'bold 9px JetBrains Mono, monospace';
-                  ctx.textAlign = 'center';
                   ctx.textBaseline = 'middle';
-                  ctx.fillText(`COMPASSO ${m} • EM ANDAMENTO`, (rulerLeft + rulerRight) / 2, 12);
+                  ctx.fillText(`COMPASSO ${m}`, cx, 9);
+                  // Linha 2: ▶ EM ANDAMENTO
+                  ctx.fillStyle = '#818cf8';
+                  ctx.font = 'bold 7.5px JetBrains Mono, monospace';
+                  ctx.fillText('▶ EM ANDAMENTO', cx, 19);
                 } else {
                   ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
                   ctx.strokeStyle = 'rgba(148, 163, 184, 0.16)';
                   ctx.lineWidth = 1;
-                  drawRoundedPill(ctx, rulerLeft + 2, 4, rulerWidth - 4, 15, 3.5);
+                  drawRoundedPill(ctx, rulerLeft + 2, 2, rulerWidth - 4, 24, 4);
                   ctx.fill();
                   ctx.stroke();
 
@@ -938,7 +953,7 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
                   ctx.font = 'bold 8.5px JetBrains Mono, monospace';
                   ctx.textAlign = 'center';
                   ctx.textBaseline = 'middle';
-                  ctx.fillText(`COMPASSO ${m}`, (rulerLeft + rulerRight) / 2, 12);
+                  ctx.fillText(`COMPASSO ${m}`, (rulerLeft + rulerRight) / 2, 14);
                 }
               }
               ctx.restore();

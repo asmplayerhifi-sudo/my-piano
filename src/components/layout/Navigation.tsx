@@ -9,6 +9,8 @@ import {
   LayoutGrid,
   X,
   CheckCircle2,
+  PenLine,
+  Drum,
 } from 'lucide-react';
 
 export type TabId =
@@ -18,7 +20,9 @@ export type TabId =
   | 'rhythm'
   | 'piano'
   | 'guitar'
-  | 'theory';
+  | 'theory'
+  | 'score-editor'
+  | 'arranger';
 
 interface Props {
   activeTab: TabId;
@@ -143,6 +147,36 @@ const TABS: NavTabItem[] = [
     activeBorder: 'border-rose-500/50',
     activeText: 'text-rose-200',
     iconActiveBg: 'bg-rose-600 text-white shadow-rose-500/30',
+  },
+  {
+    id: 'score-editor',
+    label: 'Editor de Partitura',
+    mediumLabel: 'Editor',
+    shortLabel: 'Editor',
+    fullName: 'Editor de Partitura & MIDI',
+    desc: 'Compose, reproduza e exporte suas músicas em MIDI',
+    badge: 'Novo',
+    icon: PenLine,
+    accentColor: 'violet',
+    activeBg: 'bg-violet-500/15',
+    activeBorder: 'border-violet-500/50',
+    activeText: 'text-violet-200',
+    iconActiveBg: 'bg-violet-600 text-white shadow-violet-500/30',
+  },
+  {
+    id: 'arranger',
+    label: 'Arranjador',
+    mediumLabel: 'Arranjador',
+    shortLabel: 'Ritmos',
+    fullName: 'Arranjador de Ritmos PSR-E433',
+    desc: '50 estilos, drum pads ao vivo e editor de arranjos',
+    badge: 'PSR',
+    icon: Drum,
+    accentColor: 'orange',
+    activeBg: 'bg-orange-500/15',
+    activeBorder: 'border-orange-500/50',
+    activeText: 'text-orange-200',
+    iconActiveBg: 'bg-orange-600 text-white shadow-orange-500/30',
   },
 ];
 
