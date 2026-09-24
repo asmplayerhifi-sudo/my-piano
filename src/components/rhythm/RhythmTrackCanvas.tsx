@@ -1,5 +1,4 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import confetti from 'canvas-confetti';
 import { latencyManager } from '../../core/latencyManager';
 import type { RhythmTarget } from '../../core/types';
 import { Sparkles, Trophy, Flame } from 'lucide-react';
@@ -10,6 +9,7 @@ interface Props {
   timeSignature: string;
   onBeatHit?: (diffMs: number, result: string) => void;
   chordName?: string;
+  toleranceMs?: number;
 }
 
 export const RhythmTrackCanvas: React.FC<Props> = ({
@@ -17,6 +17,7 @@ export const RhythmTrackCanvas: React.FC<Props> = ({
   bpm,
   onBeatHit,
   chordName,
+  toleranceMs,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const targetsRef = useRef<RhythmTarget[]>([]);
@@ -66,7 +67,7 @@ export const RhythmTrackCanvas: React.FC<Props> = ({
 
     if (closestIndex !== -1 && minDiff < 300) {
       const target = targets[closestIndex];
-      const evaluation = latencyManager.evaluateTap(target.targetTimeMs, now);
+      const evaluation = latencyManager.evaluateTap(target.targetTimeMs, now, toleranceMs);
 
       target.hitResult = evaluation.result;
       target.hitDiffMs = evaluation.diffMs;
@@ -81,9 +82,6 @@ export const RhythmTrackCanvas: React.FC<Props> = ({
         setStreak(s => {
           const next = s + 1;
           if (next > bestStreak) setBestStreak(next);
-          if (next % 5 === 0) {
-            confetti({ particleCount: 30, spread: 60, origin: { y: 0.7 } });
-          }
           return next;
         });
         setStats(prev => ({ ...prev, perfect: prev.perfect + 1 }));
@@ -103,7 +101,7 @@ export const RhythmTrackCanvas: React.FC<Props> = ({
         onBeatHit(evaluation.diffMs, evaluation.result);
       }
     }
-  }, [isPlaying, bestStreak, onBeatHit]);
+  }, [isPlaying, bestStreak, onBeatHit, toleranceMs]);
 
   // Listener para barra de espaço
   useEffect(() => {

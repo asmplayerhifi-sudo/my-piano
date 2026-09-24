@@ -16,6 +16,8 @@ interface Props {
   isPlaying?: boolean;
   onPlayPauseToggle?: (playing: boolean) => void;
   onTempoChange?: (tempo: number) => void;
+  instrument?: 'piano' | 'guitar';
+  toleranceMs?: number;
 }
 
 function parseTimeSignature(ts = '4/4') {
@@ -40,6 +42,8 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
   isPlaying: controlledIsPlaying,
   onPlayPauseToggle,
   onTempoChange,
+  instrument = 'piano',
+  toleranceMs = 70,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -277,13 +281,22 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
     if (noteIndex >= notes.length) return;
     const note = notes[noteIndex];
 
-    soundEngine.playPianoNote(note.midi, 1.2);
+    if (instrument === 'guitar') {
+      soundEngine.playGuitarPluck(note.midi, 1.4);
+    } else {
+      soundEngine.playPianoNote(note.midi, 1.2);
+    }
 
-    let evaluation = { label: 'PERFEITO!', color: 'text-emerald-400', points: 100 };
-    if (Math.abs(diffMs) > 60) {
-      evaluation = { label: diffMs > 0 ? 'ATRASADO' : 'ADIANTADO', color: 'text-amber-400', points: 50 };
-    } else if (Math.abs(diffMs) > 25) {
-      evaluation = { label: 'BOM!', color: 'text-cyan-400', points: 80 };
+    const tol = toleranceMs ?? 70;
+    const perfectLimit = Math.max(12, Math.round(tol * 0.4));
+    const goodLimit = tol;
+    const absDiff = Math.abs(diffMs);
+
+    let evaluation = { label: `PERFEITO! (±${Math.round(absDiff)}ms)`, color: 'text-emerald-400', points: 100 };
+    if (absDiff > goodLimit) {
+      evaluation = { label: diffMs > 0 ? `ATRASADO (+${Math.round(absDiff)}ms)` : `ADIANTADO (-${Math.round(absDiff)}ms)`, color: 'text-amber-400', points: 50 };
+    } else if (absDiff > perfectLimit) {
+      evaluation = { label: `BOM (±${Math.round(absDiff)}ms)`, color: 'text-cyan-400', points: 80 };
     }
 
     setFeedback({ text: evaluation.label, color: evaluation.color });
@@ -299,7 +312,7 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
     if (noteIndex + 1 >= notes.length && onLessonComplete) {
       onLessonComplete();
     }
-  }, [notes, onNoteHit, onLessonComplete]);
+  }, [notes, onNoteHit, onLessonComplete, instrument, toleranceMs]);
 
   // Se o usuário tocou via teclado virtual, MIDI ou microfone
   useEffect(() => {
