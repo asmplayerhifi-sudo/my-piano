@@ -100,18 +100,24 @@ export class MicrophonePitchDetector {
   public async start(
     onPitch: (pitch: DetectedPitch) => void,
     onVolume?: (rms: number) => void,
-    onActiveNote?: (midi: number | null, noteName: string | null) => void
+    onActiveNote?: (midi: number | null, noteName: string | null) => void,
+    deviceId?: string
   ): Promise<boolean> {
     if (this.isListening) return true;
 
     try {
-      // Solicita acesso ao microfone desativando filtros agressivos que abafam o som de piano
+      // Solicita acesso ao dispositivo de áudio (microfone, interface USB ou entrada de linha/cabo)
+      const audioConstraints: MediaTrackConstraints = {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+      };
+      if (deviceId) {
+        audioConstraints.deviceId = { exact: deviceId };
+      }
+
       this.mediaStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false,
-        },
+        audio: audioConstraints,
       });
 
       const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
@@ -134,9 +140,19 @@ export class MicrophonePitchDetector {
       this.loop();
       return true;
     } catch (err) {
-      console.warn('Não foi possível acessar o microfone:', err);
+      console.warn('Não foi possível acessar o dispositivo de áudio (microfone/USB/cabo):', err);
       this.stop();
       return false;
+    }
+  }
+
+  public static async getAvailableAudioDevices(): Promise<MediaDeviceInfo[]> {
+    try {
+      if (typeof navigator === 'undefined' || !navigator.mediaDevices?.enumerateDevices) return [];
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      return devices.filter(d => d.kind === 'audioinput');
+    } catch {
+      return [];
     }
   }
 

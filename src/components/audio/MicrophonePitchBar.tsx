@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { micPitchDetector } from '../../core/pitchDetector';
+import { micPitchDetector, MicrophonePitchDetector } from '../../core/pitchDetector';
 import type { DetectedPitch } from '../../core/pitchDetector';
-import { Mic, MicOff, Activity, Radio, Volume2, ShieldAlert } from 'lucide-react';
+import { Mic, MicOff, Activity, Radio, Volume2, ShieldAlert, Cable } from 'lucide-react';
 
 interface Props {
   onNoteDetected?: (midi: number, noteName: string) => void;
@@ -23,12 +23,24 @@ export const MicrophonePitchBar: React.FC<Props> = ({
   const [currentPitch, setCurrentPitch] = useState<DetectedPitch | null>(null);
   const [volumeLevel, setVolumeLevel] = useState<number>(0);
   const [sensitivity, setSensitivity] = useState<'high' | 'normal' | 'low'>('normal');
+  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
 
   const onNoteDetectedRef = useRef(onNoteDetected);
   onNoteDetectedRef.current = onNoteDetected;
 
   const onNoteHoldRef = useRef(onNoteHold);
   onNoteHoldRef.current = onNoteHold;
+
+  // Carrega dispositivos de entrada de áudio (microfone integrado, cabo auxiliar ou interface USB)
+  useEffect(() => {
+    MicrophonePitchDetector.getAvailableAudioDevices().then((devices) => {
+      setAudioDevices(devices);
+      if (devices.length > 0 && !selectedDeviceId) {
+        setSelectedDeviceId(devices[0].deviceId);
+      }
+    });
+  }, []);
 
   const handleToggleMic = async () => {
     setErrorMsg(null);
@@ -56,13 +68,16 @@ export const MicrophonePitchBar: React.FC<Props> = ({
           if (onNoteHoldRef.current) {
             onNoteHoldRef.current(activeMidi, noteName || undefined);
           }
-        }
+        },
+        selectedDeviceId || undefined
       );
 
       if (success) {
         setIsActive(true);
+        // Recarrega lista com nomes reais autorizados pelo navegador
+        MicrophonePitchDetector.getAvailableAudioDevices().then(setAudioDevices);
       } else {
-        setErrorMsg('Permissão do microfone negada ou dispositivo indisponível.');
+        setErrorMsg('Permissão de áudio não concedida. No Android ou Navegador, autorize o acesso ao microfone/dispositivo USB.');
       }
     }
   };
@@ -144,37 +159,62 @@ export const MicrophonePitchBar: React.FC<Props> = ({
           )}
         </div>
 
-        {/* Lado Direito: Seletor de Sensibilidade de Captação */}
-        <div className="flex items-center gap-2 text-xs">
-          <span className="text-[11px] font-mono text-slate-400 flex items-center gap-1">
-            <Volume2 className="w-3.5 h-3.5" />
-            <span>Filtro de Ruído:</span>
-          </span>
-          <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 text-[10px] font-bold">
-            <button
-              onClick={() => handleSensitivityChange('high')}
-              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                sensitivity === 'high' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Sensível
-            </button>
-            <button
-              onClick={() => handleSensitivityChange('normal')}
-              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                sensitivity === 'normal' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Normal
-            </button>
-            <button
-              onClick={() => handleSensitivityChange('low')}
-              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                sensitivity === 'low' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Ambiente Barulhento
-            </button>
+        {/* Lado Direito: Seletor de Dispositivo (USB/Cabo/Mic) + Filtro de Sensibilidade */}
+        <div className="flex items-center gap-3 flex-wrap text-xs">
+          {audioDevices.length > 1 && (
+            <div className="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-xl border border-white/5">
+              <Cable className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+              <select
+                value={selectedDeviceId}
+                onChange={(e) => {
+                  setSelectedDeviceId(e.target.value);
+                  if (isActive) {
+                    handleToggleMic();
+                  }
+                }}
+                className="bg-transparent text-[10px] text-slate-200 font-mono focus:outline-none cursor-pointer"
+                title="Selecione o Microfone, Cabo Auxiliar ou Interface USB"
+              >
+                {audioDevices.map((dev, idx) => (
+                  <option key={dev.deviceId || idx} value={dev.deviceId} className="bg-slate-900 text-white">
+                    {dev.label ? (dev.label.length > 25 ? dev.label.substring(0, 25) + '...' : dev.label) : `Entrada ${idx + 1}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-mono text-slate-400 flex items-center gap-1">
+              <Volume2 className="w-3.5 h-3.5" />
+              <span>Filtro de Ruído:</span>
+            </span>
+            <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 text-[10px] font-bold">
+              <button
+                onClick={() => handleSensitivityChange('high')}
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  sensitivity === 'high' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Sensível
+              </button>
+              <button
+                onClick={() => handleSensitivityChange('normal')}
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  sensitivity === 'normal' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Normal
+              </button>
+              <button
+                onClick={() => handleSensitivityChange('low')}
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  sensitivity === 'low' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Ambiente Barulhento
+              </button>
+            </div>
           </div>
         </div>
       </div>

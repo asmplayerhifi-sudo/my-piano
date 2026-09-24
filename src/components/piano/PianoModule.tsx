@@ -4,6 +4,7 @@ import { ChordSelector } from './ChordSelector';
 import { MicrophonePitchBar } from '../audio/MicrophonePitchBar';
 import { TimbreSelector } from '../audio/TimbreSelector';
 import { buildChord, getKeyboardInversions } from '../../core/musicTheory';
+import { midiManager, type MidiDevice } from '../../core/midiManager';
 import { activeMidiStore } from '../../core/activeMidiStore';
 import type { ChordQuality } from '../../core/types';
 import { Music2, Cable, CheckCircle2, ChevronRight, BookOpen } from 'lucide-react';
@@ -12,30 +13,22 @@ export const PianoModule: React.FC = () => {
   const [selectedRoot, setSelectedRoot] = useState<string>('C');
   const [selectedQuality, setSelectedQuality] = useState<ChordQuality>('major');
   const [selectedInversion, setSelectedInversion] = useState<0 | 1 | 2>(0);
-  const [hasMidiSupport, setHasMidiSupport] = useState<boolean>(false);
-  const [midiDeviceName, setMidiDeviceName] = useState<string | null>(null);
+  const [midiDevices, setMidiDevices] = useState<MidiDevice[]>([]);
   const [micActiveMidi, setMicActiveMidi] = useState<number | null>(null);
 
-  // Subscreve ao store global de notas ativas (partitura, repertório, acordes, qualquer módulo)
+  // Subscreve ao store global de notas ativas (partitura, repertório, acordes, qualquer módulo ou teclado USB físico)
   const globalActiveMidi = useSyncExternalStore(
     activeMidiStore.subscribe,
     activeMidiStore.getSnapshotRef,
   );
 
-  // Checa Web MIDI API
+  // Inicializa gerenciador de entrada física MIDI (USB / Cabo OTG / Bluetooth)
   React.useEffect(() => {
-    if (navigator.requestMIDIAccess) {
-      navigator.requestMIDIAccess().then(
-        (access) => {
-          setHasMidiSupport(true);
-          const inputs = Array.from(access.inputs.values());
-          if (inputs.length > 0) {
-            setMidiDeviceName(inputs[0].name || 'Teclado MIDI');
-          }
-        },
-        () => setHasMidiSupport(false)
-      );
-    }
+    midiManager.initialize();
+    const unsubscribe = midiManager.subscribeDevices((devices) => {
+      setMidiDevices(devices);
+    });
+    return unsubscribe;
   }, []);
 
   // Acorde atual
@@ -93,14 +86,18 @@ export const PianoModule: React.FC = () => {
           <TimbreSelector />
 
           <div className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-black/40 border border-white/5 text-xs">
-            <Cable className={`w-4 h-4 ${midiDeviceName ? 'text-emerald-400' : 'text-slate-400'}`} />
+            <Cable className={`w-4 h-4 ${midiDevices.length > 0 ? 'text-emerald-400' : 'text-slate-400'}`} />
             <div>
               <div className="font-bold text-white flex items-center gap-1.5">
-                <span>{midiDeviceName ? midiDeviceName : 'Entrada MIDI'}</span>
-                {midiDeviceName && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
+                <span>{midiDevices.length > 0 ? midiDevices[0].name : 'Entrada USB / Cabo MIDI'}</span>
+                {midiDevices.length > 0 && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
               </div>
               <div className="text-[10px] text-slate-400">
-                {hasMidiSupport ? (midiDeviceName ? 'Conectado (USB-OTG / MIDI)' : 'Aguardando teclado USB') : 'Navegador sem suporte MIDI'}
+                {midiManager.hasSupport()
+                  ? midiDevices.length > 0
+                    ? `${midiDevices.length} teclado(s) conectado(s) via USB/Cabo`
+                    : 'Aguardando teclado USB / Cabo OTG'
+                  : 'Navegador sem suporte MIDI'}
               </div>
             </div>
           </div>
