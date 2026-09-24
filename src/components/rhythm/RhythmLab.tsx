@@ -14,7 +14,7 @@ export const RhythmLab: React.FC = () => {
   const [radarToleranceMs, setRadarToleranceMs] = useState<number>(latencyManager.getToleranceMs());
 
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-6">
+    <div className="w-full space-y-6">
       {/* Header do Módulo com Seletor de Modo & Protocolo Cinestésico */}
       <div className="glass-card rounded-3xl p-6 border border-white/10 flex flex-col xl:flex-row xl:items-center justify-between gap-6">
         <div>
@@ -25,7 +25,7 @@ export const RhythmLab: React.FC = () => {
           <h2 className="text-2xl sm:text-3xl font-black font-display text-white">
             Laboratório Rítmico Anti-Déficit
           </h2>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-2xl">
+          <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-4xl">
             Elimine antecipações e atrasos métricos. Pratique com partituras reais para Teclado e Violão ou utilize a esteira temporal com ajuste de sensibilidade.
           </p>
         </div>

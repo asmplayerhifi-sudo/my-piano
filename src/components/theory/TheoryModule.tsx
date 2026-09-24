@@ -11,7 +11,7 @@ export const TheoryModule: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TheorySubTab>('academy');
 
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-6">
+    <div className="w-full space-y-6">
       {/* 1. Header Oficial do Módulo de Teoria */}
       <div className="glass-card rounded-3xl p-6 border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-5 shadow-2xl">
         <div>
@@ -22,7 +22,7 @@ export const TheoryModule: React.FC = () => {
           <h2 className="text-2xl sm:text-3xl font-black font-display text-white">
             Teoria Musical Completa
           </h2>
-          <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-4xl leading-relaxed">
             Ementa estruturada com 7 módulos teóricos, áudios explicativos, testes de fixação e ferramentas acústicas interativas (construtor de escalas, avaliação de performance e círculo das quintas).
           </p>
         </div>

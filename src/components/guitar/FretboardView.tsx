@@ -125,7 +125,7 @@ export const FretboardView: React.FC<Props> = ({
       </div>
 
       {/* Banner Didático de Dedos da Mão Esquerda (Trastes) e Mão Direita */}
-      <div className="w-full max-w-4xl mb-3 px-4 py-2.5 rounded-2xl bg-black/50 border border-white/10 shadow-xl flex flex-wrap items-center justify-between gap-3 text-xs">
+      <div className="w-full mb-3 px-4 py-2.5 rounded-2xl bg-black/50 border border-white/10 shadow-xl flex flex-wrap items-center justify-between gap-3 text-xs">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-amber-400 font-black uppercase tracking-wider text-[11px] flex items-center gap-1">
             <span>🖐️</span>

@@ -277,7 +277,7 @@ export const TheoryStudyAcademy: React.FC = () => {
             <h2 className="text-2xl sm:text-3xl font-black font-display text-white">
               Academia de Teoria &amp; Harmonia Musical
             </h2>
-            <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-300 max-w-4xl leading-relaxed">
               Do mistério dos semitons e notação tradicional às progressões funcionais, cadências históricas e modos gregos aplicados na composição e improvisação.
             </p>
           </div>
@@ -340,7 +340,7 @@ export const TheoryStudyAcademy: React.FC = () => {
         {!isLessonExpanded && (
           <div
             className={`${
-              isCurriculumExpanded ? 'lg:col-span-6' : 'lg:col-span-4'
+              isCurriculumExpanded ? 'lg:col-span-6 xl:col-span-5' : 'lg:col-span-4 xl:col-span-3 2xl:col-span-3'
             } h-full flex flex-col space-y-3 transition-all`}
           >
             <div
@@ -535,8 +535,8 @@ export const TheoryStudyAcademy: React.FC = () => {
             isLessonExpanded
               ? 'lg:col-span-12'
               : isCurriculumExpanded
-              ? 'lg:col-span-6'
-              : 'lg:col-span-8'
+              ? 'lg:col-span-6 xl:col-span-7'
+              : 'lg:col-span-8 xl:col-span-9 2xl:col-span-9'
           } space-y-5 transition-all`}
         >
           <div

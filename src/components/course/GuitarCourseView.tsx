@@ -222,7 +222,7 @@ export const GuitarCourseView: React.FC = () => {
       : COMMON_OPEN_CHORDS[selectedChordKey] || COMMON_OPEN_CHORDS['C'];
 
   return (
-    <div className="w-full max-w-[1850px] mx-auto space-y-4">
+    <div className="w-full space-y-4">
       {/* Banner Principal do Curso de Violão (Bordas Sutis & Widescreen) */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-950/70 via-[#22130a]/80 to-[#100804]/90 border border-white/5 p-5 sm:p-6 shadow-2xl backdrop-blur-md">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
@@ -268,7 +268,7 @@ export const GuitarCourseView: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
         {/* Coluna 1: Grade de Lições e Módulos */}
         {!isWidescreenStage && (
-          <div className={`${isTrailExpanded ? 'lg:col-span-6' : 'lg:col-span-4'} h-full flex flex-col`}>
+          <div className={`${isTrailExpanded ? 'lg:col-span-6 xl:col-span-5' : 'lg:col-span-4 xl:col-span-3 2xl:col-span-3'} h-full flex flex-col`}>
             <div
               className={`glass-card rounded-3xl p-4 border border-white/5 space-y-3 flex flex-col flex-1 h-full transition-all ${
                 isFullscreenTrail
@@ -373,8 +373,8 @@ export const GuitarCourseView: React.FC = () => {
             isWidescreenStage
               ? 'lg:col-span-12'
               : isTrailExpanded
-              ? 'lg:col-span-6'
-              : 'lg:col-span-8'
+              ? 'lg:col-span-6 xl:col-span-7'
+              : 'lg:col-span-8 xl:col-span-9 2xl:col-span-9'
           } h-full flex flex-col space-y-4`}
         >
           <div

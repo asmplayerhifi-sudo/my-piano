@@ -70,7 +70,7 @@ export const HybridRhythmChord: React.FC = () => {
   }, [selectedPreset, instrument]);
 
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-6">
+    <div className="w-full space-y-6">
       {/* Header do Módulo Híbrido */}
       <div className="glass-card rounded-3xl p-6 border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
@@ -81,7 +81,7 @@ export const HybridRhythmChord: React.FC = () => {
           <h2 className="text-2xl sm:text-3xl font-black font-display text-white">
             Trilha de Acordes em Tempo Real
           </h2>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-2xl">
+          <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-4xl">
             O grande elo perdido do ensino musical: troque os acordes sincronizado com a descida da esteira rítmica na cabeça de cada compasso.
           </p>
         </div>

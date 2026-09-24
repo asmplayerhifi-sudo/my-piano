@@ -246,8 +246,8 @@ export const RepertoireView: React.FC = () => {
   }, []);
 
   return (
-    <div className="w-full max-w-[1850px] mx-auto space-y-3 select-none no-select">
-      {/* 1. Barra de Acesso ao Catálogo e Controle Principal (Bordas Sutis & Widescreen) */}
+    <div className="w-full space-y-3 select-none no-select">
+      {/* 1. Barra de Acesso ao Catálogo e Controle Principal (Totalmente Fluida & Widescreen) */}
       <div className="glass-card rounded-3xl p-4 sm:p-5 border border-white/5 shadow-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-gradient-to-r from-purple-950/40 via-[#130b24]/60 to-[#0a0718]/80 backdrop-blur-md">
         {/* Lado Esquerdo: Identificação da Música e Botão para Abrir o Modal de Catálogo */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">

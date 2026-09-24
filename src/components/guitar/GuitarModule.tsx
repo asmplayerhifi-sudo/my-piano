@@ -20,7 +20,7 @@ export const GuitarModule: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-6">
+    <div className="w-full space-y-6">
       {/* Header do Módulo Violão */}
       <div className="glass-card rounded-3xl p-6 border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
@@ -31,7 +31,7 @@ export const GuitarModule: React.FC = () => {
           <h2 className="text-2xl sm:text-3xl font-black font-display text-white">
             Braço do Violão &amp; Sistema CAGED
           </h2>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-2xl">
+          <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-4xl">
             Domine as 15 casas do braço do instrumento através dos 5 formatos do Sistema CAGED, baixos invertidos e a quebra geométrica de afinação na 2ª corda.
           </p>
         </div>

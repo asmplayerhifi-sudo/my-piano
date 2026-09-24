@@ -168,7 +168,7 @@ export const Navigation: React.FC<Props> = ({ activeTab, onSelectTab }) => {
   return (
     <>
       <nav className="w-full bg-[#0a0916]/95 backdrop-blur-md border-b border-white/5 sticky top-[65px] z-30 transition-all select-none">
-        <div className="max-w-[1920px] mx-auto px-2 sm:px-4 lg:px-6">
+        <div className="w-full px-2 sm:px-4 md:px-6 2xl:px-8">
           <div className="flex items-center justify-between gap-1.5 py-2">
             {/* Lista Horizontal de Abas Otimizada ao Tamanho da Tela */}
             <div className="flex items-center justify-start lg:justify-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth flex-1 py-0.5">

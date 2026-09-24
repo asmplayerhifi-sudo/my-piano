@@ -22,8 +22,8 @@ export const App: React.FC = () => {
       {/* 2. Barra de Navegação dos Módulos e Cursos */}
       <Navigation activeTab={activeTab} onSelectTab={(tab) => setActiveTab(tab)} />
 
-      {/* 3. Área Principal do Conteúdo (Widescreen com Área Total e Bordas Sutis) */}
-      <main className="flex-1 px-2 sm:px-4 lg:px-6 py-4 w-full max-w-[1920px] mx-auto">
+      {/* 3. Área Principal do Conteúdo (Totalmente Fluida e Responsiva para Todos os Monitores) */}
+      <main className="flex-1 px-2 sm:px-4 md:px-6 2xl:px-8 py-3 sm:py-4 w-full">
         {activeTab === 'course-keyboard' && <KeyboardCourseView />}
         {activeTab === 'course-guitar' && <GuitarCourseView />}
         {activeTab === 'repertoire' && <RepertoireView />}

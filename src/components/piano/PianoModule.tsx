@@ -64,7 +64,7 @@ export const PianoModule: React.FC = () => {
   }, [activeVoicing, selectedQuality]);
 
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-6">
+    <div className="w-full space-y-6">
       {/* Header do Módulo Teclado */}
       <div className="glass-card rounded-3xl p-6 border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
@@ -75,7 +75,7 @@ export const PianoModule: React.FC = () => {
           <h2 className="text-2xl sm:text-3xl font-black font-display text-white">
             Teclado &amp; Montador de Acordes
           </h2>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-2xl">
+          <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-4xl">
             Visualize as teclas ativas, dedilhado recomendado (1=Polegar a 5=Mínimo) e pratique a transição de inversões para economia de movimento da mão.
           </p>
         </div>
