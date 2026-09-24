@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { soundEngine } from '../../core/soundEngine';
 import { getNoteInfo } from '../../core/musicTheory';
+import { ChevronLeft, ChevronRight, Layers, Sparkles } from 'lucide-react';
 
 interface HighlightedKey {
   midi: number;
@@ -10,22 +11,29 @@ interface HighlightedKey {
 }
 
 interface Props {
-  startOctave?: number;      // Padrão: 3 (C3 a B4 = 2 oitavas = 24 teclas)
-  octaveCount?: number;      // Padrão: 2
+  startOctave?: number;      // Padrão inicial: 2 ou 3
+  octaveCount?: number;      // Padrão inicial: 3 ou 4
   highlightedKeys?: HighlightedKey[];
   onKeyPlay?: (midi: number) => void;
+  allowOctaveControls?: boolean;
 }
 
 export const PianoKeyboard: React.FC<Props> = ({
-  startOctave = 3,
-  octaveCount = 2,
+  startOctave: initialStartOctave = 2,
+  octaveCount: initialOctaveCount = 3,
   highlightedKeys = [],
   onKeyPlay,
+  allowOctaveControls = true,
 }) => {
-  const whiteKeyWidth = 44;
-  const whiteKeyHeight = 170;
-  const blackKeyWidth = 26;
-  const blackKeyHeight = 108;
+  const [startOctave, setStartOctave] = useState<number>(initialStartOctave);
+  const [octaveCount, setOctaveCount] = useState<number>(initialOctaveCount);
+
+  // Ajusta largura da tecla de acordo com a quantidade de oitavas para caber bem
+  const isCompact = octaveCount >= 4;
+  const whiteKeyWidth = isCompact ? 36 : 42;
+  const whiteKeyHeight = isCompact ? 160 : 170;
+  const blackKeyWidth = isCompact ? 22 : 26;
+  const blackKeyHeight = isCompact ? 100 : 108;
 
   // Notas naturais por oitava (C, D, E, F, G, A, B)
   const naturalOffsets = [0, 2, 4, 5, 7, 9, 11];
@@ -60,29 +68,95 @@ export const PianoKeyboard: React.FC<Props> = ({
     return '#f59e0b';
   };
 
+  const handleShiftOctave = (delta: number) => {
+    setStartOctave(prev => Math.max(1, Math.min(5, prev + delta)));
+  };
+
+  const endOctave = startOctave + octaveCount - 1;
+
   return (
-    <div className="w-full flex flex-col items-center select-none no-select">
-      {/* Legenda de Cores de Graus Harmônicos */}
-      <div className="flex flex-wrap items-center justify-center gap-4 mb-3 text-xs">
-        <div className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-full bg-rose-500 shadow-sm" />
-          <span className="text-slate-300">Tônica / 1º</span>
+    <div className="w-full flex flex-col items-center select-none no-select space-y-3">
+      {/* Barra de Controle de Oitavas Interativa */}
+      {allowOctaveControls && (
+        <div className="w-full flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-white/5 border border-white/10 text-xs">
+          {/* Seletor de Quantidade de Oitavas Visíveis */}
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-mono text-slate-400 font-bold flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Oitavas Visíveis:</span>
+            </span>
+            <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 font-bold text-[10px]">
+              {[2, 3, 4, 5].map((count) => (
+                <button
+                  key={count}
+                  onClick={() => setOctaveCount(count)}
+                  className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                    octaveCount === count
+                      ? 'bg-indigo-600 text-white shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {count} Oitavas
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Deslocamento de Oitava (Transpose / Shift) */}
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-mono text-slate-400">
+              Faixa: <strong className="text-white">C{startOctave} a B{endOctave}</strong> ({octaveCount * 12} Teclas)
+            </span>
+            <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/5">
+              <button
+                onClick={() => handleShiftOctave(-1)}
+                disabled={startOctave <= 1}
+                className="p-1 rounded-lg hover:bg-white/10 disabled:opacity-30 text-slate-300 hover:text-white transition-all cursor-pointer"
+                title="Descer uma oitava mais grave"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="px-2 text-[10px] font-mono font-bold text-indigo-300">
+                Oitava {startOctave}
+              </span>
+              <button
+                onClick={() => handleShiftOctave(1)}
+                disabled={startOctave >= 5}
+                className="p-1 rounded-lg hover:bg-white/10 disabled:opacity-30 text-slate-300 hover:text-white transition-all cursor-pointer"
+                title="Subir uma oitava mais aguda"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Legenda de Cores de Graus Harmônicos & Dó Central */}
+      <div className="flex flex-wrap items-center justify-center gap-4 text-xs">
+        <div className="flex items-center gap-1.5 bg-cyan-950/40 px-2.5 py-0.5 rounded-lg border border-cyan-500/30">
+          <Sparkles className="w-3 h-3 text-cyan-400" />
+          <span className="text-cyan-200 font-bold text-[10px]">C4 = Dó Central (Marcador Ciano)</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-full bg-cyan-400 shadow-sm" />
-          <span className="text-slate-300">3ª (Maior/Menor)</span>
+          <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm" />
+          <span className="text-slate-300 text-[11px]">Tônica</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-full bg-emerald-500 shadow-sm" />
-          <span className="text-slate-300">5ª Justa</span>
+          <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-sm" />
+          <span className="text-slate-300 text-[11px]">3ª</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-full bg-purple-500 shadow-sm" />
-          <span className="text-slate-300">7ª (Maior/Menor)</span>
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm" />
+          <span className="text-slate-300 text-[11px]">5ª Justa</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-purple-500 shadow-sm" />
+          <span className="text-slate-300 text-[11px]">7ª</span>
         </div>
       </div>
 
-      {/* Contêiner de Teclado SVG com scroll horizontal no celular */}
+      {/* Contêiner de Teclado SVG com scroll horizontal fluido */}
       <div className="w-full overflow-x-auto pb-4 no-scrollbar flex justify-center">
         <div className="p-3 rounded-3xl glass-panel border border-white/10 shadow-2xl bg-[#090814]/90 inline-block">
           <svg
@@ -115,6 +189,7 @@ export const PianoKeyboard: React.FC<Props> = ({
                 const x = whiteIndex * whiteKeyWidth;
                 const noteInfo = getNoteInfo(midi);
                 const highlight = getHighlight(midi);
+                const isMiddleC = (midi === 60);
 
                 return (
                   <g
@@ -130,23 +205,33 @@ export const PianoKeyboard: React.FC<Props> = ({
                       height={whiteKeyHeight}
                       rx={6}
                       fill={highlight ? getDegreeColor(highlight.degreeName) : 'url(#whiteKeyGrad)'}
-                      stroke="#8e94a0"
-                      strokeWidth={1}
+                      stroke={isMiddleC ? '#06b6d4' : '#8e94a0'}
+                      strokeWidth={isMiddleC ? 2 : 1}
                       className="transition-all duration-150 group-active:brightness-90"
                     />
+
+                    {/* Destaque visual no topo para o Dó Central (C4) */}
+                    {isMiddleC && (
+                      <circle
+                        cx={x + whiteKeyWidth / 2}
+                        cy={16}
+                        r={4}
+                        fill="#06b6d4"
+                      />
+                    )}
 
                     {/* Rótulo da Nota no rodapé da tecla */}
                     <text
                       x={x + whiteKeyWidth / 2}
                       y={whiteKeyHeight - 12}
                       textAnchor="middle"
-                      fill={highlight ? '#ffffff' : '#334155'}
-                      fontSize={11}
+                      fill={highlight ? '#ffffff' : isMiddleC ? '#0284c7' : '#334155'}
+                      fontSize={isCompact ? 9 : 11}
                       fontWeight="bold"
                       fontFamily="Outfit, sans-serif"
                     >
                       {noteInfo.name}
-                      <tspan fontSize={9} opacity={0.7}>
+                      <tspan fontSize={isCompact ? 8 : 9} opacity={0.7}>
                         {noteInfo.octave}
                       </tspan>
                     </text>
@@ -156,7 +241,7 @@ export const PianoKeyboard: React.FC<Props> = ({
                       <circle
                         cx={x + whiteKeyWidth / 2}
                         cy={whiteKeyHeight - 34}
-                        r={11}
+                        r={isCompact ? 9 : 11}
                         fill="#0f172a"
                       />
                     )}
@@ -166,7 +251,7 @@ export const PianoKeyboard: React.FC<Props> = ({
                         y={whiteKeyHeight - 30}
                         textAnchor="middle"
                         fill="#ffffff"
-                        fontSize={11}
+                        fontSize={isCompact ? 9 : 11}
                         fontWeight="black"
                         fontFamily="JetBrains Mono, monospace"
                       >
@@ -218,7 +303,7 @@ export const PianoKeyboard: React.FC<Props> = ({
                       y={blackKeyHeight - 12}
                       textAnchor="middle"
                       fill={highlight ? '#ffffff' : '#94a3b8'}
-                      fontSize={9}
+                      fontSize={isCompact ? 7.5 : 9}
                       fontWeight="bold"
                       fontFamily="Outfit, sans-serif"
                     >
@@ -230,7 +315,7 @@ export const PianoKeyboard: React.FC<Props> = ({
                       <circle
                         cx={x + blackKeyWidth / 2}
                         cy={blackKeyHeight - 28}
-                        r={9}
+                        r={isCompact ? 7.5 : 9}
                         fill="#0f172a"
                       />
                     )}
@@ -240,7 +325,7 @@ export const PianoKeyboard: React.FC<Props> = ({
                         y={blackKeyHeight - 25}
                         textAnchor="middle"
                         fill="#ffffff"
-                        fontSize={9}
+                        fontSize={isCompact ? 8 : 10}
                         fontWeight="black"
                         fontFamily="JetBrains Mono, monospace"
                       >

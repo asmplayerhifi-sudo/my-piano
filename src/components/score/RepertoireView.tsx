@@ -3,6 +3,7 @@ import { REPERTOIRE_SONGS, REPERTOIRE_CATEGORIES } from '../../core/repertoireDa
 import type { RepertoireSong, SongGenre } from '../../core/repertoireData';
 import { ScrollingScoreCanvas } from './ScrollingScoreCanvas';
 import { PianoKeyboard } from '../piano/PianoKeyboard';
+import { MicrophonePitchBar } from '../audio/MicrophonePitchBar';
 import { soundEngine } from '../../core/soundEngine';
 import {
   Music,
@@ -30,8 +31,12 @@ const CATEGORY_ICON_MAP: Record<string, React.ElementType> = {
 export const RepertoireView: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<SongGenre | 'Todos'>('Todos');
   const [activeSong, setActiveSong] = useState<RepertoireSong>(REPERTOIRE_SONGS[0]);
-  const [lastMidiPressed, setLastMidiPressed] = useState<number | null>(null);
+  const [lastMidiEvent, setLastMidiEvent] = useState<{ midi: number; timestamp: number } | null>(null);
   const [isPlayingDemo, setIsPlayingDemo] = useState<boolean>(false);
+
+  const handleNoteInput = (midi: number) => {
+    setLastMidiEvent({ midi, timestamp: performance.now() });
+  };
 
   const filteredSongs = selectedCategory === 'Todos'
     ? REPERTOIRE_SONGS
@@ -291,24 +296,30 @@ export const RepertoireView: React.FC = () => {
               </div>
             </div>
 
-            {/* Motor de Partitura Deslizante 60 FPS */}
+            {/* Motor de Partitura Deslizante 60 FPS com Escuta por Microfone */}
             <div className="pt-2 border-t border-white/5 space-y-4">
+              {/* Barra de Captação do Microfone e Reconhecimento Acústico */}
+              <MicrophonePitchBar
+                onNoteDetected={(midi) => handleNoteInput(midi)}
+              />
+
               <ScrollingScoreCanvas
                 key={activeSong.id}
                 notes={activeSong.scoreTrack}
                 bpm={activeSong.recommendedBpm}
-                currentMidiPressed={lastMidiPressed}
+                currentMidiPressed={lastMidiEvent}
               />
 
               {/* Teclado Virtual Sincronizado para Prática Direta */}
               <div className="pt-2">
                 <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block mb-2 font-bold">
-                  Toque no Teclado Virtual ou via Teclado USB-MIDI para pontuar na partitura:
+                  Toque no Teclado Virtual, via USB-MIDI ou no seu Piano Real (Microfone Ativo):
                 </span>
                 <PianoKeyboard
-                  startOctave={3}
-                  octaveCount={2}
-                  onKeyPlay={(midi) => setLastMidiPressed(midi)}
+                  startOctave={2}
+                  octaveCount={3}
+                  allowOctaveControls={true}
+                  onKeyPlay={(midi) => handleNoteInput(midi)}
                 />
               </div>
             </div>

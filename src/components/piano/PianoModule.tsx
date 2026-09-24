@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { PianoKeyboard } from './PianoKeyboard';
 import { ChordSelector } from './ChordSelector';
+import { MicrophonePitchBar } from '../audio/MicrophonePitchBar';
 import { buildChord, getKeyboardInversions } from '../../core/musicTheory';
 import type { ChordQuality } from '../../core/types';
 import { Music2, Cable, CheckCircle2, ChevronRight, BookOpen } from 'lucide-react';
@@ -116,11 +117,16 @@ export const PianoModule: React.FC = () => {
           </div>
         </div>
 
-        <PianoKeyboard
-          startOctave={3}
-          octaveCount={2}
-          highlightedKeys={highlightedKeys}
-        />
+        <div className="space-y-4">
+          <MicrophonePitchBar />
+
+          <PianoKeyboard
+            startOctave={2}
+            octaveCount={3}
+            allowOctaveControls={true}
+            highlightedKeys={highlightedKeys}
+          />
+        </div>
       </div>
 
       {/* Painel Inferior: Seletor de Acordes + Guia de Inversões */}

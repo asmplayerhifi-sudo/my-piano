@@ -4,6 +4,7 @@ import type { CourseLesson, CourseModule } from '../../core/coursesData';
 import { ScrollingScoreCanvas } from '../score/ScrollingScoreCanvas';
 import { FastChordTrainer } from '../piano/FastChordTrainer';
 import { PianoKeyboard } from '../piano/PianoKeyboard';
+import { MicrophonePitchBar } from '../audio/MicrophonePitchBar';
 import {
   GraduationCap,
   BookOpen,
@@ -18,7 +19,11 @@ export const KeyboardCourseView: React.FC = () => {
   const [activeLesson, setActiveLesson] = useState<CourseLesson>(KEYBOARD_COURSE_MODULES[0].lessons[0]);
   const [completedLessonIds, setCompletedLessonIds] = useState<string[]>([]);
   const [practiceTab, setPracticeTab] = useState<'theory' | 'score' | 'chords'>('theory');
-  const [lastMidiPressed, setLastMidiPressed] = useState<number | null>(null);
+  const [lastMidiEvent, setLastMidiEvent] = useState<{ midi: number; timestamp: number } | null>(null);
+
+  const handleNoteInput = (midi: number) => {
+    setLastMidiEvent({ midi, timestamp: performance.now() });
+  };
 
   const handleSelectLesson = (lesson: CourseLesson, mod: CourseModule) => {
     setSelectedModule(mod);
@@ -218,15 +223,22 @@ export const KeyboardCourseView: React.FC = () => {
                 )}
 
                 {/* Teclado para Prática Livre da Lição */}
-                <div className="pt-2">
-                  <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block mb-2 font-bold">
-                    Pratique as Teclas e Dedilhado no Teclado Virtual:
-                  </span>
-                  <PianoKeyboard
-                    startOctave={3}
-                    octaveCount={2}
-                    onKeyPlay={(midi) => setLastMidiPressed(midi)}
+                <div className="pt-2 space-y-3">
+                  <MicrophonePitchBar
+                    onNoteDetected={(midi) => handleNoteInput(midi)}
                   />
+
+                  <div>
+                    <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block mb-2 font-bold">
+                      Pratique as Teclas e Dedilhado no Teclado Virtual ou no seu Piano Real:
+                    </span>
+                    <PianoKeyboard
+                      startOctave={2}
+                      octaveCount={3}
+                      allowOctaveControls={true}
+                      onKeyPlay={(midi) => handleNoteInput(midi)}
+                    />
+                  </div>
                 </div>
               </div>
             )}
@@ -234,21 +246,26 @@ export const KeyboardCourseView: React.FC = () => {
             {/* Conteúdo 2: Motor de Partitura Deslizante */}
             {practiceTab === 'score' && activeLesson.scoreTrack && (
               <div className="space-y-4 pt-2 border-t border-white/5 animate-fade-in">
+                <MicrophonePitchBar
+                  onNoteDetected={(midi) => handleNoteInput(midi)}
+                />
+
                 <ScrollingScoreCanvas
                   notes={activeLesson.scoreTrack}
                   bpm={75}
-                  currentMidiPressed={lastMidiPressed}
+                  currentMidiPressed={lastMidiEvent}
                   onLessonComplete={() => handleLessonComplete(activeLesson.id)}
                 />
 
                 <div className="pt-2">
                   <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block mb-2 font-bold">
-                    Toque as Teclas no Teclado Virtual em Sincronia com a Partitura:
+                    Toque no Teclado Virtual, via USB-MIDI ou no seu Piano Real (Microfone Ativo):
                   </span>
                   <PianoKeyboard
-                    startOctave={3}
-                    octaveCount={2}
-                    onKeyPlay={(midi) => setLastMidiPressed(midi)}
+                    startOctave={2}
+                    octaveCount={3}
+                    allowOctaveControls={true}
+                    onKeyPlay={(midi) => handleNoteInput(midi)}
                   />
                 </div>
               </div>

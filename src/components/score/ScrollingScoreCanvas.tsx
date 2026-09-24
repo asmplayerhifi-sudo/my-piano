@@ -4,13 +4,15 @@ import { soundEngine } from '../../core/soundEngine';
 import type { ScoreNote } from '../../core/coursesData';
 import { Play, Pause, RotateCcw, Sparkles, Flame, Award } from 'lucide-react';
 
+export type MidiInputNote = number | { midi: number; timestamp?: number } | null;
+
 interface Props {
   notes: ScoreNote[];
   bpm?: number;
   initialMode?: 'wait' | 'flow';
   onNoteHit?: (note: ScoreNote, diffMs: number) => void;
   onLessonComplete?: () => void;
-  currentMidiPressed?: number | null;
+  currentMidiPressed?: MidiInputNote;
 }
 
 export const ScrollingScoreCanvas: React.FC<Props> = ({
@@ -22,6 +24,7 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
   currentMidiPressed,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const lastProcessedKeyRef = useRef<string>('');
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [mode, setMode] = useState<'wait' | 'flow'>(initialMode);
   const [tempo, setTempo] = useState<number>(bpm);
@@ -88,12 +91,28 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
     }
   }, [notes, onNoteHit, onLessonComplete]);
 
-  // Se o usuário tocou via teclado virtual ou MIDI e for a nota esperada
+  // Se o usuário tocou via teclado virtual, MIDI ou microfone
   useEffect(() => {
-    if (currentMidiPressed !== null && isPlaying && currentIndex < notes.length) {
+    if (currentMidiPressed === null || currentMidiPressed === undefined) return;
+
+    const midi = typeof currentMidiPressed === 'number' ? currentMidiPressed : currentMidiPressed.midi;
+    const timestamp = typeof currentMidiPressed === 'number' ? Date.now() : (currentMidiPressed.timestamp ?? Date.now());
+    const eventKey = `${midi}_${timestamp}`;
+
+    if (lastProcessedKeyRef.current === eventKey) return;
+    lastProcessedKeyRef.current = eventKey;
+
+    // Se o score estava pausado, o primeiro toque pode acordar a partitura
+    if (!isPlaying) {
+      setIsPlaying(true);
+    }
+
+    if (currentIndex < notes.length) {
       const target = notes[currentIndex];
-      if (currentMidiPressed === target.midi) {
+      if (midi === target.midi) {
         triggerNoteHit(currentIndex, 0);
+      } else {
+        setFeedback({ text: 'Tente novamente', color: 'text-rose-400' });
       }
     }
   }, [currentMidiPressed, isPlaying, currentIndex, notes, triggerNoteHit]);
