@@ -497,8 +497,9 @@ export const KeyboardCourseView: React.FC = () => {
             )}
 
             {/* Bloco 2: Partitura Deslizante Interativa (se a lição possuir scoreTrack) */}
+            {/* Bloco 2: Partitura Deslizante com Grand Staff (Clave de Sol + Fá) */}
             {(practiceTab === 'all' || practiceTab === 'score') && activeLesson.scoreTrack && (
-              <div className="space-y-3 pt-3 border-t border-white/5 animate-fade-in">
+              <div className="space-y-2 pt-3 border-t border-white/5 animate-fade-in">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-mono font-bold uppercase text-cyan-400 flex items-center gap-1.5">
                     <Music className="w-3.5 h-3.5" />
@@ -508,6 +509,15 @@ export const KeyboardCourseView: React.FC = () => {
                     {activeLesson.scoreTrack.length} notas no compasso
                   </span>
                 </div>
+
+                {/* Escuta Acústica (Microfone / Cabo Aux / USB) posicionada acima da partitura */}
+                <MicrophonePitchBar
+                  onNoteDetected={(midi) => handleNoteInput(midi)}
+                  onNoteHold={(midi) => setMicHearingMidi(midi)}
+                  expectedMidi={targetScoreNote?.midi ?? null}
+                  expectedNoteName={targetScoreNote?.noteName}
+                  isErrorActive={activeErrors.length > 0}
+                />
 
                 <ScrollingScoreCanvas
                   notes={activeLesson.scoreTrack}
@@ -523,36 +533,36 @@ export const KeyboardCourseView: React.FC = () => {
               </div>
             )}
 
-            {/* Bloco 3: Palco de Execução no Teclado Virtual / Real com Escuta Acústica */}
+            {/* Bloco 3: Teclado Virtual colado imediatamente abaixo da Partitura */}
             {(practiceTab === 'all' || practiceTab === 'theory' || practiceTab === 'score') && (
-              <div className="pt-3 space-y-3 border-t border-white/5 animate-fade-in">
-                <MicrophonePitchBar
-                  onNoteDetected={(midi) => handleNoteInput(midi)}
-                  onNoteHold={(midi) => setMicHearingMidi(midi)}
-                  expectedMidi={targetScoreNote?.midi ?? null}
-                  expectedNoteName={targetScoreNote?.noteName}
-                  isErrorActive={activeErrors.length > 0}
-                />
+              <div className={activeLesson.scoreTrack && (practiceTab === 'all' || practiceTab === 'score') ? 'pt-1.5 animate-fade-in' : 'pt-3 space-y-3 border-t border-white/5 animate-fade-in'}>
+                {(!activeLesson.scoreTrack || practiceTab === 'theory') && (
+                  <>
+                    <MicrophonePitchBar
+                      onNoteDetected={(midi) => handleNoteInput(midi)}
+                      onNoteHold={(midi) => setMicHearingMidi(midi)}
+                      expectedMidi={targetScoreNote?.midi ?? null}
+                      expectedNoteName={targetScoreNote?.noteName}
+                      isErrorActive={activeErrors.length > 0}
+                    />
+                    <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block mb-2 font-bold">
+                      Pratique as Teclas e Dedilhado no Teclado Virtual ou no seu Piano Real:
+                    </span>
+                  </>
+                )}
 
-                <div>
-                  <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block mb-2 font-bold">
-                    {activeLesson.scoreTrack
-                      ? 'Toque na Partitura acima via Teclado Virtual, USB-MIDI ou no seu Piano Real (Microfone Ativo):'
-                      : 'Pratique as Teclas e Dedilhado no Teclado Virtual ou no seu Piano Real:'}
-                  </span>
-                  <PianoKeyboard
-                    startOctave={2}
-                    octaveCount={3}
-                    allowOctaveControls={true}
-                    highlightedKeys={highlightedLessonKeys}
-                    activeFingerPrompt={activeFingerPrompt}
-                    activeExternalNotes={micHearingMidi !== null ? [micHearingMidi] : []}
-                    errorNotes={activeErrors}
-                    correctNotes={activeCorrect}
-                    onKeyPlay={(midi) => handleNoteInput(midi)}
-                    onKeyRelease={() => setLastMidiEvent(null)}
-                  />
-                </div>
+                <PianoKeyboard
+                  startOctave={2}
+                  octaveCount={3}
+                  allowOctaveControls={true}
+                  highlightedKeys={highlightedLessonKeys}
+                  activeFingerPrompt={activeFingerPrompt}
+                  activeExternalNotes={micHearingMidi !== null ? [micHearingMidi] : []}
+                  errorNotes={activeErrors}
+                  correctNotes={activeCorrect}
+                  onKeyPlay={(midi) => handleNoteInput(midi)}
+                  onKeyRelease={() => setLastMidiEvent(null)}
+                />
               </div>
             )}
 

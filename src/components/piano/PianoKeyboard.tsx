@@ -314,192 +314,10 @@ export const PianoKeyboard: React.FC<Props> = ({
   const blackLabelFontSize = Math.max(6.5, Math.min(9.5, blackKeyWidth * 0.38));
 
   return (
-    <div ref={containerRef} className="w-full flex flex-col items-center select-none no-select space-y-3">
-      {/* Barra de Controle de Oitavas & Rastro Synthesia (Bordas Sutis) */}
-      {allowOctaveControls && (
-        <div className="w-full flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-white/[0.03] border border-white/5 text-xs backdrop-blur-md">
-          {/* Seletor de Quantidade de Oitavas Visíveis */}
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-mono text-slate-400 font-bold flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Oitavas:</span>
-            </span>
-            <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 font-bold text-[10px]">
-              {[2, 3, 4, 5].map((count) => (
-                <button
-                  key={count}
-                  onClick={() => setOctaveCount(count)}
-                  className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                    octaveCount === count
-                      ? 'bg-indigo-600 text-white shadow-md'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  {count} Oitavas
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Botão de Toggle do Rastro Synthesia (Waterfall) */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsWaterfallActive(!isWaterfallActive)}
-              className={`px-3 py-1.5 rounded-xl font-bold font-mono text-[10px] uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shadow-md ${
-                isWaterfallActive
-                  ? 'bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-rose-500/20'
-                  : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5'
-              }`}
-            >
-              <Flame className={`w-3.5 h-3.5 ${isWaterfallActive ? 'fill-current animate-pulse' : ''}`} />
-              <span>{isWaterfallActive ? 'Rastro Synthesia: LIGADO' : 'Ativar Rastro Synthesia'}</span>
-            </button>
-
-            {/* Tema de Cores e Velocidade do Rastro */}
-            {isWaterfallActive && (
-              <div className="flex items-center gap-1.5">
-                <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 text-[9px] font-bold">
-                  <button
-                    onClick={() => setTrailTheme('coral')}
-                    className={`px-2 py-0.5 rounded-lg transition-all cursor-pointer ${
-                      trailTheme === 'coral' ? 'bg-rose-600 text-white' : 'text-slate-400 hover:text-white'
-                    }`}
-                    title="Estilo Milo Andreo / Synthesia Original"
-                  >
-                    Coral
-                  </button>
-                  <button
-                    onClick={() => setTrailTheme('cyan')}
-                    className={`px-2 py-0.5 rounded-lg transition-all cursor-pointer ${
-                      trailTheme === 'cyan' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    Ciano
-                  </button>
-                  <button
-                    onClick={() => setTrailTheme('harmonic')}
-                    className={`px-2 py-0.5 rounded-lg transition-all cursor-pointer ${
-                      trailTheme === 'harmonic' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
-                    }`}
-                    title="Cores por Graus Harmônicos"
-                  >
-                    Graus
-                  </button>
-                </div>
-
-                <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 text-[9px] font-bold">
-                  {[120, 180, 240].map((spd) => (
-                    <button
-                      key={spd}
-                      onClick={() => setTrailSpeed(spd)}
-                      className={`px-1.5 py-0.5 rounded-lg transition-all cursor-pointer ${
-                        trailSpeed === spd ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
-                      }`}
-                      title={`Velocidade ${spd} px/s`}
-                    >
-                      {spd === 120 ? '1x' : spd === 180 ? '1.5x' : '2x'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Deslocamento de Oitava (Transpose / Shift) */}
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-mono text-slate-400">
-              Faixa: <strong className="text-white">C{startOctave} a B{endOctave}</strong> ({octaveCount * 12} Teclas)
-            </span>
-            <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/5">
-              <button
-                onClick={() => handleShiftOctave(-1)}
-                disabled={startOctave <= 1}
-                className="p-1 rounded-lg hover:bg-white/10 disabled:opacity-30 text-slate-300 hover:text-white transition-all cursor-pointer"
-                title="Descer uma oitava mais grave"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <span className="px-2 text-[10px] font-mono font-bold text-indigo-300">
-                Oitava {startOctave}
-              </span>
-              <button
-                onClick={() => handleShiftOctave(1)}
-                disabled={startOctave >= 5}
-                className="p-1 rounded-lg hover:bg-white/10 disabled:opacity-30 text-slate-300 hover:text-white transition-all cursor-pointer"
-                title="Subir uma oitava mais aguda"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Barra de Dedos da Mão (Apontamento Visual com Rótulos e Cores) */}
-      <div className="w-full flex flex-wrap items-center justify-between gap-3 px-3.5 py-2 rounded-2xl bg-black/40 border border-white/10 shadow-lg text-xs">
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <span className="text-indigo-300 font-black text-xs uppercase tracking-wider flex items-center gap-1.5">
-            <span>🖐️</span>
-            <span>Apontamento de Dedos:</span>
-          </span>
-          <div className="flex flex-wrap items-center gap-1.5 font-mono text-[11px]">
-            <span className="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
-              D1: Polegar
-            </span>
-            <span className="px-2 py-0.5 rounded-lg bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30">
-              D2: Indicador
-            </span>
-            <span className="px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
-              D3: Médio
-            </span>
-            <span className="px-2 py-0.5 rounded-lg bg-purple-500/20 text-purple-300 font-bold border border-purple-500/30">
-              D4: Anelar
-            </span>
-            <span className="px-2 py-0.5 rounded-lg bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">
-              D5: Mínimo
-            </span>
-          </div>
-        </div>
-
-        <button
-          onClick={() => setShowFingerGuide(v => !v)}
-          className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            showFingerGuide
-              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-              : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
-          }`}
-        >
-          {showFingerGuide ? '🖐️ Dedos na Tecla: ON' : '🖐️ Dedos: OFF'}
-        </button>
-      </div>
-
-      {/* Legenda de Cores de Graus Harmônicos & Dó Central */}
-      <div className="flex flex-wrap items-center justify-center gap-4 text-xs">
-        <div className="flex items-center gap-1.5 bg-cyan-950/40 px-2.5 py-0.5 rounded-lg border border-cyan-500/20">
-          <Sparkles className="w-3 h-3 text-cyan-400" />
-          <span className="text-cyan-200 font-bold text-[10px]">C3 = Dó Central (Marcador Ciano)</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm" />
-          <span className="text-slate-300 text-[11px]">Tônica</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-sm" />
-          <span className="text-slate-300 text-[11px]">3ª</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm" />
-          <span className="text-slate-300 text-[11px]">5ª Justa</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-purple-500 shadow-sm" />
-          <span className="text-slate-300 text-[11px]">7ª</span>
-        </div>
-      </div>
-
-      {/* Contêiner Unificado do Rastro Synthesia + Teclado SVG — 100% da Largura, Zero Scroll, Bordas Sutis */}
+    <div ref={containerRef} className="w-full flex flex-col items-center select-none no-select space-y-2.5">
+      {/* Contêiner Unificado do Rastro Synthesia + Teclado SVG — Posicionado no Topo para Máxima Proximidade com a Partitura */}
       <div className="w-full overflow-hidden flex justify-center">
-        <div className="w-full p-2.5 sm:p-4 rounded-3xl glass-panel border border-white/5 shadow-2xl bg-[#090814]/95 space-y-2">
+        <div className="w-full p-2 sm:p-3 rounded-2xl glass-panel border border-white/5 shadow-2xl bg-[#090814]/95 space-y-2">
           {/* 1. Rastro Synthesia / Waterfall Canvas alinhado aos pixels das teclas */}
           {isWaterfallActive && (
             <PianoWaterfallCanvas
@@ -908,6 +726,189 @@ export const PianoKeyboard: React.FC<Props> = ({
               )}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Menus e Controles do Teclado Posicionados Abaixo das Teclas */}
+      {/* 1. Barra de Controle de Oitavas & Rastro Synthesia (Bordas Sutis) */}
+      {allowOctaveControls && (
+        <div className="w-full flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-white/[0.03] border border-white/5 text-xs backdrop-blur-md">
+          {/* Seletor de Quantidade de Oitavas Visíveis */}
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-mono text-slate-400 font-bold flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Oitavas:</span>
+            </span>
+            <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 font-bold text-[10px]">
+              {[2, 3, 4, 5].map((count) => (
+                <button
+                  key={count}
+                  onClick={() => setOctaveCount(count)}
+                  className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                    octaveCount === count
+                      ? 'bg-indigo-600 text-white shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {count} Oitavas
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Botão de Toggle do Rastro Synthesia (Waterfall) */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsWaterfallActive(!isWaterfallActive)}
+              className={`px-3 py-1.5 rounded-xl font-bold font-mono text-[10px] uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shadow-md ${
+                isWaterfallActive
+                  ? 'bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-rose-500/20'
+                  : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5'
+              }`}
+            >
+              <Flame className={`w-3.5 h-3.5 ${isWaterfallActive ? 'fill-current animate-pulse' : ''}`} />
+              <span>{isWaterfallActive ? 'Rastro Synthesia: LIGADO' : 'Ativar Rastro Synthesia'}</span>
+            </button>
+
+            {/* Tema de Cores e Velocidade do Rastro */}
+            {isWaterfallActive && (
+              <div className="flex items-center gap-1.5">
+                <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 text-[9px] font-bold">
+                  <button
+                    onClick={() => setTrailTheme('coral')}
+                    className={`px-2 py-0.5 rounded-lg transition-all cursor-pointer ${
+                      trailTheme === 'coral' ? 'bg-rose-600 text-white' : 'text-slate-400 hover:text-white'
+                    }`}
+                    title="Estilo Milo Andreo / Synthesia Original"
+                  >
+                    Coral
+                  </button>
+                  <button
+                    onClick={() => setTrailTheme('cyan')}
+                    className={`px-2 py-0.5 rounded-lg transition-all cursor-pointer ${
+                      trailTheme === 'cyan' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Ciano
+                  </button>
+                  <button
+                    onClick={() => setTrailTheme('harmonic')}
+                    className={`px-2 py-0.5 rounded-lg transition-all cursor-pointer ${
+                      trailTheme === 'harmonic' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
+                    }`}
+                    title="Cores por Graus Harmônicos"
+                  >
+                    Graus
+                  </button>
+                </div>
+
+                <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 text-[9px] font-bold">
+                  {[120, 180, 240].map((spd) => (
+                    <button
+                      key={spd}
+                      onClick={() => setTrailSpeed(spd)}
+                      className={`px-1.5 py-0.5 rounded-lg transition-all cursor-pointer ${
+                        trailSpeed === spd ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+                      }`}
+                      title={`Velocidade ${spd} px/s`}
+                    >
+                      {spd === 120 ? '1x' : spd === 180 ? '1.5x' : '2x'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Deslocamento de Oitava (Transpose / Shift) */}
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-mono text-slate-400">
+              Faixa: <strong className="text-white">C{startOctave} a B{endOctave}</strong> ({octaveCount * 12} Teclas)
+            </span>
+            <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/5">
+              <button
+                onClick={() => handleShiftOctave(-1)}
+                disabled={startOctave <= 1}
+                className="p-1 rounded-lg hover:bg-white/10 disabled:opacity-30 text-slate-300 hover:text-white transition-all cursor-pointer"
+                title="Descer uma oitava mais grave"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="px-2 text-[10px] font-mono font-bold text-indigo-300">
+                Oitava {startOctave}
+              </span>
+              <button
+                onClick={() => handleShiftOctave(1)}
+                disabled={startOctave >= 5}
+                className="p-1 rounded-lg hover:bg-white/10 disabled:opacity-30 text-slate-300 hover:text-white transition-all cursor-pointer"
+                title="Subir uma oitava mais aguda"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2. Barra de Dedos da Mão (Apontamento Visual com Rótulos e Cores) */}
+      <div className="w-full flex flex-wrap items-center justify-between gap-3 px-3.5 py-2 rounded-2xl bg-black/40 border border-white/10 shadow-lg text-xs">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <span className="text-indigo-300 font-black text-xs uppercase tracking-wider flex items-center gap-1.5">
+            <span>🖐️</span>
+            <span>Apontamento de Dedos:</span>
+          </span>
+          <div className="flex flex-wrap items-center gap-1.5 font-mono text-[11px]">
+            <span className="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
+              D1: Polegar
+            </span>
+            <span className="px-2 py-0.5 rounded-lg bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30">
+              D2: Indicador
+            </span>
+            <span className="px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
+              D3: Médio
+            </span>
+            <span className="px-2 py-0.5 rounded-lg bg-purple-500/20 text-purple-300 font-bold border border-purple-500/30">
+              D4: Anelar
+            </span>
+            <span className="px-2 py-0.5 rounded-lg bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">
+              D5: Mínimo
+            </span>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setShowFingerGuide(v => !v)}
+          className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            showFingerGuide
+              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
+              : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
+          }`}
+        >
+          {showFingerGuide ? '🖐️ Dedos na Tecla: ON' : '🖐️ Dedos: OFF'}
+        </button>
+      </div>
+
+      {/* 3. Legenda de Cores de Graus Harmônicos & Dó Central */}
+      <div className="flex flex-wrap items-center justify-center gap-4 text-xs pt-0.5">
+        <div className="flex items-center gap-1.5 bg-cyan-950/40 px-2.5 py-0.5 rounded-lg border border-cyan-500/20">
+          <Sparkles className="w-3 h-3 text-cyan-400" />
+          <span className="text-cyan-200 font-bold text-[10px]">C3 = Dó Central (Marcador Ciano)</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm" />
+          <span className="text-slate-300 text-[11px]">Tônica</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-sm" />
+          <span className="text-slate-300 text-[11px]">3ª</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm" />
+          <span className="text-slate-300 text-[11px]">5ª Justa</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-purple-500 shadow-sm" />
+          <span className="text-slate-300 text-[11px]">7ª</span>
         </div>
       </div>
     </div>
