@@ -31,29 +31,11 @@ function computeNoteOffsets(notes: ScoreNote[], timeSignature = '4/4'): number[]
   const noteOffsets: number[] = [];
   if (!notes || notes.length === 0) return noteOffsets;
 
-  let currentMeasure = notes[0]?.measure || 1;
-  let currentMeasureStart = 0;
-  let maxBeatInCurrentMeasure = 0;
-  let prevNoteMeasure = currentMeasure;
-
   for (let i = 0; i < notes.length; i++) {
     const note = notes[i];
-    const m = note.measure || 1;
+    const m = Math.max(1, note.measure || 1);
     const b = (note.beat !== undefined ? Math.max(0, note.beat - 1) : 0);
-
-    if (m !== prevNoteMeasure) {
-      currentMeasureStart += Math.max(beatsPerMeasure, maxBeatInCurrentMeasure);
-      maxBeatInCurrentMeasure = 0;
-      prevNoteMeasure = m;
-    }
-
-    const noteOffset = currentMeasureStart + b;
-    noteOffsets.push(noteOffset);
-
-    const noteEnd = b + (note.duration || 1);
-    if (noteEnd > maxBeatInCurrentMeasure) {
-      maxBeatInCurrentMeasure = noteEnd;
-    }
+    noteOffsets.push((m - 1) * beatsPerMeasure + b);
   }
 
   return noteOffsets;
@@ -420,6 +402,7 @@ export const RepertoireView: React.FC = () => {
           bpm={tempo}
           isPlaying={isPlaying}
           isDemoMode={true}
+          currentNoteIndex={currentNoteIdx}
           onPlayPauseToggle={(playing) => {
             if (playing && !isPlaying) {
               handleTogglePlayPause();

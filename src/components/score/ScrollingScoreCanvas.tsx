@@ -20,6 +20,7 @@ interface Props {
   instrument?: 'piano' | 'guitar';
   toleranceMs?: number;
   isDemoMode?: boolean;
+  currentNoteIndex?: number;
 }
 
 function parseTimeSignature(ts = '4/4') {
@@ -47,6 +48,7 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
   instrument = 'piano',
   toleranceMs = 70,
   isDemoMode = false,
+  currentNoteIndex = 0,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -69,46 +71,45 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
     const noteOffsets: number[] = [];
 
     if (!notes || notes.length === 0) {
-      return { noteOffsets, measureStartBeats, maxMeasure: 1, totalBeats: 0 };
+      return { noteOffsets, measureStartBeats, maxMeasure: 1, totalBeats: 4 };
     }
 
-    let currentMeasure = notes[0]?.measure || 1;
-    let currentMeasureStart = 0;
-    measureStartBeats.set(currentMeasure, 0);
-
-    let maxBeatInCurrentMeasure = 0;
-    let prevNoteMeasure = currentMeasure;
+    let maxMeasure = 1;
+    let maxBeat = 0;
 
     for (let i = 0; i < notes.length; i++) {
       const note = notes[i];
-      const m = note.measure || 1;
+      const m = Math.max(1, note.measure || 1);
       const b = (note.beat !== undefined ? Math.max(0, note.beat - 1) : 0);
+      const dur = note.duration || 1;
 
-      if (m !== prevNoteMeasure) {
-        currentMeasureStart += Math.max(beatsPerMeasure, maxBeatInCurrentMeasure);
-        measureStartBeats.set(m, currentMeasureStart);
-        maxBeatInCurrentMeasure = 0;
-        prevNoteMeasure = m;
+      if (m > maxMeasure) maxMeasure = m;
+
+      // Início exato de cada compasso métrico
+      const measureStart = (m - 1) * beatsPerMeasure;
+      if (!measureStartBeats.has(m)) {
+        measureStartBeats.set(m, measureStart);
       }
 
-      const noteOffset = currentMeasureStart + b;
+      const noteOffset = measureStart + b;
       noteOffsets.push(noteOffset);
 
-      const noteEnd = b + (note.duration || 1);
-      if (noteEnd > maxBeatInCurrentMeasure) {
-        maxBeatInCurrentMeasure = noteEnd;
+      if (noteOffset + dur > maxBeat) {
+        maxBeat = noteOffset + dur;
       }
     }
 
-    const finalMeasure = prevNoteMeasure + 1;
-    const finalStart = currentMeasureStart + Math.max(beatsPerMeasure, maxBeatInCurrentMeasure);
-    measureStartBeats.set(finalMeasure, finalStart);
+    for (let m = 1; m <= maxMeasure + 1; m++) {
+      if (!measureStartBeats.has(m)) {
+        measureStartBeats.set(m, (m - 1) * beatsPerMeasure);
+      }
+    }
 
     return {
       noteOffsets,
       measureStartBeats,
-      maxMeasure: prevNoteMeasure,
-      totalBeats: finalStart,
+      maxMeasure,
+      totalBeats: Math.max(maxMeasure * beatsPerMeasure, maxBeat),
     };
   }, [notes, beatsPerMeasure]);
 
@@ -245,6 +246,27 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
     setTempo(bpm);
   }, [bpm]);
 
+  useEffect(() => {
+    scrollOffsetRef.current = 0;
+    setCurrentIndex(0);
+    isPausedWaitingRef.current = false;
+  }, [notes]);
+
+  const pixelsPerBeat = 120; // Espaçamento horizontal por tempo
+
+  useEffect(() => {
+    if (currentNoteIndex === 0) {
+      scrollOffsetRef.current = 0;
+      isPausedWaitingRef.current = false;
+    } else if (isDemoMode && currentNoteIndex !== undefined && timeline.noteOffsets[currentNoteIndex] !== undefined) {
+      const targetOffset = timeline.noteOffsets[currentNoteIndex] * pixelsPerBeat;
+      const drift = Math.abs(scrollOffsetRef.current - targetOffset);
+      if (drift > 60) {
+        scrollOffsetRef.current = targetOffset;
+      }
+    }
+  }, [currentNoteIndex, isDemoMode, timeline, pixelsPerBeat]);
+
   const setIsPlaying = (playing: boolean) => {
     setInternalIsPlaying(playing);
     if (onPlayPauseToggle) onPlayPauseToggle(playing);
@@ -274,7 +296,6 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
   const bassLineStep = 10;
   const bassTopY = 190;      // Linha 5 da Clave de Fá (A2)
   const attackLineX = 140;   // Posição horizontal fixa da barra de ataque
-  const pixelsPerBeat = 120; // Espaçamento horizontal por tempo
 
   const getNoteY = (midi: number, clef: 'treble' | 'bass' = 'treble'): number => {
     const SEMITONE_TO_DIATONIC = [0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6];
@@ -461,6 +482,16 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
       if (isPlaying && !isPausedWaitingRef.current) {
         const speedPixelsPerSec = (tempo / 60) * pixelsPerBeat;
         scrollOffsetRef.current += speedPixelsPerSec * deltaSec;
+
+        // Se a partitura ultrapassou o fim da obra, reinicia em loop suavemente sem esvaziar a tela
+        const maxScroll = (timeline.totalBeats + 1) * pixelsPerBeat;
+        if (scrollOffsetRef.current > maxScroll) {
+          if (isDemoMode) {
+            scrollOffsetRef.current = 0;
+          } else if (onLessonComplete) {
+            onLessonComplete();
+          }
+        }
       }
 
       // Limpeza do Canvas
