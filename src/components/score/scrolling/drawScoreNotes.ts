@@ -5,7 +5,8 @@
  */
 
 import type { ScoreNote } from '../../../core/coursesData';
-import type { DisplayOptions, ScoreTheme } from './types';
+import { getNoteInfo } from '../../../core/musicTheory';
+import type { DisplayOptions, ScoreTheme, ScoreErrorEvent } from './types';
 import { SCORE_GEOMETRY, drawRoundedPill, getNoteY, getScoreNoteFingering } from './scoreGeometry';
 
 interface DrawNotesParams {
@@ -21,6 +22,7 @@ interface DrawNotesParams {
   pixelsPerBeat: number;
   instrument: 'piano' | 'guitar';
   isDemoMode: boolean;
+  lastError?: ScoreErrorEvent | null;
 }
 
 export function drawScoreNotes({
@@ -36,6 +38,7 @@ export function drawScoreNotes({
   pixelsPerBeat,
   instrument,
   isDemoMode,
+  lastError,
 }: DrawNotesParams): void {
   const isTrad = theme === 'traditional';
   const { middleCY, trebleBaseY, trebleLineStep, trebleNoteNameY, trebleFingerY, bassNoteNameY, bassFingerY } = SCORE_GEOMETRY;
@@ -61,22 +64,47 @@ export function drawScoreNotes({
     ctx.save();
     ctx.globalAlpha = noteAlpha;
 
+    const isErrorTarget = isCurrentTarget && !!lastError && lastError.expectedMidi === note.midi;
+
     // Spotlight na nota ativa
     if (isCurrentTarget) {
-      ctx.fillStyle = isTrad ? 'rgba(37, 99, 235, 0.14)' : 'rgba(56, 189, 248, 0.22)';
-      ctx.beginPath();
-      ctx.arc(rx, ry, 16, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = isTrad ? '#2563eb' : '#38bdf8';
-      ctx.lineWidth = 1.8;
-      ctx.beginPath();
-      ctx.arc(rx, ry, 13.5, 0, Math.PI * 2);
-      ctx.stroke();
+      if (isErrorTarget) {
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.32)';
+        ctx.beginPath();
+        ctx.arc(rx, ry, 20, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(rx, ry, 16.5, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Badge ✕ ERRO
+        ctx.fillStyle = '#dc2626';
+        drawRoundedPill(ctx, rx - 24, ry - 30, 48, 16, 4);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 9px JetBrains Mono, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('✕ ERRO', rx, ry - 19);
+      } else {
+        ctx.fillStyle = isTrad ? 'rgba(37, 99, 235, 0.14)' : 'rgba(56, 189, 248, 0.22)';
+        ctx.beginPath();
+        ctx.arc(rx, ry, 16, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = isTrad ? '#2563eb' : '#38bdf8';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.arc(rx, ry, 13.5, 0, Math.PI * 2);
+        ctx.stroke();
+      }
     }
 
     // Cores
     let noteColor = isTrad ? '#09090b' : '#e2e8f0';
-    if (hasPassed) {
+    if (isErrorTarget) {
+      noteColor = '#ef4444'; // Vermelho intenso no alvo quando errada!
+    } else if (hasPassed) {
       noteColor = isTrad ? '#64748b' : '#10b981';
     } else if (isCurrentTarget) {
       noteColor = isTrad ? '#2563eb' : '#f43f5e';
@@ -165,4 +193,31 @@ export function drawScoreNotes({
 
     ctx.restore();
   });
+
+  // Projeta a nota tocada incorretamente em vermelho na linha de ataque para o aluno ver o erro
+  if (lastError && (performance.now() - lastError.timestamp < 1400)) {
+    const playedClef = lastError.playedMidi < 60 ? 'bass' : 'treble';
+    const playedY = getNoteY(lastError.playedMidi, playedClef);
+    ctx.save();
+    ctx.fillStyle = '#ef4444';
+    ctx.strokeStyle = '#dc2626';
+    ctx.lineWidth = 2;
+
+    // Cabeça de nota tocada errada destacada em vermelho vivo
+    ctx.beginPath();
+    ctx.ellipse(attackLineX, playedY, 12, 8, -Math.PI / 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Rótulo da nota errada tocada
+    const pInfo = getNoteInfo(lastError.playedMidi);
+    ctx.fillStyle = '#dc2626';
+    drawRoundedPill(ctx, attackLineX - 44, playedY - (playedClef === 'bass' ? -14 : 28), 88, 17, 4);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 9px JetBrains Mono, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(`✕ Tocou ${pInfo.name}${pInfo.octave}`, attackLineX, playedY - (playedClef === 'bass' ? -26 : 16));
+    ctx.restore();
+  }
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { KEYBOARD_COURSE_MODULES } from '../../core/coursesData';
-import type { CourseLesson, CourseModule } from '../../core/coursesData';
+import type { CourseLesson, CourseModule, ScoreNote } from '../../core/coursesData';
 import { ScrollingScoreCanvas } from '../score/ScrollingScoreCanvas';
 import { FastChordTrainer } from '../piano/FastChordTrainer';
 import { PianoKeyboard } from '../piano/PianoKeyboard';
@@ -27,6 +27,9 @@ export const KeyboardCourseView: React.FC = () => {
   const [practiceTab, setPracticeTab] = useState<'all' | 'theory' | 'score' | 'chords'>('all');
   const [lastMidiEvent, setLastMidiEvent] = useState<{ midi: number; timestamp: number } | null>(null);
   const [micHearingMidi, setMicHearingMidi] = useState<number | null>(null);
+  const [targetScoreNote, setTargetScoreNote] = useState<ScoreNote | null>(null);
+  const [errorMidiNotes, setErrorMidiNotes] = useState<number[]>([]);
+  const [correctMidiNotes, setCorrectMidiNotes] = useState<number[]>([]);
   const [isWidescreenStage, setIsWidescreenStage] = useState<boolean>(false);
   const [isTrailExpanded, setIsTrailExpanded] = useState<boolean>(false);
   const [isFullscreenLesson, setIsFullscreenLesson] = useState<boolean>(false);
@@ -89,7 +92,35 @@ export const KeyboardCourseView: React.FC = () => {
 
   const handleNoteInput = (midi: number) => {
     setLastMidiEvent({ midi, timestamp: performance.now() });
+    if (targetScoreNote) {
+      if (targetScoreNote.midi === midi) {
+        setCorrectMidiNotes([midi]);
+        setErrorMidiNotes([]);
+        setTimeout(() => setCorrectMidiNotes([]), 600);
+      } else {
+        setErrorMidiNotes([midi]);
+        setTimeout(() => setErrorMidiNotes([]), 1400);
+      }
+    }
   };
+
+  // Teclas ativas com erro (vermelho vivo no teclado virtual e partitura)
+  const activeErrors = useMemo(() => {
+    const list = [...errorMidiNotes];
+    if (micHearingMidi !== null && targetScoreNote && micHearingMidi !== targetScoreNote.midi) {
+      if (!list.includes(micHearingMidi)) list.push(micHearingMidi);
+    }
+    return list;
+  }, [errorMidiNotes, micHearingMidi, targetScoreNote]);
+
+  // Teclas ativas com acerto (verde esmeralda no teclado virtual e partitura)
+  const activeCorrect = useMemo(() => {
+    const list = [...correctMidiNotes];
+    if (micHearingMidi !== null && targetScoreNote && micHearingMidi === targetScoreNote.midi) {
+      if (!list.includes(micHearingMidi)) list.push(micHearingMidi);
+    }
+    return list;
+  }, [correctMidiNotes, micHearingMidi, targetScoreNote]);
 
   const handleSelectLesson = (lesson: CourseLesson, mod: CourseModule) => {
     setSelectedModule(mod);
@@ -458,6 +489,16 @@ export const KeyboardCourseView: React.FC = () => {
                   timeSignature="4/4"
                   bpm={75}
                   currentMidiPressed={lastMidiEvent}
+                  onTargetNoteChange={(note) => setTargetScoreNote(note)}
+                  onNoteHit={(note) => {
+                    setCorrectMidiNotes([note.midi]);
+                    setErrorMidiNotes([]);
+                    setTimeout(() => setCorrectMidiNotes([]), 600);
+                  }}
+                  onNoteError={(err) => {
+                    setErrorMidiNotes([err.playedMidi]);
+                    setTimeout(() => setErrorMidiNotes([]), 1400);
+                  }}
                   onLessonComplete={() => handleLessonComplete(activeLesson.id)}
                 />
               </div>
@@ -469,6 +510,9 @@ export const KeyboardCourseView: React.FC = () => {
                 <MicrophonePitchBar
                   onNoteDetected={(midi) => handleNoteInput(midi)}
                   onNoteHold={(midi) => setMicHearingMidi(midi)}
+                  expectedMidi={targetScoreNote?.midi ?? null}
+                  expectedNoteName={targetScoreNote?.noteName}
+                  isErrorActive={activeErrors.length > 0}
                 />
 
                 <div>
@@ -484,6 +528,8 @@ export const KeyboardCourseView: React.FC = () => {
                     highlightedKeys={highlightedLessonKeys}
                     activeFingerPrompt={activeFingerPrompt}
                     activeExternalNotes={micHearingMidi !== null ? [micHearingMidi] : []}
+                    errorNotes={activeErrors}
+                    correctNotes={activeCorrect}
                     onKeyPlay={(midi) => handleNoteInput(midi)}
                     onKeyRelease={() => setLastMidiEvent(null)}
                   />

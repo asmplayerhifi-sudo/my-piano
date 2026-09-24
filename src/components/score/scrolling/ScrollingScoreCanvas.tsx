@@ -24,6 +24,8 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
   timeSignature = '4/4',
   initialTheme = 'traditional',
   onNoteHit,
+  onNoteError,
+  onTargetNoteChange,
   onLessonComplete,
   currentMidiPressed,
   isPlaying: controlledIsPlaying,
@@ -65,6 +67,8 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
     onPlayPauseToggle,
     onTempoChange,
     onNoteHit,
+    onNoteError,
+    onTargetNoteChange,
     onLessonComplete,
     currentMidiPressed,
     currentNoteIndex,
@@ -130,7 +134,7 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
       if (displayOptions.showRests) {
         drawScoreRests({ ctx, width: containerWidth, theme: scoreTheme, restsList, attackLineX, scrollOffset: playback.scrollOffsetRef.current, pixelsPerBeat });
       }
-      drawScoreNotes({ ctx, width: containerWidth, notes, theme: scoreTheme, displayOptions, noteOffsets: timeline.noteOffsets, currentIndex: playback.currentIndex, attackLineX, scrollOffset: playback.scrollOffsetRef.current, pixelsPerBeat, instrument, isDemoMode });
+      drawScoreNotes({ ctx, width: containerWidth, notes, theme: scoreTheme, displayOptions, noteOffsets: timeline.noteOffsets, currentIndex: playback.currentIndex, attackLineX, scrollOffset: playback.scrollOffsetRef.current, pixelsPerBeat, instrument, isDemoMode, lastError: playback.lastError });
       drawScoreImpactLine(ctx, h, scoreTheme, attackLineX);
 
       animId = requestAnimationFrame(render);

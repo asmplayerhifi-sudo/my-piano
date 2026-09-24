@@ -6,8 +6,9 @@
 
 import { useRef, useState, useCallback, useEffect } from 'react';
 import type { ScoreNote } from '../../../core/coursesData';
+import { getNoteInfo } from '../../../core/musicTheory';
 import { EvaluateRhythmStrikeUseCase } from '../../../application/use-cases/EvaluateRhythmStrikeUseCase';
-import type { ChordSpan } from './types';
+import type { ChordSpan, ScoreErrorEvent } from './types';
 
 interface PlaybackTimeline {
   noteOffsets: number[];
@@ -24,6 +25,8 @@ interface UseScorePlaybackProps {
   onPlayPauseToggle?: (playing: boolean) => void;
   onTempoChange?: (tempo: number) => void;
   onNoteHit?: (note: ScoreNote, diffMs: number) => void;
+  onNoteError?: (error: ScoreErrorEvent) => void;
+  onTargetNoteChange?: (note: ScoreNote | null, index: number) => void;
   onLessonComplete?: () => void;
   currentMidiPressed?: number | { midi: number } | null;
   currentNoteIndex?: number;
@@ -40,6 +43,8 @@ export function useScorePlayback({
   onPlayPauseToggle,
   onTempoChange,
   onNoteHit,
+  onNoteError,
+  onTargetNoteChange,
   onLessonComplete,
   currentMidiPressed,
   currentNoteIndex,
@@ -52,12 +57,28 @@ export function useScorePlayback({
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [score, setScore] = useState<number>(0);
   const [feedback, setFeedback] = useState<{ text: string; color: string } | null>(null);
+  const [lastError, setLastError] = useState<ScoreErrorEvent | null>(null);
 
   const scrollOffsetRef = useRef<number>(0);
   const isPausedWaitingRef = useRef<boolean>(false);
   const playedNotesRef = useRef<Set<number>>(new Set());
   const playedBeatsRef = useRef<Set<number>>(new Set());
   const evaluateStrikeUseCase = useRef(new EvaluateRhythmStrikeUseCase()).current;
+
+  // Notifica o componente pai sobre a nota alvo atual da partitura
+  useEffect(() => {
+    const target = notes[currentIndex] || null;
+    onTargetNoteChange?.(target, currentIndex);
+  }, [currentIndex, notes, onTargetNoteChange]);
+
+  // Limpa o estado visual de erro após 1.4s de inatividade
+  useEffect(() => {
+    if (!lastError) return;
+    const timer = setTimeout(() => {
+      setLastError(null);
+    }, 1400);
+    return () => clearTimeout(timer);
+  }, [lastError]);
 
   const handlePlayToggle = () => {
     const next = !isPlaying;
@@ -74,6 +95,7 @@ export function useScorePlayback({
   const handleRestart = () => {
     scrollOffsetRef.current = 0;
     setCurrentIndex(0);
+    setLastError(null);
     playedNotesRef.current.clear();
     playedBeatsRef.current.clear();
     isPausedWaitingRef.current = false;
@@ -102,6 +124,7 @@ export function useScorePlayback({
       onNoteHit?.(note, diffMs);
     }
 
+    setLastError(null);
     isPausedWaitingRef.current = false;
     setCurrentIndex(noteIndex + 1);
     if (noteIndex + 1 >= notes.length) onLessonComplete?.();
@@ -115,13 +138,31 @@ export function useScorePlayback({
     if (isDemoMode || currentMidiPressed === null || currentMidiPressed === undefined) return;
     const rawMidi = typeof currentMidiPressed === 'number' ? currentMidiPressed : currentMidiPressed.midi;
     const targetNote = notes[currentIndex];
-    if (targetNote && targetNote.midi === rawMidi) {
+    if (!targetNote) return;
+
+    if (targetNote.midi === rawMidi) {
+      setLastError(null);
       const noteOffset = timeline.noteOffsets[currentIndex] ?? 0;
       const currentBeat = scrollOffsetRef.current / pixelsPerBeat;
       const diffMs = (currentBeat - noteOffset) * ((60 / tempo) * 1000);
       processStrike(diffMs, currentIndex);
+    } else {
+      // ✕ Nota tocada incorreta: registra o erro, marca em vermelho e notifica
+      const err: ScoreErrorEvent = {
+        playedMidi: rawMidi,
+        expectedMidi: targetNote.midi,
+        timestamp: performance.now(),
+      };
+      setLastError(err);
+      const playedInfo = getNoteInfo(rawMidi);
+      const targetInfo = getNoteInfo(targetNote.midi);
+      setFeedback({
+        text: `✕ NOTA ERRADA: Tocou ${playedInfo.name}${playedInfo.octave} (Esperada: ${targetInfo.name}${targetInfo.octave})`,
+        color: 'text-rose-400',
+      });
+      onNoteError?.(err);
     }
-  }, [currentMidiPressed, currentIndex, notes, timeline, tempo, isDemoMode, processStrike, pixelsPerBeat]);
+  }, [currentMidiPressed, currentIndex, notes, timeline, tempo, isDemoMode, processStrike, pixelsPerBeat, onNoteError]);
 
   return {
     isPlaying,
@@ -130,6 +171,7 @@ export function useScorePlayback({
     setCurrentIndex,
     score,
     feedback,
+    lastError,
     scrollOffsetRef,
     isPausedWaitingRef,
     playedNotesRef,

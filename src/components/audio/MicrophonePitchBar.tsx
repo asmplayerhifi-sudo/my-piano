@@ -9,6 +9,9 @@ interface Props {
   className?: string;
   disabled?: boolean;
   disabledMessage?: string;
+  expectedMidi?: number | null;
+  expectedNoteName?: string;
+  isErrorActive?: boolean;
 }
 
 export const MicrophonePitchBar: React.FC<Props> = ({
@@ -17,6 +20,9 @@ export const MicrophonePitchBar: React.FC<Props> = ({
   className = '',
   disabled = false,
   disabledMessage,
+  expectedMidi,
+  expectedNoteName,
+  isErrorActive = false,
 }) => {
   const [isActive, setIsActive] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -220,43 +226,83 @@ export const MicrophonePitchBar: React.FC<Props> = ({
       </div>
 
       {/* Barra de Status e Feedback de Nota em Tempo Real */}
-      {isActive && (
-        <div className="pt-2 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-          {/* VU Meter de Volume */}
-          <div className="flex items-center gap-2 flex-1 max-w-xs">
-            <Activity className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <div className="w-full h-2.5 bg-black/60 rounded-full overflow-hidden border border-white/5">
-              <div
-                className={`h-full transition-all duration-75 rounded-full ${
-                  volumeLevel > 70 ? 'bg-rose-500' : volumeLevel > 25 ? 'bg-emerald-400' : 'bg-cyan-400'
-                }`}
-                style={{ width: `${Math.min(100, volumeLevel)}%` }}
-              />
-            </div>
-            <span className="text-[10px] font-mono text-slate-400 w-8">{volumeLevel}%</span>
-          </div>
+      {isActive && (() => {
+        const hasTarget = expectedMidi !== undefined && expectedMidi !== null;
+        const isMatch = currentPitch && hasTarget && currentPitch.midi === expectedMidi;
+        const isWrong = (currentPitch && hasTarget && currentPitch.midi !== expectedMidi) || isErrorActive;
+        const cents = currentPitch
+          ? Math.round((69 + 12 * Math.log2(currentPitch.frequency / 440) - currentPitch.midi) * 100)
+          : 0;
 
-          {/* Destaque da Nota Detectada */}
-          {currentPitch ? (
-            <div className="flex items-center gap-3 bg-indigo-950/60 border border-indigo-500/40 px-3.5 py-1.5 rounded-2xl animate-pulse">
-              <span className="text-[10px] font-mono uppercase text-indigo-300 font-bold">Nota Ouvida:</span>
-              <span className="text-base font-black font-display text-white">
-                {currentPitch.noteName}
-              </span>
-              <span className="text-[10px] font-mono text-cyan-300">
-                {currentPitch.frequency} Hz
-              </span>
-              <span className="text-[9px] font-mono bg-indigo-500/30 text-indigo-200 px-1.5 py-0.5 rounded-md">
-                {currentPitch.clarity}% clareza
-              </span>
+        return (
+          <div className="pt-2 border-t border-white/5 flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs">
+            {/* VU Meter de Volume */}
+            <div className="flex items-center gap-2 flex-1 max-w-xs">
+              <Activity className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <div className="w-full h-2.5 bg-black/60 rounded-full overflow-hidden border border-white/5">
+                <div
+                  className={`h-full transition-all duration-75 rounded-full ${
+                    volumeLevel > 70 ? 'bg-rose-500' : volumeLevel > 25 ? 'bg-emerald-400' : 'bg-cyan-400'
+                  }`}
+                  style={{ width: `${Math.min(100, volumeLevel)}%` }}
+                />
+              </div>
+              <span className="text-[10px] font-mono text-slate-400 w-8">{volumeLevel}%</span>
             </div>
-          ) : (
-            <span className="text-[11px] text-slate-400 italic">
-              Toque qualquer tecla no seu piano acústico ou teclado elétrico para o app reconhecer...
-            </span>
-          )}
-        </div>
-      )}
+
+            {/* Amostrador de Alta Resolução de Nota Ouvida */}
+            {currentPitch ? (
+              <div
+                className={`flex items-center gap-3 px-4 py-2 rounded-2xl border transition-all animate-fade-in ${
+                  isWrong
+                    ? 'bg-rose-950/80 border-rose-500/80 text-rose-200 shadow-lg shadow-rose-950/50 animate-pulse'
+                    : isMatch
+                    ? 'bg-emerald-950/80 border-emerald-500/80 text-emerald-200 shadow-lg shadow-emerald-950/50'
+                    : 'bg-indigo-950/60 border-indigo-500/40 text-slate-200'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] font-mono uppercase font-black px-2 py-0.5 rounded-md ${
+                    isWrong
+                      ? 'bg-rose-500 text-white'
+                      : isMatch
+                      ? 'bg-emerald-500 text-slate-950'
+                      : 'bg-indigo-500/30 text-indigo-300'
+                  }`}>
+                    {isWrong ? '✕ NOTA ERRADA' : isMatch ? '✔ NOTA CORRETA' : '♫ AMOSTRADOR'}
+                  </span>
+                  <span className="text-xl font-black font-display text-white">
+                    {currentPitch.noteName}
+                  </span>
+                </div>
+
+                <div className="h-4 w-px bg-white/10 hidden sm:block" />
+
+                <div className="flex items-center gap-2 text-[10px] font-mono">
+                  <span className="text-cyan-300 font-bold">{currentPitch.frequency} Hz</span>
+                  <span className={`px-1.5 py-0.5 rounded ${
+                    Math.abs(cents) <= 8
+                      ? 'bg-emerald-500/20 text-emerald-300'
+                      : 'bg-amber-500/20 text-amber-300'
+                  }`}>
+                    {Math.abs(cents) <= 8 ? '● Afinada' : cents > 0 ? `+${cents}ct ♯` : `${cents}ct ♭`}
+                  </span>
+                </div>
+
+                {isWrong && expectedNoteName && (
+                  <span className="text-[10px] font-mono font-black text-rose-300 bg-rose-900/60 px-2 py-0.5 rounded-lg border border-rose-500/40">
+                    A partitura pede: {expectedNoteName}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <span className="text-[11px] text-slate-400 italic">
+                Amostrador ativo: toque qualquer tecla no seu piano acústico ou teclado elétrico...
+              </span>
+            )}
+          </div>
+        );
+      })()}
 
       {errorMsg && (
         <div className="p-3 rounded-2xl bg-rose-950/40 border border-rose-500/30 text-xs text-rose-200 flex items-center gap-2">

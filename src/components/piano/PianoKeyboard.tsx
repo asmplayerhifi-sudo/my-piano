@@ -30,6 +30,8 @@ interface Props {
   allowOctaveControls?: boolean;
   showWaterfall?: boolean;
   activeExternalNotes?: number[];
+  errorNotes?: number[];     // Teclas marcadas em vermelho (tocadas incorretamente)
+  correctNotes?: number[];   // Teclas marcadas em verde (tocadas corretamente)
   showFingerPointer?: boolean;
   activeFingerPrompt?: ActiveFingerPrompt | null;
 }
@@ -51,6 +53,8 @@ export const PianoKeyboard: React.FC<Props> = ({
   allowOctaveControls = true,
   showWaterfall = true,
   activeExternalNotes = [],
+  errorNotes = [],
+  correctNotes = [],
   showFingerPointer = true,
   activeFingerPrompt = null,
 }) => {
@@ -551,9 +555,15 @@ export const PianoKeyboard: React.FC<Props> = ({
                   const highlight = getHighlight(midi);
                   const isMiddleC = (midi === 60);
                   const isPressed = combinedActiveNotes.includes(midi);
+                  const isError = errorNotes.includes(midi);
+                  const isCorrect = correctNotes.includes(midi);
 
                   let keyFill = `url(#${whiteKeyGradId})`;
-                  if (isPressed) {
+                  if (isError) {
+                    keyFill = '#fecaca'; // Fundo vermelho intenso de erro
+                  } else if (isCorrect) {
+                    keyFill = '#bbf7d0'; // Fundo verde esmeralda de acerto
+                  } else if (isPressed) {
                     keyFill = '#ffe4e6'; // Destaque aceso quando pressionada
                   } else if (highlight) {
                     keyFill = getDegreeColor(highlight.degreeName);
@@ -591,8 +601,8 @@ export const PianoKeyboard: React.FC<Props> = ({
                         height={whiteKeyHeight}
                         rx={Math.min(5, whiteKeyWidth * 0.15)}
                         fill={keyFill}
-                        stroke={isPressed ? '#f43f5e' : isMiddleC ? '#0284c7' : '#8e94a0'}
-                        strokeWidth={isPressed ? 2 : isMiddleC ? 2 : 0.8}
+                        stroke={isError ? '#dc2626' : isCorrect ? '#16a34a' : isPressed ? '#f43f5e' : isMiddleC ? '#0284c7' : '#8e94a0'}
+                        strokeWidth={isError || isCorrect ? 2.8 : isPressed || isMiddleC ? 2 : 0.8}
                         className="transition-all duration-100"
                       />
 
@@ -621,12 +631,37 @@ export const PianoKeyboard: React.FC<Props> = ({
                         </g>
                       )}
 
+                      {/* Indicador de Erro em Vermelho */}
+                      {isError && (
+                        <g>
+                          <rect
+                            x={x + 2}
+                            y={whiteKeyHeight - 34}
+                            width={Math.max(16, whiteKeyWidth - 4)}
+                            height={15}
+                            rx={3}
+                            fill="#dc2626"
+                          />
+                          <text
+                            x={x + whiteKeyWidth / 2}
+                            y={whiteKeyHeight - 23}
+                            textAnchor="middle"
+                            fill="#ffffff"
+                            fontSize={Math.max(6.5, Math.min(8.5, whiteKeyWidth * 0.2))}
+                            fontWeight="900"
+                            fontFamily="JetBrains Mono, monospace"
+                          >
+                            ✕ ERRO
+                          </text>
+                        </g>
+                      )}
+
                       {/* Rótulo da Nota no rodapé da tecla */}
                       <text
                         x={x + whiteKeyWidth / 2}
                         y={whiteKeyHeight - 10}
                         textAnchor="middle"
-                        fill={isPressed ? '#e11d48' : highlight ? '#ffffff' : isMiddleC ? '#0284c7' : '#334155'}
+                        fill={isError ? '#dc2626' : isCorrect ? '#16a34a' : isPressed ? '#e11d48' : highlight ? '#ffffff' : isMiddleC ? '#0284c7' : '#334155'}
                         fontSize={isMiddleC ? labelFontSize + 1 : labelFontSize}
                         fontWeight="black"
                         fontFamily="Outfit, sans-serif"
@@ -699,9 +734,15 @@ export const PianoKeyboard: React.FC<Props> = ({
                   const noteInfo = getNoteInfo(midi);
                   const highlight = getHighlight(midi);
                   const isPressed = combinedActiveNotes.includes(midi);
+                  const isError = errorNotes.includes(midi);
+                  const isCorrect = correctNotes.includes(midi);
 
                   let keyFill = `url(#${blackKeyGradId})`;
-                  if (isPressed) {
+                  if (isError) {
+                    keyFill = '#dc2626'; // Tecla preta brilha em vermelho vivo de erro!
+                  } else if (isCorrect) {
+                    keyFill = '#16a34a'; // Tecla preta brilha em verde de acerto!
+                  } else if (isPressed) {
                     keyFill = '#f43f5e'; // Tecla preta brilha em coral neon quando tocada
                   } else if (highlight) {
                     keyFill = getDegreeColor(highlight.degreeName);
@@ -740,10 +781,37 @@ export const PianoKeyboard: React.FC<Props> = ({
                         height={blackKeyHeight}
                         rx={Math.min(4, blackKeyWidth * 0.18)}
                         fill={keyFill}
-                        stroke={isPressed ? '#fda4af' : '#0f172a'}
-                        strokeWidth={isPressed ? 1.8 : 1}
+                        stroke={isError ? '#fca5a5' : isCorrect ? '#86efac' : isPressed ? '#fda4af' : '#0f172a'}
+                        strokeWidth={isError || isCorrect ? 2.5 : isPressed ? 1.8 : 1}
                         className="transition-all duration-100"
                       />
+
+                      {/* Indicador de Erro na Tecla Preta */}
+                      {isError && (
+                        <g>
+                          <rect
+                            x={x + 1}
+                            y={blackKeyHeight - 24}
+                            width={blackKeyWidth - 2}
+                            height={12}
+                            rx={2}
+                            fill="#7f1d1d"
+                            stroke="#ef4444"
+                            strokeWidth={0.8}
+                          />
+                          <text
+                            x={x + blackKeyWidth / 2}
+                            y={blackKeyHeight - 15}
+                            textAnchor="middle"
+                            fill="#fecaca"
+                            fontSize={Math.max(6, Math.min(8, blackKeyWidth * 0.28))}
+                            fontWeight="900"
+                            fontFamily="JetBrains Mono, monospace"
+                          >
+                            ✕ ERRO
+                          </text>
+                        </g>
+                      )}
 
                       {/* Nome do sustenido/bemol na ponta */}
                       {!isUltraCompact && (

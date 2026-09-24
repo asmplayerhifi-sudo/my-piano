@@ -34,6 +34,12 @@ export interface DisplayOptions {
 
 export type ScoreTheme = 'traditional' | 'dark';
 
+export interface ScoreErrorEvent {
+  playedMidi: number;
+  expectedMidi: number;
+  timestamp: number;
+}
+
 export interface ScrollingScoreProps {
   notes: ScoreNote[];
   bpm?: number;
@@ -41,6 +47,8 @@ export interface ScrollingScoreProps {
   initialMode?: 'wait' | 'flow';
   initialTheme?: ScoreTheme;
   onNoteHit?: (note: ScoreNote, diffMs: number) => void;
+  onNoteError?: (error: ScoreErrorEvent) => void;
+  onTargetNoteChange?: (note: ScoreNote | null, index: number) => void;
   onLessonComplete?: () => void;
   currentMidiPressed?: MidiInputNote;
   isPlaying?: boolean;
