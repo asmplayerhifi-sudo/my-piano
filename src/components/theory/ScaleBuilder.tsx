@@ -6,7 +6,8 @@ import {
   type ScaleCategory,
 } from '../../core/scaleData';
 import { soundEngine } from '../../core/soundEngine';
-import { Play, Sparkles, Music, Volume2, Info, Compass, Flame } from 'lucide-react';
+import { ScalePerformanceEvaluator } from './ScalePerformanceEvaluator';
+import { Play, Sparkles, Music, Volume2, Info, Compass, Flame, Mic } from 'lucide-react';
 
 export const ScaleBuilder: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<ScaleCategory>('pentatonic');
@@ -14,6 +15,7 @@ export const ScaleBuilder: React.FC = () => {
   const [selectedRootKey, setSelectedRootKey] = useState<string>('C');
   const [isPlayingScale, setIsPlayingScale] = useState<boolean>(false);
   const [activeNoteIndex, setActiveNoteIndex] = useState<number | null>(null);
+  const [showEvaluator, setShowEvaluator] = useState<boolean>(true);
 
   // Escalas da categoria selecionada
   const categoryScales = useMemo(() => {
@@ -136,14 +138,30 @@ export const ScaleBuilder: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={handlePlayScale}
-          disabled={isPlayingScale}
-          className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-400 hover:to-pink-400 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-indigo-500/25 cursor-pointer disabled:opacity-50 active:scale-95 transition-all self-start sm:self-auto shrink-0"
-        >
-          <Play className="w-4 h-4 fill-current" />
-          <span>{isPlayingScale ? 'Ouvindo Escala...' : 'Ouvir Escala Completa'}</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto shrink-0">
+          <button
+            onClick={handlePlayScale}
+            disabled={isPlayingScale}
+            className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-400 hover:to-pink-400 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-indigo-500/25 cursor-pointer disabled:opacity-50 active:scale-95 transition-all"
+            title="Ouvir demonstração sonora da escala com piano virtual"
+          >
+            <Play className="w-4 h-4 fill-current" />
+            <span>{isPlayingScale ? 'Ouvindo Escala...' : 'Ouvir Demonstração'}</span>
+          </button>
+
+          <button
+            onClick={() => setShowEvaluator((prev) => !prev)}
+            className={`px-4 py-2.5 rounded-2xl font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer shadow-lg active:scale-95 border ${
+              showEvaluator
+                ? 'bg-rose-500 text-white border-rose-400 shadow-rose-500/30 ring-2 ring-rose-400/50'
+                : 'bg-white/5 hover:bg-white/10 text-slate-300 border-white/10'
+            }`}
+            title="Ativar/ocultar laboratório de escuta do seu instrumento real via microfone"
+          >
+            <Mic className="w-4 h-4" />
+            <span>{showEvaluator ? 'Ouvir Instrumento (Ativo)' : 'Avaliar no meu Instrumento'}</span>
+          </button>
+        </div>
       </div>
 
       {/* 2. Seletor de Categorias das Escalas (Pills de Alto Nível) */}
@@ -340,7 +358,17 @@ export const ScaleBuilder: React.FC = () => {
         </div>
       </div>
 
-      {/* 6. Mini Visualizador de Teclas do Piano para a Escala */}
+      {/* 6. Laboratório de Avaliação de Performance no Instrumento Real (Microfone) */}
+      {showEvaluator && (
+        <ScalePerformanceEvaluator
+          scale={currentScale}
+          rootKey={selectedRootKey}
+          notes={computed.notes}
+          onPlayNote={(m) => handlePlaySingleNote(m, 0)}
+        />
+      )}
+
+      {/* 7. Mini Visualizador de Teclas do Piano para a Escala */}
       <div className="p-4 rounded-2xl bg-black/40 border border-white/5 space-y-3">
         <div className="flex items-center justify-between text-xs text-slate-400">
           <span className="font-mono uppercase font-bold text-slate-300 flex items-center gap-1.5">
@@ -376,7 +404,7 @@ export const ScaleBuilder: React.FC = () => {
         </div>
       </div>
 
-      {/* 7. Dicas Musicais, Aplicação Prática e Exemplos Famosos */}
+      {/* 8. Dicas Musicais, Aplicação Prática e Exemplos Famosos */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
         <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1.5">
           <div className="flex items-center gap-1.5 text-indigo-400 text-xs font-bold uppercase tracking-wider">
