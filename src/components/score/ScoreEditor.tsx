@@ -45,67 +45,68 @@ interface ScoreProject {
 // ────────────────────────────────────────────────────────────────────────────
 
 const TREBLE_NOTES: { midi: number; name: string; label: string }[] = [
-  { midi: 89, name: 'A6', label: 'Lá6' },
-  { midi: 88, name: 'G#6', label: 'Sol♯6' },
-  { midi: 87, name: 'G6', label: 'Sol6' },
-  { midi: 86, name: 'F#6', label: 'Fá♯6' },
-  { midi: 85, name: 'F6', label: 'Fá6' },
-  { midi: 84, name: 'E6', label: 'Mi6' },
-  { midi: 83, name: 'D#6', label: 'Ré♯6' },
-  { midi: 82, name: 'D6', label: 'Ré6' },
-  { midi: 81, name: 'C#6', label: 'Dó♯6' },
-  { midi: 80, name: 'C6', label: 'Dó6' },
-  { midi: 79, name: 'B5', label: 'Si5' },
-  { midi: 78, name: 'A#5', label: 'Lá♯5' },
-  { midi: 77, name: 'A5', label: 'Lá5' },
-  { midi: 76, name: 'G#5', label: 'Sol♯5' },
-  { midi: 75, name: 'G5', label: 'Sol5' },
-  { midi: 74, name: 'F#5', label: 'Fá♯5' },
-  { midi: 73, name: 'F5', label: 'Fá5' },
-  { midi: 72, name: 'E5', label: 'Mi5' },
-  { midi: 71, name: 'D#5', label: 'Ré♯5' },
-  { midi: 70, name: 'D5', label: 'Ré5' },
-  { midi: 69, name: 'C#5', label: 'Dó♯5' },
-  { midi: 68, name: 'C5', label: 'Dó5' },
-  { midi: 67, name: 'B4', label: 'Si4' },
-  { midi: 66, name: 'A#4', label: 'Lá♯4' },
-  { midi: 65, name: 'A4', label: 'Lá4' },
-  { midi: 64, name: 'G#4', label: 'Sol♯4' },
-  { midi: 63, name: 'G4', label: 'Sol4' },
-  { midi: 62, name: 'F#4', label: 'Fá♯4' },
-  { midi: 61, name: 'F4', label: 'Fá4' },
-  { midi: 60, name: 'E4', label: 'Mi4' },
-  { midi: 59, name: 'D#4', label: 'Ré♯4' },
-  { midi: 58, name: 'D4', label: 'Ré4' },
-  { midi: 57, name: 'C#4', label: 'Dó♯4' },
-  { midi: 56, name: 'C4', label: 'Dó4 (Central)' },
+  { midi: 93, name: 'A6', label: 'Lá6' },
+  { midi: 92, name: 'G#6', label: 'Sol♯6' },
+  { midi: 91, name: 'G6', label: 'Sol6' },
+  { midi: 90, name: 'F#6', label: 'Fá♯6' },
+  { midi: 89, name: 'F6', label: 'Fá6' },
+  { midi: 88, name: 'E6', label: 'Mi6' },
+  { midi: 87, name: 'D#6', label: 'Ré♯6' },
+  { midi: 86, name: 'D6', label: 'Ré6' },
+  { midi: 85, name: 'C#6', label: 'Dó♯6' },
+  { midi: 84, name: 'C6', label: 'Dó6' },
+  { midi: 83, name: 'B5', label: 'Si5' },
+  { midi: 82, name: 'A#5', label: 'Lá♯5' },
+  { midi: 81, name: 'A5', label: 'Lá5' },
+  { midi: 80, name: 'G#5', label: 'Sol♯5' },
+  { midi: 79, name: 'G5', label: 'Sol5' },
+  { midi: 78, name: 'F#5', label: 'Fá♯5' },
+  { midi: 77, name: 'F5', label: 'Fá5' },
+  { midi: 76, name: 'E5', label: 'Mi5' },
+  { midi: 75, name: 'D#5', label: 'Ré♯5' },
+  { midi: 74, name: 'D5', label: 'Ré5' },
+  { midi: 73, name: 'C#5', label: 'Dó♯5' },
+  { midi: 72, name: 'C5', label: 'Dó5' },
+  { midi: 71, name: 'B4', label: 'Si4' },
+  { midi: 70, name: 'A#4', label: 'Lá♯4' },
+  { midi: 69, name: 'A4', label: 'Lá4 (A440)' },
+  { midi: 68, name: 'G#4', label: 'Sol♯4' },
+  { midi: 67, name: 'G4', label: 'Sol4' },
+  { midi: 66, name: 'F#4', label: 'Fá♯4' },
+  { midi: 65, name: 'F4', label: 'Fá4' },
+  { midi: 64, name: 'E4', label: 'Mi4' },
+  { midi: 63, name: 'D#4', label: 'Ré♯4' },
+  { midi: 62, name: 'D4', label: 'Ré4' },
+  { midi: 61, name: 'C#4', label: 'Dó♯4' },
+  { midi: 60, name: 'C4', label: 'Dó4 Central (Dó3 Brasil)' },
 ];
 
 const BASS_NOTES: { midi: number; name: string; label: string }[] = [
-  { midi: 55, name: 'B3', label: 'Si3' },
-  { midi: 54, name: 'A#3', label: 'Lá♯3' },
-  { midi: 53, name: 'A3', label: 'Lá3' },
-  { midi: 52, name: 'G#3', label: 'Sol♯3' },
-  { midi: 51, name: 'G3', label: 'Sol3' },
-  { midi: 50, name: 'F#3', label: 'Fá♯3' },
-  { midi: 49, name: 'F3', label: 'Fá3' },
-  { midi: 48, name: 'E3', label: 'Mi3' },
-  { midi: 47, name: 'D#3', label: 'Ré♯3' },
-  { midi: 46, name: 'D3', label: 'Ré3' },
-  { midi: 45, name: 'C#3', label: 'Dó♯3' },
-  { midi: 44, name: 'C3', label: 'Dó3' },
-  { midi: 43, name: 'B2', label: 'Si2' },
-  { midi: 42, name: 'A#2', label: 'Lá♯2' },
-  { midi: 41, name: 'A2', label: 'Lá2' },
-  { midi: 40, name: 'G#2', label: 'Sol♯2' },
-  { midi: 39, name: 'G2', label: 'Sol2' },
-  { midi: 38, name: 'F#2', label: 'Fá♯2' },
-  { midi: 37, name: 'F2', label: 'Fá2' },
-  { midi: 36, name: 'E2', label: 'Mi2' },
-  { midi: 35, name: 'D#2', label: 'Ré♯2' },
-  { midi: 34, name: 'D2', label: 'Ré2' },
-  { midi: 33, name: 'C#2', label: 'Dó♯2' },
-  { midi: 32, name: 'C2', label: 'Dó2' },
+  { midi: 60, name: 'C4', label: 'Dó4 Central (Dó3 Brasil)' },
+  { midi: 59, name: 'B3', label: 'Si3' },
+  { midi: 58, name: 'A#3', label: 'Lá♯3' },
+  { midi: 57, name: 'A3', label: 'Lá3' },
+  { midi: 56, name: 'G#3', label: 'Sol♯3' },
+  { midi: 55, name: 'G3', label: 'Sol3' },
+  { midi: 54, name: 'F#3', label: 'Fá♯3' },
+  { midi: 53, name: 'F3', label: 'Fá3' },
+  { midi: 52, name: 'E3', label: 'Mi3' },
+  { midi: 51, name: 'D#3', label: 'Ré♯3' },
+  { midi: 50, name: 'D3', label: 'Ré3' },
+  { midi: 49, name: 'C#3', label: 'Dó♯3' },
+  { midi: 48, name: 'C3', label: 'Dó3 Grave (Dó2 Brasil)' },
+  { midi: 47, name: 'B2', label: 'Si2' },
+  { midi: 46, name: 'A#2', label: 'Lá♯2' },
+  { midi: 45, name: 'A2', label: 'Lá2' },
+  { midi: 44, name: 'G#2', label: 'Sol♯2' },
+  { midi: 43, name: 'G2', label: 'Sol2' },
+  { midi: 42, name: 'F#2', label: 'Fá♯2' },
+  { midi: 41, name: 'F2', label: 'Fá2' },
+  { midi: 40, name: 'E2', label: 'Mi2' },
+  { midi: 39, name: 'D#2', label: 'Ré♯2' },
+  { midi: 38, name: 'D2', label: 'Ré2' },
+  { midi: 37, name: 'C#2', label: 'Dó♯2' },
+  { midi: 36, name: 'C2', label: 'Dó2 Muito Grave' },
 ];
 
 const DURATION_OPTIONS: { value: NoteDuration; label: string; symbol: string; beats: number }[] = [
@@ -276,7 +277,17 @@ const NoteGrid: React.FC<NoteGridProps> = ({
     }
   }, [playheadBeat]);
 
-  const allNoteRows = useMemo(() => [...TREBLE_NOTES, ...BASS_NOTES], []);
+  const allNoteRows = useMemo(() => {
+    const seen = new Set<number>();
+    const list: { midi: number; name: string; label: string }[] = [];
+    [...TREBLE_NOTES, ...BASS_NOTES].forEach(n => {
+      if (!seen.has(n.midi)) {
+        seen.add(n.midi);
+        list.push(n);
+      }
+    });
+    return list;
+  }, []);
   const totalBeats = totalMeasures * beatsPerMeasure;
 
   return (
@@ -304,11 +315,11 @@ const NoteGrid: React.FC<NoteGridProps> = ({
 
         {/* Linhas de Notas */}
         {allNoteRows.map((row) => {
-          const isTreble = row.midi >= 56;
+          const isTreble = row.midi >= 60;
           const rowNotes = notes.filter(n => n.midi === row.midi);
           const isBlack = isBlackKey(row.midi);
-          const isSeparator = row.midi === 56; // Dó4 central
-          const isClefSep = row.midi === 55; // separação treble/bass
+          const isSeparator = row.midi === 60; // Dó4 central
+          const isClefSep = row.midi === 59; // separação treble/bass
 
           return (
             <React.Fragment key={row.midi}>
@@ -921,6 +932,60 @@ export const ScoreEditor: React.FC = () => {
         </div>
       </div>
 
+      {/* ── Paleta Superior de Inserção de Notas (Posicionada acima da Partitura) ── */}
+      <div className="glass-card rounded-2xl p-3.5 border border-white/10 shadow-lg">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+          <div className="flex items-center gap-2">
+            <Plus className="w-4 h-4 text-violet-400" />
+            <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+              <span>Inserir Nota — {selectedClef === 'treble' ? '𝄞 Clave de Sol' : '𝄢 Clave de Fá'}</span>
+              <span className="text-[10px] font-normal text-indigo-300 bg-indigo-500/15 px-2 py-0.5 rounded-full border border-indigo-500/30">
+                Dó Central = C4 (Dó3 Brasil)
+              </span>
+            </span>
+          </div>
+          <span className="text-[10px] text-slate-400 font-mono">
+            Clique na nota para inserir no compasso ativo
+          </span>
+        </div>
+
+        <div className="flex flex-wrap gap-1 items-center">
+          {noteRows.map(row => {
+            const black = isBlackKey(row.midi);
+            const isCenter = row.midi === 60;
+            const isC3 = row.midi === 48;
+            return (
+              <button
+                key={row.midi}
+                id={`insert-note-${row.name}`}
+                onClick={e => { e.stopPropagation(); addNote(row.midi, row.name); }}
+                title={`Inserir ${row.label} (${row.midi})`}
+                className={`flex flex-col items-center justify-center min-w-[34px] px-2 py-1.5 rounded-lg text-[9px] font-black transition-all cursor-pointer border ${
+                  black
+                    ? 'bg-slate-800/80 border-slate-600/40 text-slate-300 hover:bg-slate-700 hover:text-white'
+                    : isCenter
+                    ? 'bg-indigo-500/25 border-indigo-400 text-indigo-100 shadow-md shadow-indigo-500/20 ring-1 ring-indigo-400/50 hover:bg-indigo-500/35'
+                    : isC3
+                    ? 'bg-amber-500/20 border-amber-400/60 text-amber-100 hover:bg-amber-500/30'
+                    : selectedClef === 'treble'
+                    ? 'bg-violet-500/15 border-violet-500/30 text-violet-200 hover:bg-violet-500/25 hover:text-white'
+                    : 'bg-amber-500/15 border-amber-500/30 text-amber-200 hover:bg-amber-500/25 hover:text-white'
+                }`}
+              >
+                <span className="leading-none">{row.name}</span>
+                {black ? (
+                  <span className="text-[7px] leading-none opacity-60 mt-0.5">♯/♭</span>
+                ) : isCenter ? (
+                  <span className="text-[6.5px] font-bold text-indigo-200 leading-none mt-0.5 uppercase tracking-tighter">Central</span>
+                ) : isC3 ? (
+                  <span className="text-[6.5px] font-bold text-amber-200 leading-none mt-0.5 uppercase tracking-tighter">Grave</span>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* ── Desenho Formal da Partitura em Tempo Real ── */}
       {(viewLayout === 'both' || viewLayout === 'score') && (
         <FormalScoreSheet
@@ -946,48 +1011,6 @@ export const ScoreEditor: React.FC = () => {
           totalMeasures={totalMeasures}
         />
       )}
-
-      {/* ── Teclado de Inserção de Notas ── */}
-      <div className="glass-card rounded-2xl p-4 border border-white/10">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Plus className="w-4 h-4 text-violet-400" />
-            <span className="text-xs font-bold text-slate-200">
-              Inserir Nota — {selectedClef === 'treble' ? '𝄞 Clave de Sol' : '𝄢 Clave de Fá'}
-            </span>
-          </div>
-          <span className="text-[10px] text-slate-500">
-            Clique na nota para inserir na partitura
-          </span>
-        </div>
-
-        <div className="flex flex-wrap gap-1">
-          {noteRows.map(row => {
-            const black = isBlackKey(row.midi);
-            const isCenter = row.midi === 60;
-            return (
-              <button
-                key={row.midi}
-                id={`insert-note-${row.name}`}
-                onClick={e => { e.stopPropagation(); addNote(row.midi, row.name); }}
-                title={`Inserir ${row.label}`}
-                className={`flex flex-col items-center px-2 py-1.5 rounded-lg text-[9px] font-black transition-all cursor-pointer border ${
-                  black
-                    ? 'bg-slate-800/80 border-slate-600/40 text-slate-300 hover:bg-slate-700 hover:text-white'
-                    : isCenter
-                    ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-200 hover:bg-indigo-500/30'
-                    : selectedClef === 'treble'
-                    ? 'bg-violet-500/15 border-violet-500/30 text-violet-200 hover:bg-violet-500/25'
-                    : 'bg-amber-500/15 border-amber-500/30 text-amber-200 hover:bg-amber-500/25'
-                }`}
-              >
-                <span className="leading-none">{row.name}</span>
-                {black && <span className="leading-none opacity-60">♯/♭</span>}
-              </button>
-            );
-          })}
-        </div>
-      </div>
 
       {/* ── Dicas de Uso ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] text-slate-500">
