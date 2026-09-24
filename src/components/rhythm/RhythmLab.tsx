@@ -2,15 +2,16 @@ import React, { useState } from 'react';
 import { MetronomeView } from './MetronomeView';
 import { RhythmTrackCanvas } from './RhythmTrackCanvas';
 import { RhythmicScoreTrainer } from './RhythmicScoreTrainer';
+import { HybridRhythmChord } from '../hybrid/HybridRhythmChord';
 import { metronomeScheduler } from '../../core/metronomeScheduler';
 import { latencyManager } from '../../core/latencyManager';
-import { Activity, Mic, Volume2, ShieldCheck, HelpCircle, Music, Radar, Sliders } from 'lucide-react';
+import { Activity, Mic, Volume2, ShieldCheck, HelpCircle, Music, Radar, Sliders, Layers } from 'lucide-react';
 
 export const RhythmLab: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState<boolean>(metronomeScheduler.getIsPlaying());
   const [bpm, setBpm] = useState<number>(metronomeScheduler.getBpm());
   const [activeStep, setActiveStep] = useState<1 | 2 | 3>(3); // 1 = Vocal, 2 = Palmas, 3 = Instrumento
-  const [trainingMode, setTrainingMode] = useState<'score' | 'radar'>('score'); // Modo Partitura por padrão
+  const [trainingMode, setTrainingMode] = useState<'score' | 'radar' | 'hybrid'>('score'); // Modo Partitura por padrão
   const [radarToleranceMs, setRadarToleranceMs] = useState<number>(latencyManager.getToleranceMs());
 
   return (
@@ -26,7 +27,7 @@ export const RhythmLab: React.FC = () => {
             Laboratório Rítmico Anti-Déficit
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-4xl">
-            Elimine antecipações e atrasos métricos. Pratique com partituras reais para Teclado e Violão ou utilize a esteira temporal com ajuste de sensibilidade.
+            Elimine antecipações e atrasos métricos. Pratique com partituras reais para Teclado e Violão, esteira temporal com radar ou trocas de acordes no compasso.
           </p>
         </div>
 
@@ -55,6 +56,18 @@ export const RhythmLab: React.FC = () => {
             >
               <Radar className="w-4 h-4" />
               <span>🎯 Radar Temporal</span>
+            </button>
+
+            <button
+              onClick={() => setTrainingMode('hybrid')}
+              className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer flex items-center gap-2 ${
+                trainingMode === 'hybrid'
+                  ? 'bg-gradient-to-r from-blue-600 to-teal-600 text-white shadow-lg shadow-blue-600/30'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Layers className="w-4 h-4" />
+              <span>⚡ Ritmo + Harmonia</span>
             </button>
           </div>
 
@@ -98,7 +111,7 @@ export const RhythmLab: React.FC = () => {
           globalBpm={bpm}
           onBpmChange={(newBpm) => setBpm(newBpm)}
         />
-      ) : (
+      ) : trainingMode === 'radar' ? (
         /* MODO 2: RADAR TEMPORAL (ESTEIRA VERTICAL TRADICIONAL COM METRÔNOMO) */
         <div className="space-y-6">
           {/* Ajuste de Sensibilidade no Radar */}
@@ -167,6 +180,9 @@ export const RhythmLab: React.FC = () => {
             </div>
           </div>
         </div>
+      ) : (
+        /* MODO 3: RITMO + HARMONIA (PRÁTICA DE ACORDES NO COMPASSO) */
+        <HybridRhythmChord embedded={true} />
       )}
     </div>
   );

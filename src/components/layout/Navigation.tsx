@@ -4,7 +4,6 @@ import {
   Guitar,
   Activity,
   Music2,
-  Layers,
   Compass,
   Music,
   LayoutGrid,
@@ -19,7 +18,6 @@ export type TabId =
   | 'rhythm'
   | 'piano'
   | 'guitar'
-  | 'hybrid'
   | 'theory';
 
 interface Props {
@@ -131,20 +129,6 @@ const TABS: NavTabItem[] = [
     activeBorder: 'border-orange-500/50',
     activeText: 'text-orange-200',
     iconActiveBg: 'bg-orange-600 text-white shadow-orange-500/30',
-  },
-  {
-    id: 'hybrid',
-    label: 'Ritmo + Harmonia',
-    mediumLabel: 'Harmonia',
-    shortLabel: 'Híbrido',
-    fullName: 'Prática Híbrida: Ritmo + Harmonia',
-    desc: 'Troca de Acordes no Compasso e Andamento Real',
-    icon: Layers,
-    accentColor: 'blue',
-    activeBg: 'bg-blue-500/15',
-    activeBorder: 'border-blue-500/50',
-    activeText: 'text-blue-200',
-    iconActiveBg: 'bg-blue-600 text-white shadow-blue-500/30',
   },
   {
     id: 'theory',

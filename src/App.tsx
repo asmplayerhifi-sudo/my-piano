@@ -7,7 +7,6 @@ import { GuitarCourseView } from './components/course/GuitarCourseView';
 import { RhythmLab } from './components/rhythm/RhythmLab';
 import { PianoModule } from './components/piano/PianoModule';
 import { GuitarModule } from './components/guitar/GuitarModule';
-import { HybridRhythmChord } from './components/hybrid/HybridRhythmChord';
 import { TheoryModule } from './components/theory/TheoryModule';
 import { RepertoireView } from './components/score/RepertoireView';
 
@@ -30,7 +29,6 @@ export const App: React.FC = () => {
         {activeTab === 'rhythm' && <RhythmLab />}
         {activeTab === 'piano' && <PianoModule />}
         {activeTab === 'guitar' && <GuitarModule />}
-        {activeTab === 'hybrid' && <HybridRhythmChord />}
         {activeTab === 'theory' && <TheoryModule />}
       </main>
 

@@ -36,7 +36,11 @@ const PROGRESSION_PRESETS: ProgressionPreset[] = [
   },
 ];
 
-export const HybridRhythmChord: React.FC = () => {
+interface Props {
+  embedded?: boolean;
+}
+
+export const HybridRhythmChord: React.FC<Props> = ({ embedded = false }) => {
   const [isPlaying, setIsPlaying] = useState<boolean>(metronomeScheduler.getIsPlaying());
   const [bpm, setBpm] = useState<number>(metronomeScheduler.getBpm());
   const [selectedPreset, setSelectedPreset] = useState<ProgressionPreset>(PROGRESSION_PRESETS[0]);
@@ -72,44 +76,78 @@ export const HybridRhythmChord: React.FC = () => {
   return (
     <div className="w-full space-y-6">
       {/* Header do Módulo Híbrido */}
-      <div className="glass-card rounded-3xl p-6 border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <div className="flex items-center gap-2 text-cyan-400 font-mono text-xs font-bold uppercase tracking-wider mb-1">
-            <Layers className="w-4 h-4" />
-            <span>Módulo 5 — Conexão Ritmo + Harmonia</span>
+      {embedded ? (
+        <div className="glass-card rounded-2xl p-4 border border-cyan-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-2 text-xs">
+            <Layers className="w-4 h-4 text-cyan-400" />
+            <span className="font-bold text-white uppercase tracking-wider">Trilha de Acordes em Tempo Real:</span>
+            <span className="text-slate-400">Troque os acordes sincronizado com a esteira rítmica na cabeça de cada compasso</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-black font-display text-white">
-            Trilha de Acordes em Tempo Real
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-4xl">
-            O grande elo perdido do ensino musical: troque os acordes sincronizado com a descida da esteira rítmica na cabeça de cada compasso.
-          </p>
-        </div>
 
-        {/* Seletor de Instrumento de Apoio */}
-        <div className="flex items-center gap-2 bg-black/40 p-1.5 rounded-2xl border border-white/5 self-start md:self-auto text-xs font-bold">
-          <button
-            onClick={() => setInstrument('piano')}
-            className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-              instrument === 'piano'
-                ? 'bg-indigo-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Piano
-          </button>
-          <button
-            onClick={() => setInstrument('guitar')}
-            className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-              instrument === 'guitar'
-                ? 'bg-amber-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Violão
-          </button>
+          {/* Seletor de Instrumento de Apoio */}
+          <div className="flex items-center gap-2 bg-black/40 p-1.5 rounded-2xl border border-white/5 self-start sm:self-auto text-xs font-bold">
+            <button
+              onClick={() => setInstrument('piano')}
+              className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                instrument === 'piano'
+                  ? 'bg-indigo-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Piano
+            </button>
+            <button
+              onClick={() => setInstrument('guitar')}
+              className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                instrument === 'guitar'
+                  ? 'bg-amber-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Violão
+            </button>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="glass-card rounded-3xl p-6 border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <div className="flex items-center gap-2 text-cyan-400 font-mono text-xs font-bold uppercase tracking-wider mb-1">
+              <Layers className="w-4 h-4" />
+              <span>Módulo 5 — Conexão Ritmo + Harmonia</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black font-display text-white">
+              Trilha de Acordes em Tempo Real
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-4xl">
+              O grande elo perdido do ensino musical: troque os acordes sincronizado com a descida da esteira rítmica na cabeça de cada compasso.
+            </p>
+          </div>
+
+          {/* Seletor de Instrumento de Apoio */}
+          <div className="flex items-center gap-2 bg-black/40 p-1.5 rounded-2xl border border-white/5 self-start md:self-auto text-xs font-bold">
+            <button
+              onClick={() => setInstrument('piano')}
+              className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                instrument === 'piano'
+                  ? 'bg-indigo-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Piano
+            </button>
+            <button
+              onClick={() => setInstrument('guitar')}
+              className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                instrument === 'guitar'
+                  ? 'bg-amber-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Violão
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Seletor de Progressões Harmônicas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
