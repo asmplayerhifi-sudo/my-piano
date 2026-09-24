@@ -1368,23 +1368,6 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
               </span>
             )}
           </div>
-
-          {/* Apontamento de Dedo em Destaque no HUD */}
-          {(() => {
-            const fingering = getScoreNoteFingering(currentTargetNote, instrument);
-            if (!fingering) return null;
-            return (
-              <div className="flex items-center gap-2 px-3 py-1 rounded-xl bg-cyan-950/60 border border-cyan-400/40 shadow-lg">
-                <span className="text-white text-xs">👆 Dedo:</span>
-                <span className="font-mono font-black text-xs px-2 py-0.5 rounded-lg bg-cyan-500 text-slate-950">
-                  {fingering.label}
-                </span>
-                <span className="text-cyan-300 font-bold text-xs">
-                  ({fingering.fingerName})
-                </span>
-              </div>
-            );
-          })()}
         </div>
       )}
 

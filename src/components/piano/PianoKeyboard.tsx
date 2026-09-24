@@ -5,6 +5,15 @@ import { PianoWaterfallCanvas } from './PianoWaterfallCanvas';
 import type { TrailColorTheme } from './PianoWaterfallCanvas';
 import { ChevronLeft, ChevronRight, Layers, Sparkles, Flame } from 'lucide-react';
 
+export interface ActiveFingerPrompt {
+  finger: number;
+  label?: string; // 'MD 1', 'D1', etc.
+  hand?: 'MD' | 'ME';
+  fingerName?: string;
+  noteName?: string;
+  color?: string;
+}
+
 interface HighlightedKey {
   midi: number;
   degreeName?: string;       // '1', '3', '5', '7M', etc.
@@ -21,6 +30,7 @@ interface Props {
   showWaterfall?: boolean;
   activeExternalNotes?: number[];
   showFingerPointer?: boolean;
+  activeFingerPrompt?: ActiveFingerPrompt | null;
 }
 
 export const FINGER_INFO: Record<number, { name: string; short: string; color: string; bg: string }> = {
@@ -40,6 +50,7 @@ export const PianoKeyboard: React.FC<Props> = ({
   showWaterfall = true,
   activeExternalNotes = [],
   showFingerPointer = true,
+  activeFingerPrompt = null,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [containerWidth, setContainerWidth] = useState<number>(1000);
@@ -93,6 +104,8 @@ export const PianoKeyboard: React.FC<Props> = ({
   const blackKeyWidth = Math.max(10, whiteKeyWidth * 0.62);
   const blackKeyHeight = whiteKeyHeight * 0.64;
   const svgWidth = availableWidth;
+  const fingerLaneHeight = showFingerGuide ? 30 : 0;
+  const totalSvgHeight = whiteKeyHeight + fingerLaneHeight;
 
   // Notas naturais por oitava (C, D, E, F, G, A, B)
   const naturalOffsets = [0, 2, 4, 5, 7, 9, 11];
@@ -158,6 +171,45 @@ export const PianoKeyboard: React.FC<Props> = ({
     }
     return null;
   };
+
+  // Resolvedor inteligente do Dedo a Ser Utilizado exibido na tag abaixo do teclado
+  const activeFingerDisplay = activeFingerPrompt ?? (() => {
+    // 1. Nota ativa atualmente (reprodução sonora ou toque)
+    const currentMidi = combinedActiveNotes[0];
+    if (currentMidi) {
+      const highlight = getHighlight(currentMidi);
+      const finger = getKeyFinger(currentMidi, highlight);
+      if (finger && FINGER_INFO[finger]) {
+        const info = FINGER_INFO[finger];
+        const noteInfo = getNoteInfo(currentMidi);
+        const hand = currentMidi < 60 ? 'ME' : 'MD';
+        return {
+          finger,
+          label: `${hand} ${finger}`,
+          fingerName: info.name,
+          noteName: `${noteInfo.name}${noteInfo.octave}`,
+          color: info.color,
+        };
+      }
+    }
+    // 2. Se nenhuma tecla está pressionada agora, verifica se há tecla com dedo indicado
+    if (highlightedKeys.length > 0) {
+      const firstWithFinger = highlightedKeys.find(k => k.finger);
+      if (firstWithFinger && firstWithFinger.finger && FINGER_INFO[firstWithFinger.finger]) {
+        const info = FINGER_INFO[firstWithFinger.finger];
+        const noteInfo = getNoteInfo(firstWithFinger.midi);
+        const hand = firstWithFinger.midi < 60 ? 'ME' : 'MD';
+        return {
+          finger: firstWithFinger.finger,
+          label: `${hand} ${firstWithFinger.finger}`,
+          fingerName: info.name,
+          noteName: `${noteInfo.name}${noteInfo.octave}`,
+          color: info.color,
+        };
+      }
+    }
+    return null;
+  })();
 
   const handleShiftOctave = (delta: number) => {
     setStartOctave(prev => Math.max(1, Math.min(5, prev + delta)));
@@ -373,9 +425,9 @@ export const PianoKeyboard: React.FC<Props> = ({
           <div className="w-full overflow-hidden">
             <svg
               width="100%"
-              height={whiteKeyHeight}
+              height={totalSvgHeight}
               className="block w-full overflow-hidden"
-              viewBox={`0 0 ${svgWidth} ${whiteKeyHeight}`}
+              viewBox={`0 0 ${svgWidth} ${totalSvgHeight}`}
               preserveAspectRatio="none"
             >
               <defs>
@@ -479,24 +531,24 @@ export const PianoKeyboard: React.FC<Props> = ({
                         )}
                       </text>
 
-                      {/* Apontamento de Dedo (Pointer Badge) na Tecla Branca */}
-                      {(() => {
+                      {/* Apontamento de Dedo (Pointer Badge) ABAIXO DA TECLA DO TECLADO */}
+                      {showFingerGuide && (() => {
                         const finger = getKeyFinger(midi, highlight);
                         if (!finger || !FINGER_INFO[finger] || isUltraCompact) return null;
                         const info = FINGER_INFO[finger];
                         const badgeW = whiteKeyWidth > 38 ? 32 : 22;
                         const badgeH = 17;
-                        const badgeY = whiteKeyHeight - 34;
+                        const badgeY = whiteKeyHeight + 6;
                         const cx = x + whiteKeyWidth / 2;
 
                         return (
                           <g className="finger-pointer-badge">
-                            {/* Triângulo indicador apontando para a base da tecla */}
+                            {/* Triângulo apontador voltado para CIMA em direção à base da tecla */}
                             <polygon
-                              points={`${cx - 3.5},${badgeY + badgeH - 1} ${cx + 3.5},${badgeY + badgeH - 1} ${cx},${badgeY + badgeH + 3.5}`}
+                              points={`${cx - 3.5},${badgeY} ${cx + 3.5},${badgeY} ${cx},${badgeY - 4.5}`}
                               fill={info.color}
                             />
-                            {/* Cápsula com borda de alto contraste */}
+                            {/* Cápsula com borda de alto contraste posicionada abaixo do teclado */}
                             <rect
                               x={cx - badgeW / 2}
                               y={badgeY}
@@ -519,20 +571,6 @@ export const PianoKeyboard: React.FC<Props> = ({
                             >
                               {info.short}
                             </text>
-                            {/* Nome por extenso se houver espaço */}
-                            {whiteKeyWidth > 46 && (
-                              <text
-                                x={cx}
-                                y={badgeY - 3}
-                                textAnchor="middle"
-                                fill={info.color}
-                                fontSize={7.5}
-                                fontWeight="bold"
-                                fontFamily="Outfit, sans-serif"
-                              >
-                                {info.name}
-                              </text>
-                            )}
                           </g>
                         );
                       })()}
@@ -600,20 +638,20 @@ export const PianoKeyboard: React.FC<Props> = ({
                         </text>
                       )}
 
-                      {/* Apontamento de Dedo na Tecla Preta */}
-                      {(() => {
+                      {/* Apontamento de Dedo da Tecla Preta ABAIXO DO TECLADO */}
+                      {showFingerGuide && (() => {
                         const finger = getKeyFinger(midi, highlight);
                         if (!finger || !FINGER_INFO[finger] || isUltraCompact) return null;
                         const info = FINGER_INFO[finger];
-                        const badgeW = Math.max(16, blackKeyWidth - 4);
-                        const badgeH = 15;
-                        const badgeY = blackKeyHeight - 26;
+                        const badgeW = Math.max(16, blackKeyWidth - 2);
+                        const badgeH = 16;
+                        const badgeY = whiteKeyHeight + 6;
                         const cx = x + blackKeyWidth / 2;
 
                         return (
                           <g className="finger-pointer-badge-black">
                             <polygon
-                              points={`${cx - 3},${badgeY + badgeH - 1} ${cx + 3},${badgeY + badgeH - 1} ${cx},${badgeY + badgeH + 3}`}
+                              points={`${cx - 3},${badgeY} ${cx + 3},${badgeY} ${cx},${badgeY - 4}`}
                               fill={info.color}
                             />
                             <rect
@@ -628,7 +666,7 @@ export const PianoKeyboard: React.FC<Props> = ({
                             />
                             <text
                               x={cx}
-                              y={badgeY + 11}
+                              y={badgeY + 11.5}
                               textAnchor="middle"
                               fill="#090814"
                               fontSize={Math.max(7, Math.min(9.5, blackKeyWidth * 0.32))}
@@ -645,6 +683,40 @@ export const PianoKeyboard: React.FC<Props> = ({
                 });
               })}
             </svg>
+          </div>
+
+          {/* 3. Tag do Dedo a Ser Utilizado — Posicionada Oficialmente Abaixo do Teclado */}
+          <div className="w-full flex items-center justify-center pt-2 pb-1">
+            <div className="flex flex-wrap items-center justify-center gap-3 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-indigo-950/80 via-[#191030]/90 to-indigo-950/80 border border-indigo-500/30 shadow-xl shadow-indigo-950/50 backdrop-blur-md">
+              <div className="flex items-center gap-2">
+                <span className="text-sm">🖐️</span>
+                <span className="text-xs font-mono font-bold text-slate-300">
+                  Dedo a ser utilizado:
+                </span>
+              </div>
+
+              {activeFingerDisplay ? (
+                <div className="flex items-center gap-2.5">
+                  <span
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black font-mono shadow-md text-slate-950 transition-all scale-105"
+                    style={{ backgroundColor: activeFingerDisplay.color }}
+                  >
+                    <span>👆</span>
+                    <span>{activeFingerDisplay.label || `D${activeFingerDisplay.finger}`}</span>
+                    <span>({activeFingerDisplay.fingerName})</span>
+                  </span>
+                  {activeFingerDisplay.noteName && (
+                    <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-xl bg-white/10 text-cyan-300 border border-cyan-500/30">
+                      Tecla: {activeFingerDisplay.noteName}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <span className="text-xs font-mono text-slate-400 italic">
+                  Toque uma tecla ou inicie a partitura para apontamento do dedo
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>

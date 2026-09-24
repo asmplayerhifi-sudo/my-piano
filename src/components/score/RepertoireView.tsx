@@ -111,6 +111,24 @@ export const RepertoireView: React.FC = () => {
     }));
   }, [activeSong]);
 
+  // Dedo da nota atual em execução na partitura para a tag abaixo do teclado
+  const currentSongTargetNote = activeSong.scoreTrack[currentNoteIdx];
+  const activeFingerPrompt = useMemo(() => {
+    if (!currentSongTargetNote) return null;
+    const fingerNum = currentSongTargetNote.fingerRightHand || currentSongTargetNote.fingerLeftHand;
+    const hand = currentSongTargetNote.clef === 'bass' || currentSongTargetNote.midi < 60 ? 'ME' : 'MD';
+    const names = ['', 'Polegar', 'Indicador', 'Médio', 'Anelar', 'Mínimo'];
+    const colors = ['', '#f59e0b', '#38bdf8', '#10b981', '#c084fc', '#f43f5e'];
+    const f = fingerNum || (hand === 'MD' ? (currentSongTargetNote.midi === 60 ? 1 : 2) : 5);
+    return {
+      finger: f,
+      label: `${hand} ${f}`,
+      fingerName: names[f] || `D${f}`,
+      noteName: currentSongTargetNote.noteName,
+      color: colors[f] || '#38bdf8',
+    };
+  }, [currentSongTargetNote]);
+
   // Motor de Reprodução em Áudio Fiel à Partitura (Polifonia, Baixo e Melodia Sincronizados)
   const playNextNote = (noteIndex: number) => {
     if (!isPlayingRef.current) return;
@@ -420,6 +438,7 @@ export const RepertoireView: React.FC = () => {
             octaveCount={3}
             allowOctaveControls={true}
             highlightedKeys={highlightedSongKeys}
+            activeFingerPrompt={activeFingerPrompt}
             activeExternalNotes={isPlaying ? activeDemoMidi : (lastMidiEvent ? [lastMidiEvent.midi] : [])}
             onKeyPlay={(midi) => {
               if (!isPlaying) handleNoteInput(midi);
