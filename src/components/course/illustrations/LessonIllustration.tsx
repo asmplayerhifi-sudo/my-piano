@@ -1,8 +1,9 @@
 /**
  * illustrations/LessonIllustration.tsx
  * Componente orquestrador da Figura Explicativa / Diagrama Vetorial da Tríade Didática.
- * Mapeia 100% das lições de Teoria Musical, Teclado e Violão para diagramas vetoriais dedicados e exclusivos.
- * Regra: Orquestrador limpo (< 220 linhas).
+ * Mapeia 100% das lições de Teoria Musical, Teclado e Violão para diagramas vetoriais dedicados,
+ * todos com proporção padrão widescreen de alta definição (960x250).
+ * Regra: Orquestrador limpo (< 260 linhas).
  */
 
 import React from 'react';
@@ -10,6 +11,7 @@ import type { LessonDiagramProps } from './types';
 import {
   BlackKeyGeographyDiagram,
   HandPostureBiomechanicsDiagram,
+  ArmWeightRelaxationDiagram,
   FingeringNumberingDiagram,
 } from './KeyboardDiagramsBasic';
 import {
@@ -21,7 +23,16 @@ import {
   RhythmTreeDivisionDiagram,
   TriadFormulaWideDiagram,
   ChordInversionsCycleDiagram,
+  PopFourChordsProgressionDiagram,
 } from './KeyboardDiagramsHarmony';
+import {
+  ArpeggioOpenTextureDiagram,
+  ThumbUnderScaleTechniqueDiagram,
+  HanonIndependenceDiagram,
+  ModernChordsWorshipDiagram,
+  BluesScaleAndShuffleDiagram,
+  SustainPedalAndDynamicsDiagram,
+} from './KeyboardDiagramsTechnique';
 import {
   FretProximityDiagram,
   GuitarTuningStringsDiagram,
@@ -68,9 +79,102 @@ export const LessonIllustration: React.FC<LessonDiagramProps> = ({
   const query = (normId + ' ' + title + ' ' + moduleCode).toLowerCase();
 
   const renderDiagram = () => {
-    // ── 1. MAPA DEDICADO DAS 17 LIÇÕES DO CURSO DE TEORIA MUSICAL (M1 a M7) ──
+    // ── 1. MAPA DEDICADO DO CURSO DE TECLADO & PIANO (t1-1 a t10-3) ──
+    if (instrument === 'keyboard') {
+      // Módulo 1: Primeiros Passos & Postura ao Piano
+      if (normId === 't1-1' || query.includes('geografia') || query.includes('preta') || query.includes('dó central')) {
+        return <BlackKeyGeographyDiagram />;
+      }
+      if (normId === 't1-2' || query.includes('postura') || query.includes('biomecânica') || query.includes('maçã') || query.includes('cúpula')) {
+        return <HandPostureBiomechanicsDiagram />;
+      }
+      if (normId === 't1-3' || query.includes('peso do braço') || query.includes('respiração musical')) {
+        return <ArmWeightRelaxationDiagram />;
+      }
+
+      // Módulo 2: O Despertar da Leitura Musical
+      if (normId === 't2-1' || query.includes('clave de sol') || query.includes('linhas e espaços')) {
+        return <TrebleStaffReadingDiagram />;
+      }
+      if (normId === 't2-2' || query.includes('pulso rítmico') || query.includes('semínima e mínima')) {
+        return <RhythmTreeDivisionDiagram />;
+      }
+      if (normId === 't2-3' || query.includes('ode') || query.includes('numeração') || query.includes('dedilhado')) {
+        return <FingeringNumberingDiagram />;
+      }
+
+      // Módulo 3: O Alicerce da Mão Esquerda
+      if (normId === 't3-1' || query.includes('clave de fá') || query.includes('bass clef')) {
+        return <BassStaffReadingDiagram />;
+      }
+      if (normId === 't3-2' || query.includes('alicerce') || query.includes('baixos sustentados')) {
+        return <BassStaffReadingDiagram />;
+      }
+      if (normId === 't3-3' || query.includes('mãos juntas') || query.includes('coordenação') || query.includes('hands together')) {
+        return <BimanualCoordinationDiagram />;
+      }
+
+      // Módulo 4: A Fábrica de Acordes
+      if (normId === 't4-1' || normId === 't4-2' || query.includes('tríade') || query.includes('tríades')) {
+        return <TriadFormulaWideDiagram />;
+      }
+      if (normId === 't4-3' || query.includes('progressão pop')) {
+        return <PopFourChordsProgressionDiagram />;
+      }
+
+      // Módulo 5: Inversões & Condução Suave de Vozes
+      if (normId === 't5-1' || normId === 't5-2' || query.includes('inversão') || query.includes('inversões') || query.includes('voice leading')) {
+        return <ChordInversionsCycleDiagram />;
+      }
+      if (normId === 't5-3' || query.includes('let it be')) {
+        return <PopFourChordsProgressionDiagram />;
+      }
+
+      // Módulo 6: Padrões de Acompanhamento & Texturas
+      if (normId === 't6-1' || normId === 't6-2' || query.includes('arpejo') || query.includes('balada')) {
+        return <ArpeggioOpenTextureDiagram />;
+      }
+      if (normId === 't6-3' || query.includes('valsa')) {
+        return <RhythmTreeDivisionDiagram />;
+      }
+
+      // Módulo 7: Agilidade, Escalas & Passagem do Polegar
+      if (normId === 't7-1' || normId === 't7-2' || query.includes('polegar') || query.includes('thumb') || query.includes('escala de sol')) {
+        return <ThumbUnderScaleTechniqueDiagram />;
+      }
+      if (normId === 't7-3' || query.includes('hanon') || query.includes('independência')) {
+        return <HanonIndependenceDiagram />;
+      }
+
+      // Módulo 8: Harmonia Moderna: Sétimas & Acordes Worship
+      if (normId === 't8-1' || normId === 't8-2' || query.includes('worship') || query.includes('sus4') || query.includes('sus2') || query.includes('add9')) {
+        return <ModernChordsWorshipDiagram />;
+      }
+      if (normId === 't8-3' || query.includes('ii - v - i')) {
+        return <ChordInversionsCycleDiagram />;
+      }
+
+      // Módulo 9: Estilos Populares: Blues, Boogie-Woogie & Bossa
+      if (normId === 't9-1' || normId === 't9-2' || query.includes('blues') || query.includes('boogie') || query.includes('shuffle')) {
+        return <BluesScaleAndShuffleDiagram />;
+      }
+      if (normId === 't9-3' || query.includes('garota de ipanema') || query.includes('bossa')) {
+        return <ModernChordsWorshipDiagram />;
+      }
+
+      // Módulo 10: Expressão Artística: Dinâmica & Pedal de Sustain
+      if (normId === 't10-1' || normId === 't10-2' || query.includes('sustain') || query.includes('pedal') || query.includes('dinâmica')) {
+        return <SustainPedalAndDynamicsDiagram />;
+      }
+      if (normId === 't10-3' || query.includes('elise')) {
+        return <ArmWeightRelaxationDiagram />;
+      }
+
+      return <BlackKeyGeographyDiagram />;
+    }
+
+    // ── 2. MAPA DEDICADO DAS 17 LIÇÕES DE TEORIA MUSICAL (M1 a M7) ──
     if (instrument === 'theory') {
-      // Módulo 1: Fundamentos do Som, Notação & Pentagrama
       if (normId === 'm1-1' || query.includes('propriedades') || query.includes('física da música')) {
         return <SoundPropertiesDiagram />;
       }
@@ -80,8 +184,6 @@ export const LessonIllustration: React.FC<LessonDiagramProps> = ({
       if (normId === 'm1-3' || query.includes('figuras rítmicas') || query.includes('proporções de duração') || query.includes('fórmulas de compasso')) {
         return <RhythmAndMeterComboDiagram />;
       }
-
-      // Módulo 2: Intervalos, Semitons & Enarmonia
       if (normId === 'm2-1' || query.includes('semitons naturais') || query.includes('enarmonia')) {
         return <TonesSemitonesEnharmonicsDiagram />;
       }
@@ -91,8 +193,6 @@ export const LessonIllustration: React.FC<LessonDiagramProps> = ({
       if (normId === 'm2-3' || query.includes('trítono') || query.includes('regra do 9') || query.includes('inversão de intervalos')) {
         return <TritoneAndRuleOfNineDiagram />;
       }
-
-      // Módulo 3: Escalas Maiores, Menores & Armaduras
       if (normId === 'm3-1' || query.includes('escala maior natural') || query.includes('t-t-st')) {
         return <MajorScaleStepPatternDiagram />;
       }
@@ -102,8 +202,6 @@ export const LessonIllustration: React.FC<LessonDiagramProps> = ({
       if (normId === 'm3-3' || query.includes('três escalas menores') || query.includes('harmônica e melódica') || query.includes('menor natural')) {
         return <ThreeMinorScalesDiagram />;
       }
-
-      // Módulo 4: Tríades, Inversões & Tétrades
       if (normId === 'm4-1' || query.includes('4 tríades') || query.includes('diminuta e aumentada') || query.includes('tríades fundamentais')) {
         return <FourTriadsFamilyDiagram />;
       }
@@ -113,8 +211,6 @@ export const LessonIllustration: React.FC<LessonDiagramProps> = ({
       if (normId === 'm4-3' || query.includes('tétrades') || query.includes('5 famílias') || query.includes('acordes com sétima')) {
         return <FiveTetradsFamiliesDiagram />;
       }
-
-      // Módulo 5: Campo Harmônico, Funções & Cadências
       if (normId === 'm5-1' || query.includes('campo harmônico maior') || query.includes('tríades e tétrades')) {
         return <DiatonicHarmonicFieldDiagram />;
       }
@@ -124,50 +220,14 @@ export const LessonIllustration: React.FC<LessonDiagramProps> = ({
       if (normId === 'm5-3' || query.includes('cadências históricas') || query.includes('ii - v - i') || query.includes('progressão pop')) {
         return <CadencesAndPopProgressionDiagram />;
       }
-
-      // Módulo 6: Modos Gregos
       if (normId === 'm6-1' || query.includes('modos gregos') || query.includes('jônio') || query.includes('dórico') || query.includes('lídio')) {
         return <GreekModesPanoramicDiagram />;
       }
-
-      // Módulo 7: Harmonia Funcional Avançada
       if (normId === 'm7-1' || query.includes('dominantes secundários') || query.includes('empréstimo modal') || query.includes('aem')) {
         return <SecondaryDominantsAndModalInterchangeDiagram />;
       }
 
       return <IntervalRulerWideDiagram />;
-    }
-
-    // ── 2. INSTRUMENTO: TECLADO / PIANO ──
-    if (instrument === 'keyboard') {
-      if (query.includes('geografia') || query.includes('preta') || query.includes('t1-1') || query.includes('dó central')) {
-        return <BlackKeyGeographyDiagram />;
-      }
-      if (query.includes('postura') || query.includes('biomecânica') || query.includes('maçã') || query.includes('cúpula') || query.includes('t1-2') || query.includes('t1-3')) {
-        return <HandPostureBiomechanicsDiagram />;
-      }
-      if (query.includes('clave de sol') || query.includes('linhas') || query.includes('espaços') || query.includes('t2-1')) {
-        return <TrebleStaffReadingDiagram />;
-      }
-      if (query.includes('pulso') || query.includes('rítmico') || query.includes('4/4') || query.includes('3/4') || query.includes('divisão') || query.includes('t2-2')) {
-        return <RhythmTreeDivisionDiagram />;
-      }
-      if (query.includes('clave de fá') || query.includes('bass') || query.includes('graves') || query.includes('t3-1') || query.includes('t3-2')) {
-        return <BassStaffReadingDiagram />;
-      }
-      if (query.includes('mãos juntas') || query.includes('coordenação') || query.includes('hands together') || query.includes('t3-3')) {
-        return <BimanualCoordinationDiagram />;
-      }
-      if (query.includes('inversão') || query.includes('inversões') || query.includes('posições')) {
-        return <ChordInversionsCycleDiagram />;
-      }
-      if (query.includes('tríade') || query.includes('maior') || query.includes('menor') || query.includes('acorde')) {
-        return <TriadFormulaWideDiagram />;
-      }
-      if (query.includes('dedo') || query.includes('digitação') || query.includes('ode') || query.includes('t2-3')) {
-        return <FingeringNumberingDiagram />;
-      }
-      return <BlackKeyGeographyDiagram />;
     }
 
     // ── 3. INSTRUMENTO: VIOLÃO ──
@@ -201,7 +261,7 @@ export const LessonIllustration: React.FC<LessonDiagramProps> = ({
           <span>Figura Didática Explicativa (Tríade Pedagógica)</span>
         </span>
         <span className="text-[10px] text-indigo-300/80 bg-indigo-950/40 border border-indigo-500/20 px-2 py-0.5 rounded-full font-mono uppercase tracking-wider">
-          Infográfico Panorâmico de Alta Resolução
+          Infográfico Panorâmico Padronizado (Alta Resolução)
         </span>
       </div>
       <div className="w-full overflow-hidden transition-all">
