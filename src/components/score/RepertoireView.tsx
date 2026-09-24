@@ -17,6 +17,8 @@ import {
   Gauge,
   ChevronDown,
   Headphones,
+  Expand,
+  Shrink,
 } from 'lucide-react';
 
 function computeNoteOffsets(notes: ScoreNote[], timeSignature = '4/4'): number[] {
@@ -49,6 +51,39 @@ export const RepertoireView: React.FC = () => {
   const [currentNoteIdx, setCurrentNoteIdx] = useState<number>(0);
   const [lastMidiEvent, setLastMidiEvent] = useState<{ midi: number; timestamp: number } | null>(null);
   const [activeDemoMidi, setActiveDemoMidi] = useState<number[]>([]);
+  const [isFullscreenStage, setIsFullscreenStage] = useState<boolean>(false);
+
+  const toggleFullscreenStage = () => {
+    if (!isFullscreenStage) {
+      setIsFullscreenStage(true);
+      try {
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        }
+      } catch {
+        // Fallback
+      }
+    } else {
+      setIsFullscreenStage(false);
+      try {
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {});
+        }
+      } catch {
+        // Fallback
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreenStage) {
+        setIsFullscreenStage(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreenStage]);
 
   const playbackTimeoutRef = useRef<number | null>(null);
   const isPlayingRef = useRef<boolean>(false);
@@ -384,7 +419,46 @@ export const RepertoireView: React.FC = () => {
       </div>
 
       {/* 3. Palco Total: Partitura Deslizante (Widescreen 100% com Bordas Sutis) */}
-      <div className="glass-card rounded-3xl p-4 sm:p-5 border border-white/5 space-y-3">
+      <div
+        className={`glass-card rounded-3xl p-4 sm:p-5 border border-white/5 space-y-3 transition-all ${
+          isFullscreenStage
+            ? 'fixed inset-0 z-50 bg-[#080811] p-4 sm:p-8 overflow-y-auto m-0 rounded-none border-none shadow-2xl'
+            : ''
+        }`}
+      >
+        <div className="flex items-center justify-between pb-1 border-b border-white/5">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono font-bold uppercase text-purple-400">
+              Palco de Execução &amp; Partitura
+            </span>
+            <span className="text-[10px] text-slate-400 font-mono">
+              • {activeSong.title} ({activeSong.recommendedBpm} BPM)
+            </span>
+          </div>
+
+          <button
+            onClick={toggleFullscreenStage}
+            className={`p-1.5 px-2.5 rounded-xl border text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              isFullscreenStage
+                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 ring-1 ring-rose-400'
+                : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border-white/5'
+            }`}
+            title={isFullscreenStage ? 'Sair da Tela Cheia (Esc)' : 'Tela Cheia no Palco de Execução'}
+          >
+            {isFullscreenStage ? (
+              <>
+                <Shrink className="w-3.5 h-3.5 text-rose-400" />
+                <span>Sair Tela Cheia (Esc)</span>
+              </>
+            ) : (
+              <>
+                <Expand className="w-3.5 h-3.5 text-purple-400" />
+                <span>Tela Cheia</span>
+              </>
+            )}
+          </button>
+        </div>
+
         {/* Barra de Escuta do Microfone (Acústico) - Pausada durante a demonstração sonora */}
         <MicrophonePitchBar
           disabled={isPlaying}

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   SCALES_CATALOG,
   ROOT_KEYS,
@@ -7,7 +7,7 @@ import {
 } from '../../core/scaleData';
 import { soundEngine } from '../../core/soundEngine';
 import { ScalePerformanceEvaluator } from './ScalePerformanceEvaluator';
-import { Play, Sparkles, Music, Volume2, Info, Compass, Flame, Mic } from 'lucide-react';
+import { Play, Sparkles, Music, Volume2, Info, Compass, Flame, Mic, Expand, Shrink } from 'lucide-react';
 
 export const ScaleBuilder: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<ScaleCategory>('pentatonic');
@@ -16,6 +16,39 @@ export const ScaleBuilder: React.FC = () => {
   const [isPlayingScale, setIsPlayingScale] = useState<boolean>(false);
   const [activeNoteIndex, setActiveNoteIndex] = useState<number | null>(null);
   const [showEvaluator, setShowEvaluator] = useState<boolean>(true);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+
+  const toggleFullscreen = () => {
+    if (!isFullscreen) {
+      setIsFullscreen(true);
+      try {
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        }
+      } catch {
+        // Fallback
+      }
+    } else {
+      setIsFullscreen(false);
+      try {
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {});
+        }
+      } catch {
+        // Fallback
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen]);
 
   // Escalas da categoria selecionada
   const categoryScales = useMemo(() => {
@@ -122,7 +155,13 @@ export const ScaleBuilder: React.FC = () => {
   }, [selectedRootKey, computed]);
 
   return (
-    <div className="w-full glass-card rounded-3xl p-5 sm:p-7 border border-white/10 space-y-6 shadow-2xl">
+    <div
+      className={`w-full glass-card rounded-3xl p-5 sm:p-7 border border-white/10 space-y-6 shadow-2xl transition-all ${
+        isFullscreen
+          ? 'fixed inset-0 z-50 bg-[#080811] p-5 sm:p-8 overflow-y-auto m-0 rounded-none border-none shadow-2xl'
+          : ''
+      }`}
+    >
       {/* 1. Header do Construtor de Escalas com Título e Botão Tocar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-white/5">
         <div>
@@ -160,6 +199,19 @@ export const ScaleBuilder: React.FC = () => {
           >
             <Mic className="w-4 h-4" />
             <span>{showEvaluator ? 'Ouvir Instrumento (Ativo)' : 'Avaliar no meu Instrumento'}</span>
+          </button>
+
+          {/* Botão Tela Cheia */}
+          <button
+            onClick={toggleFullscreen}
+            className={`p-2.5 rounded-2xl border transition-all cursor-pointer ${
+              isFullscreen
+                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 ring-1 ring-rose-400'
+                : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border-white/5'
+            }`}
+            title={isFullscreen ? 'Sair da Tela Cheia (Esc)' : 'Tela Cheia no Construtor de Escalas'}
+          >
+            {isFullscreen ? <Shrink className="w-4 h-4 text-rose-400" /> : <Expand className="w-4 h-4 text-indigo-400" />}
           </button>
         </div>
       </div>

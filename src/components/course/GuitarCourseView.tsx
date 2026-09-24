@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GUITAR_COURSE_MODULES } from '../../core/coursesData';
 import type { CourseLesson, CourseModule } from '../../core/coursesData';
 import { FretboardView } from '../guitar/FretboardView';
@@ -17,6 +17,8 @@ import {
   Zap,
   Maximize2,
   Minimize2,
+  Expand,
+  Shrink,
 } from 'lucide-react';
 
 const COMMON_OPEN_CHORDS: Record<string, GuitarChordShape> = {
@@ -130,7 +132,65 @@ export const GuitarCourseView: React.FC = () => {
   const [selectedChordKey, setSelectedChordKey] = useState<string>('C');
   const [selectedCagedLetter, setSelectedCagedLetter] = useState<'C' | 'A' | 'G' | 'E' | 'D'>('C');
   const [isWidescreenStage, setIsWidescreenStage] = useState<boolean>(false);
+  const [isTrailExpanded, setIsTrailExpanded] = useState<boolean>(false);
+  const [isFullscreenLesson, setIsFullscreenLesson] = useState<boolean>(false);
+  const [isFullscreenTrail, setIsFullscreenTrail] = useState<boolean>(false);
   const [lastMidiEvent, setLastMidiEvent] = useState<{ midi: number; timestamp: number } | null>(null);
+
+  const toggleFullscreenLesson = () => {
+    if (!isFullscreenLesson) {
+      setIsFullscreenLesson(true);
+      try {
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        }
+      } catch {
+        // Fallback
+      }
+    } else {
+      setIsFullscreenLesson(false);
+      try {
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {});
+        }
+      } catch {
+        // Fallback
+      }
+    }
+  };
+
+  const toggleFullscreenTrail = () => {
+    if (!isFullscreenTrail) {
+      setIsFullscreenTrail(true);
+      try {
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        }
+      } catch {
+        // Fallback
+      }
+    } else {
+      setIsFullscreenTrail(false);
+      try {
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {});
+        }
+      } catch {
+        // Fallback
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isFullscreenLesson) setIsFullscreenLesson(false);
+        if (isFullscreenTrail) setIsFullscreenTrail(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreenLesson, isFullscreenTrail]);
 
   const handleNoteInput = (midi: number) => {
     setLastMidiEvent({ midi, timestamp: performance.now() });
@@ -208,16 +268,51 @@ export const GuitarCourseView: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
         {/* Coluna 1: Grade de Lições e Módulos */}
         {!isWidescreenStage && (
-          <div className="lg:col-span-4 h-full flex flex-col">
-            <div className="glass-card rounded-3xl p-4 border border-white/5 space-y-3 flex flex-col flex-1 h-full">
+          <div className={`${isTrailExpanded ? 'lg:col-span-6' : 'lg:col-span-4'} h-full flex flex-col`}>
+            <div
+              className={`glass-card rounded-3xl p-4 border border-white/5 space-y-3 flex flex-col flex-1 h-full transition-all ${
+                isFullscreenTrail
+                  ? 'fixed inset-0 z-50 bg-[#080811] p-4 sm:p-8 overflow-y-auto m-0 rounded-none border-none shadow-2xl'
+                  : ''
+              }`}
+            >
               <div className="flex items-center justify-between pb-2 border-b border-white/5 shrink-0">
                 <h3 className="text-sm font-bold font-display text-white flex items-center gap-2">
                   <BookOpen className="w-4 h-4 text-amber-400" />
                   <span>Trilha do Violão</span>
                 </h3>
-                <span className="text-[10px] font-mono text-slate-400 font-bold">
-                  {GUITAR_COURSE_MODULES.length} Módulos
-                </span>
+
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-mono text-slate-400 font-bold mr-1">
+                    {GUITAR_COURSE_MODULES.length} Módulos
+                  </span>
+
+                  {/* Botão Expansão da Trilha */}
+                  <button
+                    onClick={() => setIsTrailExpanded(!isTrailExpanded)}
+                    className={`p-1.5 rounded-xl border transition-all cursor-pointer ${
+                      isTrailExpanded
+                        ? 'bg-amber-600/30 text-amber-300 border-amber-500/40'
+                        : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border-white/5'
+                    }`}
+                    title={isTrailExpanded ? 'Reduzir largura da trilha' : 'Expandir largura da trilha'}
+                  >
+                    {isTrailExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                  </button>
+
+                  {/* Botão Tela Cheia da Trilha */}
+                  <button
+                    onClick={toggleFullscreenTrail}
+                    className={`p-1.5 rounded-xl border transition-all cursor-pointer ${
+                      isFullscreenTrail
+                        ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 ring-1 ring-rose-400'
+                        : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border-white/5'
+                    }`}
+                    title={isFullscreenTrail ? 'Sair da Tela Cheia (Esc)' : 'Tela Cheia na Trilha do Violão'}
+                  >
+                    {isFullscreenTrail ? <Shrink className="w-3.5 h-3.5 text-rose-400" /> : <Expand className="w-3.5 h-3.5 text-amber-400" />}
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-4 flex-1 min-h-0 overflow-y-auto pr-1 no-scrollbar">
@@ -273,8 +368,22 @@ export const GuitarCourseView: React.FC = () => {
         )}
 
         {/* Coluna 2 / Palco Total: Painel da Lição Ativa */}
-        <div className={isWidescreenStage ? 'lg:col-span-12 space-y-4' : 'lg:col-span-8 space-y-4'}>
-          <div className="glass-card rounded-3xl p-4 sm:p-6 border border-white/5 space-y-4">
+        <div
+          className={`${
+            isWidescreenStage
+              ? 'lg:col-span-12'
+              : isTrailExpanded
+              ? 'lg:col-span-6'
+              : 'lg:col-span-8'
+          } h-full flex flex-col space-y-4`}
+        >
+          <div
+            className={`glass-card rounded-3xl p-4 sm:p-6 border border-white/5 space-y-4 flex-1 flex flex-col transition-all ${
+              isFullscreenLesson
+                ? 'fixed inset-0 z-50 bg-[#080811] p-4 sm:p-8 overflow-y-auto m-0 rounded-none border-none shadow-2xl'
+                : ''
+            }`}
+          >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <span className="text-[10px] font-mono text-amber-400 font-bold uppercase tracking-wider block">
@@ -288,44 +397,73 @@ export const GuitarCourseView: React.FC = () => {
                 </p>
               </div>
 
-              {/* Botões de Alternância de Abas */}
-              <div className="flex bg-black/40 p-1 rounded-2xl border border-white/5 self-start sm:self-auto text-xs font-bold">
-                <button
-                  onClick={() => setActiveTab('theory')}
-                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                    activeTab === 'theory' ? 'bg-amber-600 text-slate-950 font-black shadow-md' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Teoria &amp; Postura
-                </button>
-
-                {activeLesson.scoreTrack && (
+              <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+                {/* Botões de Alternância de Abas */}
+                <div className="flex bg-black/40 p-1 rounded-2xl border border-white/5 text-xs font-bold">
                   <button
-                    onClick={() => setActiveTab('score')}
+                    onClick={() => setActiveTab('theory')}
                     className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                      activeTab === 'score' ? 'bg-cyan-600 text-white font-black shadow-md' : 'text-slate-400 hover:text-white'
+                      activeTab === 'theory' ? 'bg-amber-600 text-slate-950 font-black shadow-md' : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    Partitura &amp; Tab
+                    Teoria &amp; Postura
                   </button>
-                )}
 
-                <button
-                  onClick={() => setActiveTab('fretboard')}
-                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                    activeTab === 'fretboard' ? 'bg-amber-600 text-slate-950 font-black shadow-md' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Braço &amp; Shapes
-                </button>
-                <button
-                  onClick={() => setActiveTab('transitions')}
-                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                    activeTab === 'transitions' ? 'bg-purple-600 text-white font-black shadow-md' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Dedo Âncora
-                </button>
+                  {activeLesson.scoreTrack && (
+                    <button
+                      onClick={() => setActiveTab('score')}
+                      className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                        activeTab === 'score' ? 'bg-cyan-600 text-white font-black shadow-md' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Partitura &amp; Tab
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => setActiveTab('fretboard')}
+                    className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                      activeTab === 'fretboard' ? 'bg-amber-600 text-slate-950 font-black shadow-md' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Braço &amp; Shapes
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('transitions')}
+                    className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                      activeTab === 'transitions' ? 'bg-purple-600 text-white font-black shadow-md' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Dedo Âncora
+                  </button>
+                </div>
+
+                {/* Controles de Janela do Card: Expansão (Modo Palco) e Tela Cheia (Fullscreen) */}
+                <div className="flex items-center gap-1 bg-black/40 p-1 rounded-2xl border border-white/5">
+                  <button
+                    onClick={() => setIsWidescreenStage(!isWidescreenStage)}
+                    className={`p-1.5 rounded-xl border transition-all cursor-pointer ${
+                      isWidescreenStage
+                        ? 'bg-amber-600/30 text-amber-300 border-amber-500/40'
+                        : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border-white/5'
+                    }`}
+                    title={isWidescreenStage ? 'Restaurar layout padrão (2 colunas)' : 'Expandir card para 100% da largura (Modo Palco)'}
+                  >
+                    {isWidescreenStage ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                  </button>
+
+                  <button
+                    onClick={toggleFullscreenLesson}
+                    className={`p-1.5 rounded-xl border transition-all cursor-pointer ${
+                      isFullscreenLesson
+                        ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 ring-1 ring-rose-400'
+                        : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border-white/5'
+                    }`}
+                    title={isFullscreenLesson ? 'Sair da Tela Cheia (Esc)' : 'Tela Cheia Imersiva no Card da Lição'}
+                  >
+                    {isFullscreenLesson ? <Shrink className="w-4 h-4 text-rose-400" /> : <Expand className="w-4 h-4 text-amber-400" />}
+                  </button>
+                </div>
               </div>
             </div>
 

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   THEORY_MODULES,
   type TheoryLesson,
@@ -18,6 +18,10 @@ import {
   Search,
   HelpCircle,
   Lightbulb,
+  Maximize2,
+  Minimize2,
+  Expand,
+  Shrink,
 } from 'lucide-react';
 
 export const TheoryStudyAcademy: React.FC = () => {
@@ -45,6 +49,77 @@ export const TheoryStudyAcademy: React.FC = () => {
 
   // Estado do Reprodutor de Áudio da Lição
   const [playingAudioIndex, setPlayingAudioIndex] = useState<number | null>(null);
+
+  // Estados de Expansão e Tela Cheia dos Cards
+  const [isCurriculumExpanded, setIsCurriculumExpanded] = useState<boolean>(false);
+  const [isLessonExpanded, setIsLessonExpanded] = useState<boolean>(false);
+  const [isFullscreenCurriculum, setIsFullscreenCurriculum] = useState<boolean>(false);
+  const [isFullscreenLesson, setIsFullscreenLesson] = useState<boolean>(false);
+
+  const toggleCurriculumExpand = () => {
+    setIsCurriculumExpanded((prev) => !prev);
+    if (!isCurriculumExpanded) setIsLessonExpanded(false);
+  };
+
+  const toggleLessonExpand = () => {
+    setIsLessonExpanded((prev) => !prev);
+    if (!isLessonExpanded) setIsCurriculumExpanded(false);
+  };
+
+  const toggleFullscreenLesson = () => {
+    if (!isFullscreenLesson) {
+      setIsFullscreenLesson(true);
+      try {
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        }
+      } catch {
+        // Fallback
+      }
+    } else {
+      setIsFullscreenLesson(false);
+      try {
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {});
+        }
+      } catch {
+        // Fallback
+      }
+    }
+  };
+
+  const toggleFullscreenCurriculum = () => {
+    if (!isFullscreenCurriculum) {
+      setIsFullscreenCurriculum(true);
+      try {
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        }
+      } catch {
+        // Fallback
+      }
+    } else {
+      setIsFullscreenCurriculum(false);
+      try {
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {});
+        }
+      } catch {
+        // Fallback
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isFullscreenLesson) setIsFullscreenLesson(false);
+        if (isFullscreenCurriculum) setIsFullscreenCurriculum(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreenLesson, isFullscreenCurriculum]);
 
   // =========================================================================
   // LABORATÓRIO DE INTERVALOS INTERATIVO
@@ -262,159 +337,215 @@ export const TheoryStudyAcademy: React.FC = () => {
       {/* 3. Grid Principal: Grade de Módulos (Esquerda) e Leitor da Lição (Direita) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
         {/* COLUNA ESQUERDA (4 cols): Menu de Módulos e Lições */}
-        <div className="lg:col-span-4 h-full flex flex-col space-y-3">
-          <div className="p-4 rounded-3xl glass-card border border-white/5 space-y-3 flex flex-col flex-1 min-h-0">
-            <span className="text-[11px] font-mono text-slate-400 uppercase font-bold block pb-1 border-b border-white/5 shrink-0">
-              Grade Curricular ({filteredLessons.length} Lições Disponíveis):
-            </span>
+        {!isLessonExpanded && (
+          <div
+            className={`${
+              isCurriculumExpanded ? 'lg:col-span-6' : 'lg:col-span-4'
+            } h-full flex flex-col space-y-3 transition-all`}
+          >
+            <div
+              className={`p-4 rounded-3xl glass-card border border-white/5 space-y-3 flex flex-col flex-1 min-h-0 transition-all ${
+                isFullscreenCurriculum
+                  ? 'fixed inset-0 z-50 bg-[#080811] p-4 sm:p-8 overflow-y-auto m-0 rounded-none border-none shadow-2xl'
+                  : ''
+              }`}
+            >
+              <div className="flex items-center justify-between pb-1 border-b border-white/5 shrink-0">
+                <span className="text-[11px] font-mono text-slate-400 uppercase font-bold block">
+                  Grade Curricular ({filteredLessons.length} Lições Disponíveis):
+                </span>
 
-            <div className="space-y-3 flex-1 min-h-0 overflow-y-auto pr-1">
-              {THEORY_MODULES.map((mod) => {
-                const modLessons = mod.lessons.filter(
-                  (l) => filteredLessons.some((fl) => fl.id === l.id)
-                );
-                if (modLessons.length === 0) return null;
+                <div className="flex items-center gap-1.5">
+                  {/* Botão Expansão da Grade */}
+                  <button
+                    onClick={toggleCurriculumExpand}
+                    className={`p-1.5 rounded-xl border transition-all cursor-pointer ${
+                      isCurriculumExpanded
+                        ? 'bg-purple-600/30 text-purple-300 border-purple-500/40'
+                        : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border-white/5'
+                    }`}
+                    title={isCurriculumExpanded ? 'Reduzir largura da grade' : 'Expandir largura da grade'}
+                  >
+                    {isCurriculumExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                  </button>
 
-                const isSelectedMod = selectedModule.code === mod.code;
+                  {/* Botão Tela Cheia da Grade */}
+                  <button
+                    onClick={toggleFullscreenCurriculum}
+                    className={`p-1.5 rounded-xl border transition-all cursor-pointer ${
+                      isFullscreenCurriculum
+                        ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 ring-1 ring-rose-400'
+                        : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border-white/5'
+                    }`}
+                    title={isFullscreenCurriculum ? 'Sair da Tela Cheia (Esc)' : 'Tela Cheia na Grade Curricular'}
+                  >
+                    {isFullscreenCurriculum ? <Shrink className="w-3.5 h-3.5 text-rose-400" /> : <Expand className="w-3.5 h-3.5 text-purple-400" />}
+                  </button>
+                </div>
+              </div>
 
-                return (
-                  <div
-                    key={mod.code}
-                    className={`rounded-2xl border transition-all overflow-hidden ${
-                      isSelectedMod
-                        ? 'border-purple-500/40 bg-purple-950/20'
-                        : 'border-white/5 bg-white/[0.02]'
+              <div className="space-y-3 flex-1 min-h-0 overflow-y-auto pr-1">
+                {THEORY_MODULES.map((mod) => {
+                  const modLessons = mod.lessons.filter(
+                    (l) => filteredLessons.some((fl) => fl.id === l.id)
+                  );
+                  if (modLessons.length === 0) return null;
+
+                  const isSelectedMod = selectedModule.code === mod.code;
+
+                  return (
+                    <div
+                      key={mod.code}
+                      className={`rounded-2xl border transition-all overflow-hidden ${
+                        isSelectedMod
+                          ? 'border-purple-500/40 bg-purple-950/20'
+                          : 'border-white/5 bg-white/[0.02]'
+                      }`}
+                    >
+                      <div
+                        onClick={() => setSelectedModule(mod)}
+                        className="p-3 cursor-pointer flex items-center justify-between hover:bg-white/[0.03] transition-colors"
+                      >
+                        <div>
+                          <div className="flex items-center gap-1.5 text-[10px] font-mono text-purple-400 font-bold uppercase">
+                            <span>{mod.code}</span>
+                            <span>•</span>
+                            <span>{mod.phase}</span>
+                          </div>
+                          <h4 className="text-xs font-bold text-white mt-0.5">
+                            {mod.title}
+                          </h4>
+                        </div>
+                        <span className="text-[10px] text-slate-500 font-mono">
+                          {modLessons.length} aulas
+                        </span>
+                      </div>
+
+                      {/* Lista de Lições do Módulo */}
+                      <div className="p-2 pt-0 space-y-1">
+                        {modLessons.map((lesson) => {
+                          const isActive = activeLesson.id === lesson.id;
+                          const isDone = completedLessonIds.includes(lesson.id);
+
+                          return (
+                            <button
+                              key={lesson.id}
+                              onClick={() => handleSelectLesson(lesson)}
+                              className={`w-full text-left p-2.5 rounded-xl text-xs transition-all flex items-center justify-between gap-2 cursor-pointer ${
+                                isActive
+                                  ? 'bg-purple-600 text-white font-bold shadow-md shadow-purple-600/30 scale-101'
+                                  : 'hover:bg-white/5 text-slate-300'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2 truncate">
+                                {isDone ? (
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                ) : (
+                                  <span className="w-1.5 h-1.5 rounded-full bg-slate-600 shrink-0" />
+                                )}
+                                <span className="truncate">{lesson.title}</span>
+                              </div>
+                              <span className="text-[9px] font-mono opacity-70 shrink-0">
+                                {lesson.readingTimeMinutes} min
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 4. Mini Laboratório Interativo de Intervalos Acústicos */}
+            <div className="p-4 rounded-3xl bg-black/50 border border-purple-500/20 space-y-3">
+              <div className="flex items-center gap-2 text-indigo-400 text-xs font-mono font-bold uppercase">
+                <Sliders className="w-3.5 h-3.5" />
+                <span>Laboratório de Intervalos</span>
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-400 font-bold">{currentIntervalInfo.name}</span>
+                  <span className="text-indigo-300 font-mono text-[11px]">{currentIntervalInfo.formula}</span>
+                </div>
+                <p className="text-[11px] text-slate-400">{currentIntervalInfo.mood}</p>
+              </div>
+
+              {/* Slider de Semitons */}
+              <input
+                type="range"
+                min={0}
+                max={12}
+                value={intervalSemitones}
+                onChange={(e) => setIntervalSemitones(parseInt(e.target.value))}
+                className="w-full accent-purple-500 cursor-pointer"
+              />
+
+              {/* Seletor de Nota Fundamental */}
+              <div className="flex items-center gap-1 pt-1">
+                <span className="text-[10px] font-mono text-slate-400 uppercase mr-1">Fundamental:</span>
+                {[
+                  { name: 'Dó (C)', midi: 60 },
+                  { name: 'Ré (D)', midi: 62 },
+                  { name: 'Mi (E)', midi: 64 },
+                  { name: 'Fá (F)', midi: 65 },
+                  { name: 'Sol (G)', midi: 67 },
+                  { name: 'Lá (A)', midi: 69 },
+                ].map((r) => (
+                  <button
+                    key={r.midi}
+                    onClick={() => setIntervalRoot(r.midi)}
+                    className={`px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold cursor-pointer transition-colors ${
+                      intervalRoot === r.midi
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-white/5 hover:bg-white/10 text-slate-400'
                     }`}
                   >
-                    <div
-                      onClick={() => setSelectedModule(mod)}
-                      className="p-3 cursor-pointer flex items-center justify-between hover:bg-white/[0.03] transition-colors"
-                    >
-                      <div>
-                        <div className="flex items-center gap-1.5 text-[10px] font-mono text-purple-400 font-bold uppercase">
-                          <span>{mod.code}</span>
-                          <span>•</span>
-                          <span>{mod.phase}</span>
-                        </div>
-                        <h4 className="text-xs font-bold text-white mt-0.5">
-                          {mod.title}
-                        </h4>
-                      </div>
-                      <span className="text-[10px] text-slate-500 font-mono">
-                        {modLessons.length} aulas
-                      </span>
-                    </div>
-
-                    {/* Lista de Lições do Módulo */}
-                    <div className="p-2 pt-0 space-y-1">
-                      {modLessons.map((lesson) => {
-                        const isActive = activeLesson.id === lesson.id;
-                        const isDone = completedLessonIds.includes(lesson.id);
-
-                        return (
-                          <button
-                            key={lesson.id}
-                            onClick={() => handleSelectLesson(lesson)}
-                            className={`w-full text-left p-2.5 rounded-xl text-xs transition-all flex items-center justify-between gap-2 cursor-pointer ${
-                              isActive
-                                ? 'bg-purple-600 text-white font-bold shadow-md shadow-purple-600/30 scale-101'
-                                : 'hover:bg-white/5 text-slate-300'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2 truncate">
-                              {isDone ? (
-                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                              ) : (
-                                <span className="w-1.5 h-1.5 rounded-full bg-slate-600 shrink-0" />
-                              )}
-                              <span className="truncate">{lesson.title}</span>
-                            </div>
-                            <span className="text-[9px] font-mono opacity-70 shrink-0">
-                              {lesson.readingTimeMinutes} min
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* 4. Mini Laboratório Interativo de Intervalos Acústicos */}
-          <div className="p-4 rounded-3xl bg-black/50 border border-purple-500/20 space-y-3">
-            <div className="flex items-center gap-2 text-indigo-400 text-xs font-mono font-bold uppercase">
-              <Sliders className="w-3.5 h-3.5" />
-              <span>Laboratório de Intervalos</span>
-            </div>
-
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs">
-                <span className="text-slate-400 font-bold">{currentIntervalInfo.name}</span>
-                <span className="text-indigo-300 font-mono text-[11px]">{currentIntervalInfo.formula}</span>
+                    {r.name.split(' ')[0]}
+                  </button>
+                ))}
               </div>
-              <p className="text-[11px] text-slate-400">{currentIntervalInfo.mood}</p>
-            </div>
 
-            {/* Slider de Semitons */}
-            <input
-              type="range"
-              min={0}
-              max={12}
-              value={intervalSemitones}
-              onChange={(e) => setIntervalSemitones(parseInt(e.target.value))}
-              className="w-full accent-purple-500 cursor-pointer"
-            />
-
-            {/* Seletor de Nota Fundamental */}
-            <div className="flex items-center gap-1 pt-1">
-              <span className="text-[10px] font-mono text-slate-400 uppercase mr-1">Fundamental:</span>
-              {[
-                { name: 'Dó (C)', midi: 60 },
-                { name: 'Ré (D)', midi: 62 },
-                { name: 'Mi (E)', midi: 64 },
-                { name: 'Fá (F)', midi: 65 },
-                { name: 'Sol (G)', midi: 67 },
-                { name: 'Lá (A)', midi: 69 },
-              ].map((r) => (
+              <div className="flex gap-2">
                 <button
-                  key={r.midi}
-                  onClick={() => setIntervalRoot(r.midi)}
-                  className={`px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold cursor-pointer transition-colors ${
-                    intervalRoot === r.midi
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-white/5 hover:bg-white/10 text-slate-400'
-                  }`}
+                  onClick={() => playIntervalAudio('melodic')}
+                  className="flex-1 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-mono text-[10px] font-bold flex items-center justify-center gap-1 cursor-pointer transition-colors"
                 >
-                  {r.name.split(' ')[0]}
+                  <Play className="w-3 h-3 fill-current" />
+                  <span>Ouvir Sucessivo</span>
                 </button>
-              ))}
-            </div>
 
-            <div className="flex gap-2">
-              <button
-                onClick={() => playIntervalAudio('melodic')}
-                className="flex-1 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-mono text-[10px] font-bold flex items-center justify-center gap-1 cursor-pointer transition-colors"
-              >
-                <Play className="w-3 h-3 fill-current" />
-                <span>Ouvir Sucessivo</span>
-              </button>
-
-              <button
-                onClick={() => playIntervalAudio('harmonic')}
-                className="flex-1 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-[10px] font-bold flex items-center justify-center gap-1 cursor-pointer transition-colors"
-              >
-                <Layers className="w-3 h-3" />
-                <span>Ouvir Junto (Acorde)</span>
-              </button>
+                <button
+                  onClick={() => playIntervalAudio('harmonic')}
+                  className="flex-1 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-[10px] font-bold flex items-center justify-center gap-1 cursor-pointer transition-colors"
+                >
+                  <Layers className="w-3 h-3" />
+                  <span>Ouvir Junto (Acorde)</span>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* COLUNA DIREITA (8 cols): Leitor Completo da Lição */}
-        <div className="lg:col-span-8 space-y-5">
-          <div className="p-6 sm:p-8 rounded-3xl glass-card border border-white/10 space-y-6 shadow-2xl relative">
+        <div
+          className={`${
+            isLessonExpanded
+              ? 'lg:col-span-12'
+              : isCurriculumExpanded
+              ? 'lg:col-span-6'
+              : 'lg:col-span-8'
+          } space-y-5 transition-all`}
+        >
+          <div
+            className={`p-6 sm:p-8 rounded-3xl glass-card border border-white/10 space-y-6 shadow-2xl relative transition-all ${
+              isFullscreenLesson
+                ? 'fixed inset-0 z-50 bg-[#080811] p-4 sm:p-8 overflow-y-auto m-0 rounded-none border-none shadow-2xl'
+                : ''
+            }`}
+          >
             {/* Header da Aula */}
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-4 border-b border-white/5">
               <div>
@@ -438,18 +569,47 @@ export const TheoryStudyAcademy: React.FC = () => {
                 </p>
               </div>
 
-              {/* Botão Concluir Lição */}
-              <button
-                onClick={() => handleToggleCompleteLesson(activeLesson.id)}
-                className={`px-4 py-2 rounded-2xl font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shrink-0 self-start ${
-                  isCurrentLessonCompleted
-                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                    : 'bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10'
-                }`}
-              >
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span>{isCurrentLessonCompleted ? 'Lição Concluída ✓' : 'Marcar como Concluída'}</span>
-              </button>
+              {/* Botões de Ação no Topo da Lição */}
+              <div className="flex items-center gap-2 shrink-0 self-start">
+                {/* Botão Expansão da Lição */}
+                <button
+                  onClick={toggleLessonExpand}
+                  className={`p-2 rounded-xl border transition-all cursor-pointer ${
+                    isLessonExpanded
+                      ? 'bg-purple-600/30 text-purple-300 border-purple-500/40'
+                      : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border-white/5'
+                  }`}
+                  title={isLessonExpanded ? 'Reduzir para tamanho normal' : 'Modo Palco Estendido (100% de largura)'}
+                >
+                  {isLessonExpanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                </button>
+
+                {/* Botão Tela Cheia da Lição */}
+                <button
+                  onClick={toggleFullscreenLesson}
+                  className={`p-2 rounded-xl border transition-all cursor-pointer ${
+                    isFullscreenLesson
+                      ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 ring-1 ring-rose-400'
+                      : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border-white/5'
+                  }`}
+                  title={isFullscreenLesson ? 'Sair da Tela Cheia (Esc)' : 'Tela Cheia Imersiva na Lição'}
+                >
+                  {isFullscreenLesson ? <Shrink className="w-4 h-4 text-rose-400" /> : <Expand className="w-4 h-4 text-purple-400" />}
+                </button>
+
+                {/* Botão Concluir Lição */}
+                <button
+                  onClick={() => handleToggleCompleteLesson(activeLesson.id)}
+                  className={`px-4 py-2 rounded-2xl font-bold text-xs flex items-center gap-2 transition-all cursor-pointer ${
+                    isCurrentLessonCompleted
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                      : 'bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10'
+                  }`}
+                >
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span>{isCurrentLessonCompleted ? 'Lição Concluída ✓' : 'Marcar como Concluída'}</span>
+                </button>
+              </div>
             </div>
 
             {/* Resumo Executivo / Conceito Chave */}
