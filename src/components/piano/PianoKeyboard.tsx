@@ -357,19 +357,34 @@ export const PianoKeyboard: React.FC<Props> = ({
                         height={whiteKeyHeight}
                         rx={Math.min(5, whiteKeyWidth * 0.15)}
                         fill={keyFill}
-                        stroke={isPressed ? '#f43f5e' : isMiddleC ? '#06b6d4' : '#8e94a0'}
-                        strokeWidth={isPressed ? 2 : isMiddleC ? 1.5 : 0.8}
+                        stroke={isPressed ? '#f43f5e' : isMiddleC ? '#0284c7' : '#8e94a0'}
+                        strokeWidth={isPressed ? 2 : isMiddleC ? 2 : 0.8}
                         className="transition-all duration-100"
                       />
 
-                      {/* Destaque visual no topo para o Dó Central (C4) */}
+                      {/* Destaque visual inconfundível para o Dó Central (C4) */}
                       {isMiddleC && (
-                        <circle
-                          cx={x + whiteKeyWidth / 2}
-                          cy={14}
-                          r={Math.min(3.5, whiteKeyWidth * 0.12)}
-                          fill="#06b6d4"
-                        />
+                        <g>
+                          <rect
+                            x={x + 2}
+                            y={4}
+                            width={Math.max(12, whiteKeyWidth - 4)}
+                            height={18}
+                            rx={4}
+                            fill="#0284c7"
+                          />
+                          <text
+                            x={x + whiteKeyWidth / 2}
+                            y={16.5}
+                            textAnchor="middle"
+                            fill="#ffffff"
+                            fontSize={Math.max(7, Math.min(9.5, whiteKeyWidth * 0.22))}
+                            fontWeight="black"
+                            fontFamily="Outfit, sans-serif"
+                          >
+                            {whiteKeyWidth > 38 ? 'DÓ CENTRAL' : 'C4'}
+                          </text>
+                        </g>
                       )}
 
                       {/* Rótulo da Nota no rodapé da tecla */}
@@ -378,8 +393,8 @@ export const PianoKeyboard: React.FC<Props> = ({
                         y={whiteKeyHeight - 10}
                         textAnchor="middle"
                         fill={isPressed ? '#e11d48' : highlight ? '#ffffff' : isMiddleC ? '#0284c7' : '#334155'}
-                        fontSize={labelFontSize}
-                        fontWeight="bold"
+                        fontSize={isMiddleC ? labelFontSize + 1 : labelFontSize}
+                        fontWeight="black"
                         fontFamily="Outfit, sans-serif"
                       >
                         {noteInfo.name}
