@@ -217,9 +217,11 @@ export const FastChordTrainer: React.FC = () => {
           octaveCount={3}
           allowOctaveControls={true}
           highlightedKeys={highlightedKeys}
-          onKeyPlay={() => {
+          onKeyPlay={(midi) => {
             if (isActive && !isSuccess) {
-              handleConfirmFingering();
+              if (targetVoicing.midi.includes(midi)) {
+                handleConfirmFingering();
+              }
             }
           }}
         />

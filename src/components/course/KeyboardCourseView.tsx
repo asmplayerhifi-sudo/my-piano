@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { KEYBOARD_COURSE_MODULES } from '../../core/coursesData';
 import type { CourseLesson, CourseModule } from '../../core/coursesData';
 import { ScrollingScoreCanvas } from '../score/ScrollingScoreCanvas';
@@ -101,6 +101,37 @@ export const KeyboardCourseView: React.FC = () => {
       setCompletedLessonIds(prev => [...prev, lessonId]);
     }
   };
+
+  // Teclas destacadas e dedilhado orientativo para a lição ativa
+  const highlightedLessonKeys = useMemo(() => {
+    if (activeLesson.scoreTrack && activeLesson.scoreTrack.length > 0) {
+      return activeLesson.scoreTrack.map(n => ({
+        midi: n.midi,
+        finger: n.fingerRightHand || n.fingerLeftHand,
+        degreeName: n.noteName,
+      }));
+    }
+    return [];
+  }, [activeLesson]);
+
+  const activeFingerPrompt = useMemo(() => {
+    if (activeLesson.scoreTrack && activeLesson.scoreTrack.length > 0) {
+      const firstNote = activeLesson.scoreTrack[0];
+      const fingerNum = firstNote.fingerRightHand || firstNote.fingerLeftHand;
+      const hand = firstNote.clef === 'bass' || firstNote.midi < 60 ? 'ME' : 'MD';
+      const names = ['', 'Polegar', 'Indicador', 'Médio', 'Anelar', 'Mínimo'];
+      const colors = ['', '#f59e0b', '#38bdf8', '#10b981', '#c084fc', '#f43f5e'];
+      const f = fingerNum || (hand === 'MD' ? (firstNote.midi === 60 ? 1 : 2) : 5);
+      return {
+        finger: f,
+        label: `${hand} ${f}`,
+        fingerName: names[f] || `D${f}`,
+        noteName: firstNote.noteName,
+        color: colors[f] || '#38bdf8',
+      };
+    }
+    return null;
+  }, [activeLesson]);
 
   const isCurrentCompleted = completedLessonIds.includes(activeLesson.id);
 
@@ -439,6 +470,8 @@ export const KeyboardCourseView: React.FC = () => {
                     startOctave={2}
                     octaveCount={3}
                     allowOctaveControls={true}
+                    highlightedKeys={highlightedLessonKeys}
+                    activeFingerPrompt={activeFingerPrompt}
                     activeExternalNotes={micHearingMidi !== null ? [micHearingMidi] : []}
                     onKeyPlay={(midi) => handleNoteInput(midi)}
                     onKeyRelease={() => setLastMidiEvent(null)}

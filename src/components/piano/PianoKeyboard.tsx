@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useId } from 'react';
 import { soundEngine } from '../../core/soundEngine';
 import { getNoteInfo } from '../../core/musicTheory';
 import { PianoWaterfallCanvas } from './PianoWaterfallCanvas';
@@ -56,6 +56,17 @@ export const PianoKeyboard: React.FC<Props> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [containerWidth, setContainerWidth] = useState<number>(1000);
+
+  const keyboardId = useId().replace(/:/g, '');
+  const whiteKeyGradId = `whiteKeyGrad_${keyboardId}`;
+  const blackKeyGradId = `blackKeyGrad_${keyboardId}`;
+
+  // Callbacks mantidos em refs estáveis para evitar desmonte de listeners ou liberação indevida ao re-renderizar componentes pais
+  const onKeyPlayRef = useRef(onKeyPlay);
+  onKeyPlayRef.current = onKeyPlay;
+
+  const onKeyReleaseRef = useRef(onKeyRelease);
+  onKeyReleaseRef.current = onKeyRelease;
 
   const [startOctave, setStartOctave] = useState<number>(initialStartOctave);
   const [octaveCount, setOctaveCount] = useState<number>(initialOctaveCount);
@@ -132,7 +143,7 @@ export const PianoKeyboard: React.FC<Props> = ({
       pressedKeysSetRef.current.add(midi);
       setActivePressedKeys(Array.from(pressedKeysSetRef.current));
       soundEngine.startPianoNote(midi);
-      if (onKeyPlay) onKeyPlay(midi);
+      if (onKeyPlayRef.current) onKeyPlayRef.current(midi);
     }
   };
 
@@ -144,7 +155,7 @@ export const PianoKeyboard: React.FC<Props> = ({
       soundEngine.stopPianoNote(midi);
       pressedKeysSetRef.current.delete(midi);
       setActivePressedKeys(Array.from(pressedKeysSetRef.current));
-      if (onKeyRelease) onKeyRelease(midi);
+      if (onKeyReleaseRef.current) onKeyReleaseRef.current(midi);
     }
   };
 
@@ -152,7 +163,7 @@ export const PianoKeyboard: React.FC<Props> = ({
     if (pressedKeysSetRef.current.size > 0) {
       pressedKeysSetRef.current.forEach((m) => {
         soundEngine.stopPianoNote(m);
-        if (onKeyRelease) onKeyRelease(m);
+        if (onKeyReleaseRef.current) onKeyReleaseRef.current(m);
       });
       pressedKeysSetRef.current.clear();
       activePointersRef.current.clear();
@@ -167,7 +178,9 @@ export const PianoKeyboard: React.FC<Props> = ({
       if (midi !== undefined) {
         handleKeyUp(midi, e.pointerId);
       }
-      if (e.buttons === 0) {
+      if (e.pointerType === 'mouse' && e.buttons === 0) {
+        releaseAllKeys();
+      } else if (activePointersRef.current.size === 0) {
         releaseAllKeys();
       }
     };
@@ -206,7 +219,7 @@ export const PianoKeyboard: React.FC<Props> = ({
       window.removeEventListener('blur', handleGlobalBlur);
       releaseAllKeys();
     };
-  }, [onKeyRelease]);
+  }, []); // Monta uma única vez: não destrói o estado das teclas por re-render do pai
 
   const combinedActiveNotes = Array.from(new Set([...activePressedKeys, ...(activeExternalNotes || [])]));
 
@@ -507,16 +520,18 @@ export const PianoKeyboard: React.FC<Props> = ({
               className="block w-full overflow-hidden"
               viewBox={`0 0 ${svgWidth} ${totalSvgHeight}`}
               preserveAspectRatio="none"
-              onPointerLeave={() => releaseAllKeys()}
+              onPointerLeave={(e) => {
+                if (e.buttons === 0) releaseAllKeys();
+              }}
               onPointerCancel={() => releaseAllKeys()}
             >
               <defs>
-                <linearGradient id="whiteKeyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <linearGradient id={whiteKeyGradId} x1="0%" y1="0%" x2="0%" y2="100%">
                   <stop offset="0%" stopColor="#fdfdfd" />
                   <stop offset="90%" stopColor="#eceef2" />
                   <stop offset="100%" stopColor="#d5d8de" />
                 </linearGradient>
-                <linearGradient id="blackKeyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <linearGradient id={blackKeyGradId} x1="0%" y1="0%" x2="0%" y2="100%">
                   <stop offset="0%" stopColor="#2e2d3b" />
                   <stop offset="85%" stopColor="#15141f" />
                   <stop offset="100%" stopColor="#08070d" />
@@ -537,7 +552,7 @@ export const PianoKeyboard: React.FC<Props> = ({
                   const isMiddleC = (midi === 60);
                   const isPressed = combinedActiveNotes.includes(midi);
 
-                  let keyFill = 'url(#whiteKeyGrad)';
+                  let keyFill = `url(#${whiteKeyGradId})`;
                   if (isPressed) {
                     keyFill = '#ffe4e6'; // Destaque aceso quando pressionada
                   } else if (highlight) {
@@ -685,7 +700,7 @@ export const PianoKeyboard: React.FC<Props> = ({
                   const highlight = getHighlight(midi);
                   const isPressed = combinedActiveNotes.includes(midi);
 
-                  let keyFill = 'url(#blackKeyGrad)';
+                  let keyFill = `url(#${blackKeyGradId})`;
                   if (isPressed) {
                     keyFill = '#f43f5e'; // Tecla preta brilha em coral neon quando tocada
                   } else if (highlight) {
