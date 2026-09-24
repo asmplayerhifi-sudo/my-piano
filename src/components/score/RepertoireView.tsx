@@ -16,6 +16,7 @@ import {
   Lightbulb,
   Gauge,
   ChevronDown,
+  Headphones,
 } from 'lucide-react';
 
 function computeNoteOffsets(notes: ScoreNote[], timeSignature = '4/4'): number[] {
@@ -65,6 +66,7 @@ export const RepertoireView: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [currentNoteIdx, setCurrentNoteIdx] = useState<number>(0);
   const [lastMidiEvent, setLastMidiEvent] = useState<{ midi: number; timestamp: number } | null>(null);
+  const [activeDemoMidi, setActiveDemoMidi] = useState<number[]>([]);
 
   const playbackTimeoutRef = useRef<number | null>(null);
   const isPlayingRef = useRef<boolean>(false);
@@ -83,6 +85,7 @@ export const RepertoireView: React.FC = () => {
       playbackTimeoutRef.current = null;
     }
     setIsPlaying(false);
+    setActiveDemoMidi([]);
     setCurrentNoteIdx(0);
     setActiveSong(song);
     setTempo(song.recommendedBpm);
@@ -128,14 +131,18 @@ export const RepertoireView: React.FC = () => {
     // Toca a nota atual e todas as notas simultâneas (mesmo tempo métrico / acordes e ambas as mãos)
     const currentOffset = offsets[noteIndex] ?? 0;
     let nextIndex = noteIndex;
+    const currentNotesMidi: number[] = [];
 
     while (nextIndex < track.length && Math.abs((offsets[nextIndex] ?? 0) - currentOffset) < 0.02) {
       const noteToPlay = track[nextIndex];
       soundEngine.playPianoNote(noteToPlay.midi, 1.4);
-      handleNoteInput(noteToPlay.midi);
+      currentNotesMidi.push(noteToPlay.midi);
       nextIndex++;
     }
 
+    // Atualiza teclas ativas visualmente no piano durante a demonstração,
+    // SEM disparar avaliação de performance ou fingir input do usuário!
+    setActiveDemoMidi(currentNotesMidi);
     setCurrentNoteIdx(nextIndex);
 
     // Calcula tempo exato até o próximo evento musical
@@ -168,8 +175,9 @@ export const RepertoireView: React.FC = () => {
         playbackTimeoutRef.current = null;
       }
       setIsPlaying(false);
+      setActiveDemoMidi([]);
     } else {
-      // Iniciar
+      // Iniciar demonstração sonora
       setIsPlaying(true);
       isPlayingRef.current = true;
       playNextNote(currentNoteIdx);
@@ -182,6 +190,7 @@ export const RepertoireView: React.FC = () => {
       playbackTimeoutRef.current = null;
     }
     setIsPlaying(false);
+    setActiveDemoMidi([]);
     setCurrentNoteIdx(0);
     currentNoteIdxRef.current = 0;
   };
@@ -250,7 +259,7 @@ export const RepertoireView: React.FC = () => {
               {isPlaying ? (
                 <>
                   <Pause className="w-4 h-4 fill-current" />
-                  <span>Pausar Música</span>
+                  <span>Pausar Demonstração</span>
                 </>
               ) : (
                 <>
@@ -259,6 +268,13 @@ export const RepertoireView: React.FC = () => {
                 </>
               )}
             </button>
+
+            {isPlaying && (
+              <span className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-200 text-xs font-mono">
+                <Headphones className="w-3.5 h-3.5 text-purple-400" />
+                <span>Modo Demonstração (Apenas Ouvir)</span>
+              </span>
+            )}
 
             <button
               onClick={handleResetPlayback}
@@ -369,18 +385,23 @@ export const RepertoireView: React.FC = () => {
 
       {/* 3. Palco Total: Partitura Deslizante (Widescreen 100% com Bordas Sutis) */}
       <div className="glass-card rounded-3xl p-4 sm:p-5 border border-white/5 space-y-3">
-        {/* Barra de Escuta do Microfone (Acústico) */}
+        {/* Barra de Escuta do Microfone (Acústico) - Pausada durante a demonstração sonora */}
         <MicrophonePitchBar
-          onNoteDetected={(midi) => handleNoteInput(midi)}
+          disabled={isPlaying}
+          disabledMessage="Demonstração em reprodução: escuta do microfone e avaliação de performance desativadas (apenas demonstração sonora da obra)."
+          onNoteDetected={(midi) => {
+            if (!isPlaying) handleNoteInput(midi);
+          }}
         />
 
-        {/* Partitura Deslizante 60 FPS com Divisão de Compasso */}
+        {/* Partitura Deslizante 60 FPS com Divisão de Compasso em Modo Demonstração */}
         <ScrollingScoreCanvas
           key={activeSong.id}
           notes={activeSong.scoreTrack}
           timeSignature={activeSong.timeSignature}
           bpm={tempo}
           isPlaying={isPlaying}
+          isDemoMode={true}
           onPlayPauseToggle={(playing) => {
             if (playing && !isPlaying) {
               handleTogglePlayPause();
@@ -389,7 +410,7 @@ export const RepertoireView: React.FC = () => {
             }
           }}
           onTempoChange={(newBpm) => setTempo(newBpm)}
-          currentMidiPressed={lastMidiEvent}
+          currentMidiPressed={isPlaying ? null : lastMidiEvent}
         />
 
         {/* Teclado Virtual com Rastro Synthesia (100% da Largura, Zero Scroll, Bordas Sutis) */}
@@ -399,8 +420,10 @@ export const RepertoireView: React.FC = () => {
             octaveCount={3}
             allowOctaveControls={true}
             highlightedKeys={highlightedSongKeys}
-            activeExternalNotes={lastMidiEvent ? [lastMidiEvent.midi] : []}
-            onKeyPlay={(midi) => handleNoteInput(midi)}
+            activeExternalNotes={isPlaying ? activeDemoMidi : (lastMidiEvent ? [lastMidiEvent.midi] : [])}
+            onKeyPlay={(midi) => {
+              if (!isPlaying) handleNoteInput(midi);
+            }}
           />
         </div>
       </div>

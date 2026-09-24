@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { soundEngine } from '../../core/soundEngine';
 import type { ScoreNote } from '../../core/coursesData';
-import { Play, Pause, RotateCcw, Sparkles, Flame, Award, Clock } from 'lucide-react';
+import { Play, Pause, RotateCcw, Sparkles, Flame, Award, Clock, Headphones } from 'lucide-react';
 
 export type MidiInputNote = number | { midi: number; timestamp?: number } | null;
 
@@ -18,6 +18,7 @@ interface Props {
   onTempoChange?: (tempo: number) => void;
   instrument?: 'piano' | 'guitar';
   toleranceMs?: number;
+  isDemoMode?: boolean;
 }
 
 function parseTimeSignature(ts = '4/4') {
@@ -44,6 +45,7 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
   onTempoChange,
   instrument = 'piano',
   toleranceMs = 70,
+  isDemoMode = false,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -52,7 +54,7 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
   const [internalIsPlaying, setInternalIsPlaying] = useState<boolean>(false);
   const isPlaying = controlledIsPlaying !== undefined ? controlledIsPlaying : internalIsPlaying;
 
-  const [mode, setMode] = useState<'wait' | 'flow'>(initialMode);
+  const [mode, setMode] = useState<'wait' | 'flow'>(isDemoMode ? 'flow' : initialMode);
   const [tempo, setTempo] = useState<number>(bpm);
 
   const { numerator, denominator, beatsPerMeasure } = useMemo(
@@ -373,6 +375,7 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
   };
 
   const triggerNoteHit = useCallback((noteIndex: number, diffMs = 0) => {
+    if (isDemoMode) return;
     if (noteIndex >= notes.length) return;
     const note = notes[noteIndex];
 
@@ -407,10 +410,12 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
     if (noteIndex + 1 >= notes.length && onLessonComplete) {
       onLessonComplete();
     }
-  }, [notes, onNoteHit, onLessonComplete, instrument, toleranceMs]);
+  }, [notes, onNoteHit, onLessonComplete, instrument, toleranceMs, isDemoMode]);
 
   // Se o usuário tocou via teclado virtual, MIDI ou microfone
   useEffect(() => {
+    // Durante a reprodução de demonstração, não avalia performance nem escuta
+    if (isDemoMode) return;
     if (currentMidiPressed === null || currentMidiPressed === undefined) return;
 
     const midi = typeof currentMidiPressed === 'number' ? currentMidiPressed : currentMidiPressed.midi;
@@ -433,7 +438,7 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
         setFeedback({ text: 'Tente novamente', color: 'text-rose-400' });
       }
     }
-  }, [currentMidiPressed, isPlaying, currentIndex, notes, triggerNoteHit]);
+  }, [currentMidiPressed, isPlaying, currentIndex, notes, triggerNoteHit, isDemoMode]);
 
   // Loop de Renderização no Canvas a 60 FPS
   useEffect(() => {
@@ -830,26 +835,26 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
         fallbackBeats += note.duration;
 
         const noteY = getNoteY(note.midi, note.clef);
-        const isCurrentTarget = (idx === currentIndex);
-        const hasPassed = idx < currentIndex;
+        const isCurrentTarget = isDemoMode ? (Math.abs(noteX - attackLineX) < 22) : (idx === currentIndex);
+        const hasPassed = isDemoMode ? (noteX < attackLineX - 10) : (idx < currentIndex);
         const isMiddleC = (note.midi === 60);
         const dur = note.duration || 1;
 
-        if (isPlaying && mode === 'wait' && isCurrentTarget && noteX <= attackLineX) {
+        if (isPlaying && mode === 'wait' && !isDemoMode && isCurrentTarget && noteX <= attackLineX) {
           isPausedWaitingRef.current = true;
         }
 
         if (noteX > -50 && noteX < width + 50) {
           ctx.save();
 
-          // Define Paleta de Cores da Nota
+          // Define Paleta de Cores da Nota (Harmônica no Modo Demonstração)
           let noteColor = '#e2e8f0';
           if (hasPassed) {
-            noteColor = '#10b981';
+            noteColor = isDemoMode ? 'rgba(16, 185, 129, 0.8)' : '#10b981';
           } else if (isCurrentTarget) {
-            noteColor = '#f43f5e';
-            ctx.shadowColor = '#f43f5e';
-            ctx.shadowBlur = 12;
+            noteColor = isDemoMode ? '#38bdf8' : '#f43f5e';
+            ctx.shadowColor = isDemoMode ? '#38bdf8' : '#f43f5e';
+            ctx.shadowBlur = 14;
           } else if (isMiddleC) {
             noteColor = '#38bdf8'; // Ciano radiante para Dó Central
           }
@@ -1083,56 +1088,81 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
     <div className="w-full flex flex-col items-stretch select-none no-select space-y-3">
       {/* HUD Superior: Modo, Pontuação e Precisão (100% de Largura) */}
       <div className="w-full flex flex-wrap items-center justify-between gap-3 px-4 sm:px-5 py-3 rounded-2xl bg-white/[0.03] border border-white/5 text-xs backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          {/* Seletor de Modo */}
-          <div className="flex bg-black/40 p-1 rounded-xl border border-white/5">
-            <button
-              onClick={() => setMode('wait')}
-              className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer ${
-                mode === 'wait'
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Esperar Pela Nota
-            </button>
-            <button
-              onClick={() => setMode('flow')}
-              className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer ${
-                mode === 'flow'
-                  ? 'bg-cyan-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Fluxo Contínuo
-            </button>
-          </div>
+        {isDemoMode ? (
+          <>
+            {/* Modo Demonstração Sonora: Apenas Audição e Acompanhamento */}
+            <div className="flex items-center gap-3">
+              <span className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-200 font-bold text-xs">
+                <Headphones className="w-4 h-4 text-purple-400" />
+                <span>Modo Demonstração Sonora</span>
+              </span>
+              <span className="text-[11px] text-slate-400 font-mono hidden md:inline">
+                Apenas audição e acompanhamento visual • Escuta e avaliação desativadas
+              </span>
+            </div>
 
-          {/* Feedback Animado */}
-          {feedback && (
-            <span className={`font-black font-display text-sm tracking-wide ${feedback.color} animate-bounce`}>
-              {feedback.text}
-            </span>
-          )}
-        </div>
+            {/* Compasso & Andamento */}
+            <div className="flex items-center gap-3 font-mono">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-300 font-bold text-[11px]">
+                <Clock className="w-3.5 h-3.5 text-purple-400" />
+                <span>Fórmula: {timeSignature}</span>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex items-center gap-3">
+              {/* Seletor de Modo */}
+              <div className="flex bg-black/40 p-1 rounded-xl border border-white/5">
+                <button
+                  onClick={() => setMode('wait')}
+                  className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+                    mode === 'wait'
+                      ? 'bg-indigo-600 text-white shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Esperar Pela Nota
+                </button>
+                <button
+                  onClick={() => setMode('flow')}
+                  className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+                    mode === 'flow'
+                      ? 'bg-cyan-600 text-white shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Fluxo Contínuo
+                </button>
+              </div>
 
-        {/* Compasso & Estatísticas */}
-        <div className="flex items-center gap-3 font-mono">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-300 font-bold text-[11px]">
-            <Clock className="w-3.5 h-3.5 text-purple-400" />
-            <span>Fórmula: {timeSignature}</span>
-          </div>
+              {/* Feedback Animado */}
+              {feedback && (
+                <span className={`font-black font-display text-sm tracking-wide ${feedback.color} animate-bounce`}>
+                  {feedback.text}
+                </span>
+              )}
+            </div>
 
-          <div className="flex items-center gap-1.5 text-amber-400 font-bold">
-            <Flame className="w-4 h-4 fill-current" />
-            <span>Combo: {streak}x</span>
-          </div>
+            {/* Compasso & Estatísticas */}
+            <div className="flex items-center gap-3 font-mono">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-300 font-bold text-[11px]">
+                <Clock className="w-3.5 h-3.5 text-purple-400" />
+                <span>Fórmula: {timeSignature}</span>
+              </div>
 
-          <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
-            <Award className="w-4 h-4" />
-            <span>Pontos: {score}</span>
-          </div>
-        </div>
+              <div className="flex items-center gap-1.5 text-amber-400 font-bold">
+                <Flame className="w-4 h-4 fill-current" />
+                <span>Combo: {streak}x</span>
+              </div>
+
+              <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
+                <Award className="w-4 h-4" />
+                <span>Pontos: {score}</span>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Barra de Filtros de Notação: Opções ON / OFF de Símbolos, Silêncios, Dedilhado e Compassos */}

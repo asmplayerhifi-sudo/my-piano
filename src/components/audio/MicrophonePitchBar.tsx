@@ -6,9 +6,16 @@ import { Mic, MicOff, Activity, Radio, Volume2, ShieldAlert } from 'lucide-react
 interface Props {
   onNoteDetected?: (midi: number, noteName: string) => void;
   className?: string;
+  disabled?: boolean;
+  disabledMessage?: string;
 }
 
-export const MicrophonePitchBar: React.FC<Props> = ({ onNoteDetected, className = '' }) => {
+export const MicrophonePitchBar: React.FC<Props> = ({
+  onNoteDetected,
+  className = '',
+  disabled = false,
+  disabledMessage,
+}) => {
   const [isActive, setIsActive] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [currentPitch, setCurrentPitch] = useState<DetectedPitch | null>(null);
@@ -59,6 +66,15 @@ export const MicrophonePitchBar: React.FC<Props> = ({ onNoteDetected, className 
   };
 
   useEffect(() => {
+    if (disabled && isActive) {
+      micPitchDetector.stop();
+      setIsActive(false);
+      setCurrentPitch(null);
+      setVolumeLevel(0);
+    }
+  }, [disabled, isActive]);
+
+  useEffect(() => {
     return () => {
       micPitchDetector.stop();
     };
@@ -66,15 +82,26 @@ export const MicrophonePitchBar: React.FC<Props> = ({ onNoteDetected, className 
 
   return (
     <div className={`p-4 rounded-3xl glass-card border border-white/10 space-y-3 ${className}`}>
+      {/* Banner Informativo quando Desativado (ex: durante demonstração sonora) */}
+      {disabled && (
+        <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-purple-950/40 border border-purple-500/25 text-purple-200 text-xs font-mono">
+          <MicOff className="w-4 h-4 text-purple-400 shrink-0" />
+          <span>{disabledMessage || 'Escuta do microfone desativada durante a reprodução da demonstração.'}</span>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         {/* Lado Esquerdo: Botão de Ativação do Microfone */}
         <div className="flex items-center gap-3">
           <button
-            onClick={handleToggleMic}
-            className={`px-4 py-2.5 rounded-2xl font-bold text-xs uppercase tracking-wider flex items-center gap-2.5 transition-all cursor-pointer shadow-lg active:scale-95 ${
-              isActive
-                ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/30 animate-pulse'
-                : 'bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-black shadow-emerald-500/20'
+            onClick={disabled ? undefined : handleToggleMic}
+            disabled={disabled}
+            className={`px-4 py-2.5 rounded-2xl font-bold text-xs uppercase tracking-wider flex items-center gap-2.5 transition-all ${
+              disabled
+                ? 'opacity-40 cursor-not-allowed bg-white/5 text-slate-500 border border-white/5'
+                : isActive
+                ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/30 animate-pulse cursor-pointer shadow-lg active:scale-95'
+                : 'bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-black shadow-emerald-500/20 cursor-pointer shadow-lg active:scale-95'
             }`}
           >
             {isActive ? (
