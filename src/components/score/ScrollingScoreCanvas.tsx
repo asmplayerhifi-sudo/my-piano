@@ -324,6 +324,8 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
   useEffect(() => {
     scrollOffsetRef.current = 0;
     setCurrentIndex(0);
+    playedNotesRef.current.clear();
+    playedBeatsRef.current.clear();
     isPausedWaitingRef.current = false;
   }, [notes]);
 
@@ -333,6 +335,8 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
   useEffect(() => {
     if (currentNoteIndex === 0) {
       scrollOffsetRef.current = 0;
+      playedNotesRef.current.clear();
+      playedBeatsRef.current.clear();
       isPausedWaitingRef.current = false;
     } else if (isDemoMode && currentNoteIndex !== undefined && timeline.noteOffsets[currentNoteIndex] !== undefined) {
       const targetOffset = timeline.noteOffsets[currentNoteIndex] * pixelsPerBeat;
@@ -494,11 +498,18 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
   const triggerNoteHit = useCallback((noteIndex: number, diffMs = 0) => {
     if (noteIndex >= notes.length) return;
     const note = notes[noteIndex];
+    const currentOffset = timeline.noteOffsets[noteIndex] ?? 0;
 
-    if (instrument === 'guitar') {
-      soundEngine.playGuitarPluck(note.midi, 1.4);
-    } else {
-      soundEngine.playPianoNote(note.midi, 1.2);
+    // Toca a nota principal e quaisquer notas simultâneas no mesmo tempo métrico (polifonia / ambas as mãos)
+    for (let k = 0; k < notes.length; k++) {
+      if (Math.abs((timeline.noteOffsets[k] ?? 0) - currentOffset) < 0.05) {
+        const simNote = notes[k];
+        if (instrument === 'guitar') {
+          soundEngine.playGuitarPluck(simNote.midi, 1.4);
+        } else {
+          soundEngine.playPianoNote(simNote.midi, 1.2);
+        }
+      }
     }
 
     if (!isDemoMode) {
@@ -589,7 +600,7 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
         if (shouldPlayNotes) {
           for (let i = 0; i < timeline.noteOffsets.length; i++) {
             const noteBeat = timeline.noteOffsets[i];
-            if (noteBeat <= currentBeat + 0.05 && !playedNotesRef.current.has(i)) {
+            if (noteBeat <= currentBeat + 0.08 && !playedNotesRef.current.has(i)) {
               playedNotesRef.current.add(i);
               const note = notes[i];
               if (note) {
@@ -1596,6 +1607,13 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
 
   const handlePlayPause = async () => {
     await soundEngine.ensureAudioReady();
+    const maxScroll = (timeline.totalBeats + 1) * pixelsPerBeat;
+    if (scrollOffsetRef.current >= maxScroll) {
+      scrollOffsetRef.current = 0;
+      playedNotesRef.current.clear();
+      playedBeatsRef.current.clear();
+      setCurrentIndex(0);
+    }
     const nextState = !isPlaying;
     setIsPlaying(nextState);
     if (onPlayPauseToggle) onPlayPauseToggle(nextState);

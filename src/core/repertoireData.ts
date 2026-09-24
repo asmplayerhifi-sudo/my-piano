@@ -1999,16 +1999,6 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       "chordName": "Cm"
     },
     {
-      "midi": 41,
-      "clef": "bass",
-      "duration": 2,
-      "beat": 3,
-      "measure": 3,
-      "fingerLeftHand": 4,
-      "noteName": "F2",
-      "chordName": "Fm"
-    },
-    {
       "midi": 60,
       "clef": "treble",
       "duration": 1,
@@ -2025,6 +2015,16 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       "measure": 3,
       "fingerRightHand": 2,
       "noteName": "Eb3"
+    },
+    {
+      "midi": 41,
+      "clef": "bass",
+      "duration": 2,
+      "beat": 3,
+      "measure": 3,
+      "fingerLeftHand": 4,
+      "noteName": "F2",
+      "chordName": "Fm"
     },
     {
       "midi": 68,
@@ -2193,16 +2193,6 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       "chordName": "Fm"
     },
     {
-      "midi": 46,
-      "clef": "bass",
-      "duration": 2,
-      "beat": 3,
-      "measure": 7,
-      "fingerLeftHand": 2,
-      "noteName": "Bb2",
-      "chordName": "Bb7"
-    },
-    {
       "midi": 65,
       "clef": "treble",
       "duration": 1,
@@ -2219,6 +2209,16 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       "measure": 7,
       "fingerRightHand": 3,
       "noteName": "G3"
+    },
+    {
+      "midi": 46,
+      "clef": "bass",
+      "duration": 2,
+      "beat": 3,
+      "measure": 7,
+      "fingerLeftHand": 2,
+      "noteName": "Bb2",
+      "chordName": "Bb7"
     },
     {
       "midi": 68,
@@ -2351,16 +2351,6 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       "chordName": "Fm7"
     },
     {
-      "midi": 46,
-      "clef": "bass",
-      "duration": 2,
-      "beat": 3,
-      "measure": 11,
-      "fingerLeftHand": 2,
-      "noteName": "Bb2",
-      "chordName": "Bb7"
-    },
-    {
       "midi": 65,
       "clef": "treble",
       "duration": 1,
@@ -2377,6 +2367,16 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       "measure": 11,
       "fingerRightHand": 4,
       "noteName": "Ab3"
+    },
+    {
+      "midi": 46,
+      "clef": "bass",
+      "duration": 2,
+      "beat": 3,
+      "measure": 11,
+      "fingerLeftHand": 2,
+      "noteName": "Bb2",
+      "chordName": "Bb7"
     },
     {
       "midi": 67,
@@ -2481,6 +2481,15 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       "chordName": "Ab"
     },
     {
+      "midi": 72,
+      "clef": "treble",
+      "duration": 2,
+      "beat": 1,
+      "measure": 14,
+      "fingerRightHand": 5,
+      "noteName": "C4"
+    },
+    {
       "midi": 36,
       "clef": "bass",
       "duration": 2,
@@ -2489,15 +2498,6 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       "fingerLeftHand": 5,
       "noteName": "C2",
       "chordName": "Cm"
-    },
-    {
-      "midi": 72,
-      "clef": "treble",
-      "duration": 2,
-      "beat": 1,
-      "measure": 14,
-      "fingerRightHand": 5,
-      "noteName": "C4"
     },
     {
       "midi": 70,
@@ -4870,16 +4870,6 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       "chordName": "A"
     },
     {
-      "midi": 50,
-      "clef": "bass",
-      "duration": 2,
-      "beat": 3,
-      "measure": 1,
-      "fingerLeftHand": 1,
-      "noteName": "D3",
-      "chordName": "D"
-    },
-    {
       "midi": 64,
       "clef": "treble",
       "duration": 1,
@@ -4896,6 +4886,16 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       "measure": 1,
       "fingerRightHand": 3,
       "noteName": "A3"
+    },
+    {
+      "midi": 50,
+      "clef": "bass",
+      "duration": 2,
+      "beat": 3,
+      "measure": 1,
+      "fingerLeftHand": 1,
+      "noteName": "D3",
+      "chordName": "D"
     },
     {
       "midi": 73,
@@ -4926,16 +4926,6 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       "chordName": "F#m"
     },
     {
-      "midi": 40,
-      "clef": "bass",
-      "duration": 2,
-      "beat": 3,
-      "measure": 2,
-      "fingerLeftHand": 5,
-      "noteName": "E2",
-      "chordName": "E"
-    },
-    {
       "midi": 73,
       "clef": "treble",
       "duration": 1,
@@ -4952,6 +4942,16 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       "measure": 2,
       "fingerRightHand": 3,
       "noteName": "B3"
+    },
+    {
+      "midi": 40,
+      "clef": "bass",
+      "duration": 2,
+      "beat": 3,
+      "measure": 2,
+      "fingerLeftHand": 5,
+      "noteName": "E2",
+      "chordName": "E"
     },
     {
       "midi": 69,
@@ -6289,6 +6289,15 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       "chordName": "Cm"
     },
     {
+      "midi": 60,
+      "clef": "treble",
+      "duration": 4,
+      "beat": 1,
+      "measure": 1,
+      "fingerRightHand": 1,
+      "noteName": "C3"
+    },
+    {
       "midi": 48,
       "clef": "bass",
       "duration": 1,
@@ -6313,15 +6322,6 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       "beat": 4,
       "measure": 1,
       "fingerLeftHand": 1,
-      "noteName": "C3"
-    },
-    {
-      "midi": 60,
-      "clef": "treble",
-      "duration": 4,
-      "beat": 1,
-      "measure": 1,
-      "fingerRightHand": 1,
       "noteName": "C3"
     },
     {
@@ -6335,6 +6335,15 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       "chordName": "Ab"
     },
     {
+      "midi": 63,
+      "clef": "treble",
+      "duration": 4,
+      "beat": 1,
+      "measure": 2,
+      "fingerRightHand": 2,
+      "noteName": "Eb3"
+    },
+    {
       "midi": 44,
       "clef": "bass",
       "duration": 1,
@@ -6362,15 +6371,6 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       "noteName": "Ab2"
     },
     {
-      "midi": 63,
-      "clef": "treble",
-      "duration": 4,
-      "beat": 1,
-      "measure": 2,
-      "fingerRightHand": 2,
-      "noteName": "Eb3"
-    },
-    {
       "midi": 31,
       "clef": "bass",
       "duration": 1,
@@ -6379,6 +6379,15 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       "fingerLeftHand": 5,
       "noteName": "G1",
       "chordName": "G"
+    },
+    {
+      "midi": 62,
+      "clef": "treble",
+      "duration": 4,
+      "beat": 1,
+      "measure": 3,
+      "fingerRightHand": 2,
+      "noteName": "D3"
     },
     {
       "midi": 43,
@@ -6408,15 +6417,6 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       "noteName": "G2"
     },
     {
-      "midi": 62,
-      "clef": "treble",
-      "duration": 4,
-      "beat": 1,
-      "measure": 3,
-      "fingerRightHand": 2,
-      "noteName": "D3"
-    },
-    {
       "midi": 36,
       "clef": "bass",
       "duration": 1,
@@ -6425,6 +6425,15 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       "fingerLeftHand": 5,
       "noteName": "C2",
       "chordName": "Cm"
+    },
+    {
+      "midi": 60,
+      "clef": "treble",
+      "duration": 4,
+      "beat": 1,
+      "measure": 4,
+      "fingerRightHand": 1,
+      "noteName": "C3"
     },
     {
       "midi": 48,
@@ -6451,15 +6460,6 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       "beat": 4,
       "measure": 4,
       "fingerLeftHand": 1,
-      "noteName": "C3"
-    },
-    {
-      "midi": 60,
-      "clef": "treble",
-      "duration": 4,
-      "beat": 1,
-      "measure": 4,
-      "fingerRightHand": 1,
       "noteName": "C3"
     },
     {

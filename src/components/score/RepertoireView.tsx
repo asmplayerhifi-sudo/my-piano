@@ -113,24 +113,49 @@ export const RepertoireView: React.FC = () => {
     setLastMidiEvent({ midi, timestamp: performance.now() });
   };
 
+  // Garante que o scoreTrack esteja SEMPRE estritamente ordenado por compasso e tempo
+  const sortedScoreTrack = useMemo(() => {
+    const parts = activeSong.timeSignature.split('/');
+    const num = parseInt(parts[0], 10) || 4;
+    const den = parseInt(parts[1], 10) || 4;
+    let bpm = num;
+    if (den === 8 && num >= 6) bpm = num / 3;
+
+    return [...activeSong.scoreTrack].sort((a, b) => {
+      const mA = Math.max(1, a.measure || 1);
+      const mB = Math.max(1, b.measure || 1);
+      const bA = (a.beat !== undefined ? Math.max(0, a.beat - 1) : 0);
+      const bB = (b.beat !== undefined ? Math.max(0, b.beat - 1) : 0);
+      const offA = (mA - 1) * bpm + bA;
+      const offB = (mB - 1) * bpm + bB;
+
+      if (Math.abs(offA - offB) > 0.001) {
+        return offA - offB;
+      }
+      if (a.clef === 'bass' && b.clef !== 'bass') return -1;
+      if (a.clef !== 'bass' && b.clef === 'bass') return 1;
+      return (a.midi || 0) - (b.midi || 0);
+    });
+  }, [activeSong]);
+
   // Pré-computa os tempos métricos exatos das notas para sincronização polifônica precisa
   const noteOffsets = useMemo(() => {
-    return computeNoteOffsets(activeSong.scoreTrack, activeSong.timeSignature);
-  }, [activeSong]);
+    return computeNoteOffsets(sortedScoreTrack, activeSong.timeSignature);
+  }, [sortedScoreTrack, activeSong.timeSignature]);
   const noteOffsetsRef = useRef<number[]>(noteOffsets);
   noteOffsetsRef.current = noteOffsets;
 
   // Apontamento de dedos para as teclas do piano com base na música atual
   const highlightedSongKeys = useMemo(() => {
-    return activeSong.scoreTrack.map(n => ({
+    return sortedScoreTrack.map(n => ({
       midi: n.midi,
       finger: n.fingerRightHand || n.fingerLeftHand,
       degreeName: n.noteName,
     }));
-  }, [activeSong]);
+  }, [sortedScoreTrack]);
 
   // Dedo da nota atual em execução na partitura para a tag abaixo do teclado
-  const currentSongTargetNote = activeSong.scoreTrack[currentNoteIdx];
+  const currentSongTargetNote = sortedScoreTrack[currentNoteIdx];
   const activeFingerPrompt = useMemo(() => {
     if (!currentSongTargetNote) return null;
     const fingerNum = currentSongTargetNote.fingerRightHand || currentSongTargetNote.fingerLeftHand;
@@ -151,7 +176,7 @@ export const RepertoireView: React.FC = () => {
   const playNextNote = (noteIndex: number) => {
     if (!isPlayingRef.current) return;
 
-    const track = activeSong.scoreTrack;
+    const track = sortedScoreTrack;
     const offsets = noteOffsetsRef.current;
     if (noteIndex >= track.length) {
       // Fim da obra: reinicia do começo após uma pausa elegante
@@ -169,9 +194,10 @@ export const RepertoireView: React.FC = () => {
     let nextIndex = noteIndex;
     const currentNotesMidi: number[] = [];
 
-    while (nextIndex < track.length && Math.abs((offsets[nextIndex] ?? 0) - currentOffset) < 0.02) {
+    while (nextIndex < track.length && Math.abs((offsets[nextIndex] ?? 0) - currentOffset) < 0.05) {
       const noteToPlay = track[nextIndex];
-      soundEngine.playPianoNote(noteToPlay.midi, 1.4);
+      const durSec = Math.max(0.35, (noteToPlay.duration || 1) * (60 / tempoRef.current) * 1.3);
+      soundEngine.playPianoNote(noteToPlay.midi, durSec);
       currentNotesMidi.push(noteToPlay.midi);
       nextIndex++;
     }
@@ -183,8 +209,8 @@ export const RepertoireView: React.FC = () => {
 
     // Calcula tempo exato até o próximo evento musical
     if (nextIndex < track.length) {
-      const nextOffset = offsets[nextIndex] ?? currentOffset + 1;
-      const deltaBeats = Math.max(0.1, nextOffset - currentOffset);
+      const nextOffset = offsets[nextIndex] ?? (currentOffset + 1);
+      const deltaBeats = Math.max(0.08, nextOffset - currentOffset);
       const noteDurationMs = (60 / tempoRef.current) * 1000 * deltaBeats;
 
       playbackTimeoutRef.current = window.setTimeout(() => {
@@ -203,7 +229,8 @@ export const RepertoireView: React.FC = () => {
     }
   };
 
-  const handleTogglePlayPause = () => {
+  const handleTogglePlayPause = async () => {
+    await soundEngine.ensureAudioReady();
     if (isPlaying) {
       // Pausar
       if (playbackTimeoutRef.current) {
@@ -216,7 +243,7 @@ export const RepertoireView: React.FC = () => {
       // Iniciar demonstração sonora
       setIsPlaying(true);
       isPlayingRef.current = true;
-      playNextNote(currentNoteIdx);
+      playNextNote(currentNoteIdx >= sortedScoreTrack.length ? 0 : currentNoteIdx);
     }
   };
 
@@ -475,7 +502,7 @@ export const RepertoireView: React.FC = () => {
         {/* Partitura Deslizante 60 FPS com Divisão de Compasso em Modo Demonstração */}
         <ScrollingScoreCanvas
           key={activeSong.id}
-          notes={activeSong.scoreTrack}
+          notes={sortedScoreTrack}
           timeSignature={activeSong.timeSignature}
           bpm={tempo}
           isPlaying={isPlaying}
