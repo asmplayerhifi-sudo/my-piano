@@ -5,6 +5,7 @@ import { ScrollingScoreCanvas } from '../score/ScrollingScoreCanvas';
 import { FastChordTrainer } from '../piano/FastChordTrainer';
 import { PianoKeyboard } from '../piano/PianoKeyboard';
 import { MicrophonePitchBar } from '../audio/MicrophonePitchBar';
+import { LessonIllustration } from './illustrations/LessonIllustration';
 import {
   GraduationCap,
   BookOpen,
@@ -390,6 +391,16 @@ export const KeyboardCourseView: React.FC = () => {
             {/* Bloco 1: Teoria Didática, Biomecânica & Postura */}
             {(practiceTab === 'all' || practiceTab === 'theory') && (
               <div className="space-y-4 pt-2 border-t border-white/5 animate-fade-in">
+                {/* Figura Explicativa / Diagrama Vetorial da Tríade Pedagógica */}
+                <LessonIllustration
+                  lessonId={activeLesson.id}
+                  moduleCode={selectedModule.code}
+                  title={activeLesson.title}
+                  instrument="keyboard"
+                  targetNotes={activeLesson.scoreTrack?.map(n => n.noteName)}
+                  fingeringTip={activeLesson.instructions.fingeringTip}
+                />
+
                 <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-2">
                   <h4 className="text-sm font-bold text-white flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-indigo-400" />

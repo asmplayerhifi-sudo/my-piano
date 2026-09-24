@@ -6,6 +6,7 @@ import {
   type AudioExample,
 } from '../../core/theoryLessonsData';
 import { soundEngine } from '../../core/soundEngine';
+import { LessonIllustration } from '../course/illustrations/LessonIllustration';
 import {
   CheckCircle2,
   Sparkles,
@@ -625,6 +626,14 @@ export const TheoryStudyAcademy: React.FC = () => {
                 <strong>💡 Conclusão Rápida:</strong> {activeLesson.keyTakeaway}
               </div>
             </div>
+
+            {/* Diagrama Ilustrativo Vetorial da Lição */}
+            <LessonIllustration
+              lessonId={activeLesson.id}
+              moduleCode={activeLesson.moduleCode}
+              title={activeLesson.title}
+              instrument="theory"
+            />
 
             {/* Seções e Explicações Detalhadas */}
             <div className="space-y-5 text-xs sm:text-sm text-slate-300 leading-relaxed">

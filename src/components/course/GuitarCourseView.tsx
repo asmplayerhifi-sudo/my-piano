@@ -5,6 +5,7 @@ import { FretboardView } from '../guitar/FretboardView';
 import { CAGED_SHAPES_C_MAJOR } from '../guitar/CAGEDMapper';
 import { ScrollingScoreCanvas } from '../score/ScrollingScoreCanvas';
 import { MicrophonePitchBar } from '../audio/MicrophonePitchBar';
+import { LessonIllustration } from './illustrations/LessonIllustration';
 import type { GuitarChordShape } from '../../core/types';
 import {
   Guitar,
@@ -476,6 +477,14 @@ export const GuitarCourseView: React.FC = () => {
             {/* Bloco 1: Teoria Didática da Lição */}
             {(activeTab === 'all' || activeTab === 'theory') && (
               <div className="space-y-4 pt-2 border-t border-white/5 animate-fade-in">
+                {/* Diagrama Ilustrativo da Lição */}
+                <LessonIllustration
+                  lessonId={activeLesson.id}
+                  moduleCode={selectedModule.code}
+                  title={activeLesson.title}
+                  instrument="guitar"
+                />
+
                 <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-2">
                   <h4 className="text-sm font-bold text-white flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-amber-400" />
