@@ -115,16 +115,29 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
     showNoteNames: boolean;
     showRests: boolean;
     showBarlines: boolean;
+    showBeatNumbers: boolean;
+    showSubdivisions: boolean;
     showChords: boolean;
   }>({
     showFingering: true,
     showNoteNames: true,
     showRests: true,
     showBarlines: true,
+    showBeatNumbers: true,
+    showSubdivisions: true,
     showChords: true,
   });
 
-  const toggleOption = (key: 'showFingering' | 'showNoteNames' | 'showRests' | 'showBarlines' | 'showChords') => {
+  const toggleOption = (
+    key:
+      | 'showFingering'
+      | 'showNoteNames'
+      | 'showRests'
+      | 'showBarlines'
+      | 'showBeatNumbers'
+      | 'showSubdivisions'
+      | 'showChords'
+  ) => {
     setDisplayOptions(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
@@ -529,37 +542,143 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
       ctx.fillText(denominator.toString(), 76, 158);
       ctx.restore();
 
-      // 4. Divisão de Compassos (Barlines) e Subdivisão dos Tempos
+      // 4. Divisão de Compassos (Barlines), Tempos (1, 2, 3, 4) e Subdivisões ("e")
       if (displayOptions.showBarlines) {
         timeline.measureStartBeats.forEach((measureBeat, m) => {
           const barX = attackLineX + (measureBeat * pixelsPerBeat) - scrollOffsetRef.current;
           const isFinalBar = (m > timeline.maxMeasure);
+          const nextMeasureBeat = timeline.measureStartBeats.get(m + 1) ?? (measureBeat + beatsPerMeasure);
+          const nextBarX = attackLineX + (nextMeasureBeat * pixelsPerBeat) - scrollOffsetRef.current;
+          const isCurrentActiveMeasure = (!isFinalBar && attackLineX >= barX && attackLineX < nextBarX);
 
-          // Subdivisão dos Tempos internos do compasso (pulsos 2, 3, 4...)
-          if (!isFinalBar) {
-            for (let b = 1; b < beatsPerMeasure; b++) {
-              const beatX = attackLineX + ((measureBeat + b) * pixelsPerBeat) - scrollOffsetRef.current;
-              if (beatX > -30 && beatX < width + 30) {
-                ctx.save();
-                ctx.setLineDash([2, 4]);
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.moveTo(beatX, 50);
-                ctx.lineTo(beatX, 160);
+          // A. Régua Superior do Compasso (Header Ruler Band)
+          if (!isFinalBar && barX < width + 100 && nextBarX > -100) {
+            const rulerLeft = Math.max(16, barX);
+            const rulerRight = Math.min(width - 16, nextBarX);
+            const rulerWidth = rulerRight - rulerLeft;
+
+            if (rulerWidth > 24) {
+              ctx.save();
+              // Fundo do Compasso Ativo ou Inativo
+              if (isCurrentActiveMeasure) {
+                ctx.fillStyle = 'rgba(99, 102, 241, 0.16)';
+                ctx.strokeStyle = 'rgba(129, 140, 248, 0.6)';
+                ctx.lineWidth = 1.2;
+                drawRoundedPill(ctx, rulerLeft + 2, 6, rulerWidth - 4, 18, 4);
+                ctx.fill();
                 ctx.stroke();
-                ctx.restore();
 
-                // Indicador discreto da contagem do tempo
-                ctx.fillStyle = 'rgba(148, 163, 184, 0.35)';
+                // Ponto luminoso de compasso em andamento
+                ctx.fillStyle = '#22d3ee';
+                ctx.beginPath();
+                ctx.arc(rulerLeft + 12, 15, 3, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Rótulo do Compasso Ativo
+                ctx.fillStyle = '#e0e7ff';
+                ctx.font = 'bold 9.5px JetBrains Mono, monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(`COMPASSO ${m} • EM ANDAMENTO`, (rulerLeft + rulerRight) / 2, 18.5);
+              } else {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
+                ctx.strokeStyle = 'rgba(148, 163, 184, 0.16)';
+                ctx.lineWidth = 1;
+                drawRoundedPill(ctx, rulerLeft + 2, 6, rulerWidth - 4, 18, 4);
+                ctx.fill();
+                ctx.stroke();
+
+                // Rótulo discreto do compasso
+                ctx.fillStyle = 'rgba(148, 163, 184, 0.7)';
                 ctx.font = 'bold 9px JetBrains Mono, monospace';
                 ctx.textAlign = 'center';
-                ctx.fillText((b + 1).toString(), beatX, 42);
+                ctx.fillText(`COMPASSO ${m}`, (rulerLeft + rulerRight) / 2, 18.5);
+              }
+              ctx.restore();
+            }
+          }
+
+          // B. Subdivisões Rítmicas dos Tempos ("e" / "+" / Meio-Tempo)
+          if (!isFinalBar && displayOptions.showSubdivisions) {
+            for (let b = 0; b < beatsPerMeasure; b++) {
+              const subBeatX = attackLineX + ((measureBeat + b + 0.5) * pixelsPerBeat) - scrollOffsetRef.current;
+              if (subBeatX > -20 && subBeatX < width + 20) {
+                ctx.save();
+                ctx.setLineDash([1.5, 4]);
+                ctx.strokeStyle = 'rgba(56, 189, 248, 0.18)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(subBeatX, 46);
+                ctx.lineTo(subBeatX, 164);
+                ctx.stroke();
+
+                // Marcador da subdivisão "e" (contratempo colcheia)
+                ctx.fillStyle = 'rgba(56, 189, 248, 0.75)';
+                ctx.font = 'bold 8.5px JetBrains Mono, monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('e', subBeatX, 42);
+                ctx.restore();
               }
             }
           }
 
-          // Barra de Compasso (Barline vertical atravessando todo o grande pentagrama)
+          // C. Divisão dos Tempos Internos do Compasso (Pulsos 1, 2, 3, 4...)
+          if (!isFinalBar) {
+            for (let b = 0; b < beatsPerMeasure; b++) {
+              const beatX = attackLineX + ((measureBeat + b) * pixelsPerBeat) - scrollOffsetRef.current;
+              if (beatX > -30 && beatX < width + 30) {
+                // Tempo 1 é a Cabeça do Compasso (Tempo Forte)
+                if (b === 0) {
+                  if (displayOptions.showBeatNumbers) {
+                    ctx.save();
+                    // Badge destacado de Tempo Forte
+                    ctx.fillStyle = 'rgba(245, 158, 11, 0.22)';
+                    ctx.strokeStyle = 'rgba(245, 158, 11, 0.65)';
+                    ctx.lineWidth = 1;
+                    drawRoundedPill(ctx, beatX + 4, 31, 52, 15, 3.5);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.font = 'bold 8.5px JetBrains Mono, monospace';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('1 [FORTE]', beatX + 30, 42);
+                    ctx.restore();
+                  }
+                } else {
+                  // Pulsos 2, 3, 4... Linhas verticais tracejadas
+                  ctx.save();
+                  ctx.setLineDash([3, 4]);
+                  ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
+                  ctx.lineWidth = 1.2;
+                  ctx.beginPath();
+                  ctx.moveTo(beatX, 48);
+                  ctx.lineTo(beatX, 164);
+                  ctx.stroke();
+                  ctx.restore();
+
+                  // Rótulo numérico do tempo (com indicação meio-forte no pulso 3 de 4/4)
+                  if (displayOptions.showBeatNumbers) {
+                    ctx.save();
+                    const isMediumStrong = (b === 2 && beatsPerMeasure === 4);
+                    if (isMediumStrong) {
+                      ctx.fillStyle = '#a5b4fc';
+                      ctx.font = 'bold 8.5px JetBrains Mono, monospace';
+                      ctx.textAlign = 'center';
+                      ctx.fillText('3 [mF]', beatX, 42);
+                    } else {
+                      ctx.fillStyle = 'rgba(203, 213, 225, 0.7)';
+                      ctx.font = 'bold 9px JetBrains Mono, monospace';
+                      ctx.textAlign = 'center';
+                      ctx.fillText((b + 1).toString(), beatX, 42);
+                    }
+                    ctx.restore();
+                  }
+                }
+              }
+            }
+          }
+
+          // D. Barra de Compasso Principal (Barline vertical atravessando todo o sistema)
           if (barX > -40 && barX < width + 40) {
             ctx.save();
             if (isFinalBar) {
@@ -567,41 +686,50 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
               ctx.strokeStyle = '#94a3b8';
               ctx.lineWidth = 1.8;
               ctx.beginPath();
-              ctx.moveTo(barX - 5, 50);
-              ctx.lineTo(barX - 5, 160);
+              ctx.moveTo(barX - 6, 26);
+              ctx.lineTo(barX - 6, 168);
               ctx.stroke();
 
-              ctx.lineWidth = 4;
+              ctx.lineWidth = 4.5;
+              ctx.strokeStyle = '#cbd5e1';
               ctx.beginPath();
-              ctx.moveTo(barX, 50);
-              ctx.lineTo(barX, 160);
-              ctx.stroke();
-            } else {
-              // Barra de Compasso Vertical Padrão
-              ctx.strokeStyle = '#64748b';
-              ctx.lineWidth = 1.8;
-              ctx.beginPath();
-              ctx.moveTo(barX, 50);
-              ctx.lineTo(barX, 160);
+              ctx.moveTo(barX, 26);
+              ctx.lineTo(barX, 168);
               ctx.stroke();
 
-              // Badge com o Número do Compasso (c.1, c.2, c.3...)
-              ctx.fillStyle = 'rgba(99, 102, 241, 0.2)';
-              ctx.strokeStyle = 'rgba(129, 140, 248, 0.5)';
+              // Badge de Fim
+              ctx.fillStyle = 'rgba(244, 63, 94, 0.2)';
+              ctx.strokeStyle = 'rgba(244, 63, 94, 0.6)';
               ctx.lineWidth = 1;
+              drawRoundedPill(ctx, barX - 16, 28, 32, 16, 4);
+              ctx.fill();
+              ctx.stroke();
+              ctx.fillStyle = '#fda4af';
+              ctx.font = 'bold 8.5px JetBrains Mono, monospace';
+              ctx.textAlign = 'center';
+              ctx.fillText('FIM', barX, 39.5);
+            } else {
+              // Barra de Compasso Vertical Padrão (Sólida e Nítida)
+              ctx.strokeStyle = isCurrentActiveMeasure ? '#818cf8' : '#64748b';
+              ctx.lineWidth = isCurrentActiveMeasure ? 2.2 : 1.8;
               ctx.beginPath();
-              if (ctx.roundRect) {
-                ctx.roundRect(barX - 14, 25, 28, 18, 5);
-              } else {
-                ctx.rect(barX - 14, 25, 28, 18);
-              }
+              ctx.moveTo(barX, 26);
+              ctx.lineTo(barX, 168);
+              ctx.stroke();
+
+              // Badge estilizado com o Número do Compasso (c.1, c.2, c.3...)
+              const badgeW = m > 9 ? 34 : 28;
+              ctx.fillStyle = isCurrentActiveMeasure ? 'rgba(99, 102, 241, 0.35)' : 'rgba(30, 41, 59, 0.85)';
+              ctx.strokeStyle = isCurrentActiveMeasure ? 'rgba(129, 140, 248, 0.8)' : 'rgba(148, 163, 184, 0.4)';
+              ctx.lineWidth = 1;
+              drawRoundedPill(ctx, barX - badgeW / 2, 25, badgeW, 16, 4);
               ctx.fill();
               ctx.stroke();
 
-              ctx.fillStyle = '#c7d2fe';
-              ctx.font = 'bold 10px JetBrains Mono, monospace';
+              ctx.fillStyle = isCurrentActiveMeasure ? '#ffffff' : '#c7d2fe';
+              ctx.font = 'bold 9.5px JetBrains Mono, monospace';
               ctx.textAlign = 'center';
-              ctx.fillText(m.toString(), barX, 38);
+              ctx.fillText(`c.${m}`, barX, 36.5);
             }
             ctx.restore();
           }
@@ -1071,7 +1199,7 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
                 ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30 shadow-xs'
                 : 'bg-black/30 text-slate-500 border border-white/5 hover:text-slate-300'
             }`}
-            title="Ativar/desativar divisão de compassos e linhas de tempo"
+            title="Ativar/desativar régua superior e barras verticais de divisão do compasso"
           >
             <span>Compassos:</span>
             <strong className={`font-bold ${displayOptions.showBarlines ? 'text-purple-200' : 'text-slate-500'}`}>
@@ -1079,7 +1207,39 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
             </strong>
           </button>
 
-          {/* 5. Cifras / Acordes */}
+          {/* 5. Marcação de Tempos (1, 2, 3, 4 com Tempo Forte) */}
+          <button
+            onClick={() => toggleOption('showBeatNumbers')}
+            className={`px-2.5 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+              displayOptions.showBeatNumbers
+                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30 shadow-xs'
+                : 'bg-black/30 text-slate-500 border border-white/5 hover:text-slate-300'
+            }`}
+            title="Ativar/desativar numeração dos tempos (1 Forte, 2 Fraco, 3 Meio-Forte, 4 Fraco)"
+          >
+            <span>Tempos (1-4):</span>
+            <strong className={`font-bold ${displayOptions.showBeatNumbers ? 'text-amber-200' : 'text-slate-500'}`}>
+              {displayOptions.showBeatNumbers ? 'ON' : 'OFF'}
+            </strong>
+          </button>
+
+          {/* 6. Subdivisões Rítmicas ("e" / Contratempos) */}
+          <button
+            onClick={() => toggleOption('showSubdivisions')}
+            className={`px-2.5 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+              displayOptions.showSubdivisions
+                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shadow-xs'
+                : 'bg-black/30 text-slate-500 border border-white/5 hover:text-slate-300'
+            }`}
+            title="Ativar/desativar linhas pontilhadas de subdivisão dos tempos ('e' / contratempos)"
+          >
+            <span>Subdivisões ("e"):</span>
+            <strong className={`font-bold ${displayOptions.showSubdivisions ? 'text-cyan-200' : 'text-slate-500'}`}>
+              {displayOptions.showSubdivisions ? 'ON' : 'OFF'}
+            </strong>
+          </button>
+
+          {/* 7. Cifras / Acordes */}
           <button
             onClick={() => toggleOption('showChords')}
             className={`px-2.5 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
@@ -1147,8 +1307,21 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
             </span>
             <span className="px-2.5 py-1 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 font-bold flex items-center gap-1.5">
               <span className="text-cyan-400 font-medium">Tempo:</span>
-              <strong className="text-white text-xs">{currentTargetNote.beat || 1}</strong>
+              <strong className="text-white text-xs">
+                {currentTargetNote.beat || 1}
+                {currentTargetNote.beat === 1
+                  ? ' [Forte]'
+                  : currentTargetNote.beat === 3 && beatsPerMeasure === 4
+                  ? ' [mForte]'
+                  : ' [Fraco]'}
+              </strong>
             </span>
+            {((currentTargetNote.beat || 1) % 1 !== 0) && (
+              <span className="px-2.5 py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 font-bold flex items-center gap-1.5">
+                <span className="text-amber-400 font-medium">Subdivisão:</span>
+                <strong className="text-amber-200 text-xs">Contratempo ("e")</strong>
+              </span>
+            )}
           </div>
 
           {/* Apontamento de Dedo em Destaque no HUD */}
