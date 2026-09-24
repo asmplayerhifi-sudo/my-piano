@@ -535,6 +535,7 @@ export const GuitarCourseView: React.FC = () => {
                   notes={activeLesson.scoreTrack}
                   timeSignature="4/4"
                   bpm={75}
+                  autoPlayAudio={true}
                   instrument="guitar"
                   currentMidiPressed={lastMidiEvent}
                   onLessonComplete={() => handleLessonComplete(activeLesson.id)}

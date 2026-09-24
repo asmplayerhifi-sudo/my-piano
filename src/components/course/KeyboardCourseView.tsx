@@ -513,6 +513,7 @@ export const KeyboardCourseView: React.FC = () => {
                   notes={activeLesson.scoreTrack}
                   timeSignature="4/4"
                   bpm={75}
+                  autoPlayAudio={true}
                   currentMidiPressed={lastMidiEvent}
                   onTargetNoteChange={handleTargetNoteChange}
                   onNoteHit={handleNoteHit}

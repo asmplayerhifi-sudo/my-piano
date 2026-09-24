@@ -35,13 +35,14 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
   toleranceMs = 70,
   isDemoMode = false,
   currentNoteIndex,
-  autoPlayAudio = false,
+  autoPlayAudio = true,
   enableMetronomeSound: initialMetronome = false,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [containerWidth, setContainerWidth] = useState<number>(1200);
   const [scoreTheme, setScoreTheme] = useState<ScoreTheme>(initialTheme);
+  const [enableAudio, setEnableAudio] = useState<boolean>(autoPlayAudio);
   const [enableMetronome, setEnableMetronome] = useState<boolean>(initialMetronome);
 
   const [displayOptions, setDisplayOptions] = useState<DisplayOptions>({
@@ -76,6 +77,11 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
     pixelsPerBeat,
   });
 
+  const handleTogglePlay = async () => {
+    await soundEngine.ensureAudioReady();
+    playback.handlePlayToggle();
+  };
+
   useEffect(() => {
     if (!containerRef.current) return;
     const obs = new ResizeObserver(entries => {
@@ -104,7 +110,7 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
         playback.scrollOffsetRef.current += (playback.tempo / 60) * pixelsPerBeat * dt;
         const currentBeat = playback.scrollOffsetRef.current / pixelsPerBeat;
 
-        if (autoPlayAudio || isDemoMode) {
+        if (enableAudio || autoPlayAudio || isDemoMode) {
           timeline.noteOffsets.forEach((b, i) => {
             if (b <= currentBeat + 0.05 && !playback.playedNotesRef.current.has(i)) {
               playback.playedNotesRef.current.add(i);
@@ -145,18 +151,20 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
       active = false;
       cancelAnimationFrame(animId);
     };
-  }, [playback, scoreTheme, displayOptions, containerWidth, timeline, restsList, notes, autoPlayAudio, isDemoMode, enableMetronome, instrument, beatsPerMeasure]);
+  }, [playback, scoreTheme, displayOptions, containerWidth, timeline, restsList, notes, enableAudio, autoPlayAudio, isDemoMode, enableMetronome, instrument, beatsPerMeasure]);
 
   return (
     <div ref={containerRef} className="w-full flex flex-col rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-[#090814]">
       <ScoreCanvasControls
         isPlaying={playback.isPlaying}
-        onTogglePlay={playback.handlePlayToggle}
+        onTogglePlay={handleTogglePlay}
         onRestart={playback.handleRestart}
         tempo={playback.tempo}
         onTempoChange={playback.handleTempoChange}
         theme={scoreTheme}
         onToggleTheme={() => setScoreTheme(t => (t === 'traditional' ? 'dark' : 'traditional'))}
+        enableAudio={enableAudio}
+        onToggleAudio={() => setEnableAudio(a => !a)}
         enableMetronome={enableMetronome}
         onToggleMetronome={() => setEnableMetronome(m => !m)}
         displayOptions={displayOptions}

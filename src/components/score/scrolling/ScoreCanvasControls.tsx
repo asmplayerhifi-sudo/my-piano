@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { Play, Pause, RotateCcw, Volume2, VolumeX, Sun, Moon } from 'lucide-react';
+import { Play, Pause, RotateCcw, Volume2, VolumeX, Sun, Moon, Radio } from 'lucide-react';
 import type { DisplayOptions, ScoreTheme } from './types';
 
 interface ScoreControlsProps {
@@ -16,6 +16,8 @@ interface ScoreControlsProps {
   onTempoChange: (newTempo: number) => void;
   theme: ScoreTheme;
   onToggleTheme: () => void;
+  enableAudio: boolean;
+  onToggleAudio: () => void;
   enableMetronome: boolean;
   onToggleMetronome: () => void;
   displayOptions: DisplayOptions;
@@ -32,6 +34,8 @@ export const ScoreCanvasControls: React.FC<ScoreControlsProps> = ({
   onTempoChange,
   theme,
   onToggleTheme,
+  enableAudio,
+  onToggleAudio,
   enableMetronome,
   onToggleMetronome,
   displayOptions,
@@ -94,19 +98,34 @@ export const ScoreCanvasControls: React.FC<ScoreControlsProps> = ({
         </div>
       </div>
 
-      {/* 3. Toggles de Exibição, Metrônomo e Tema */}
+      {/* 3. Toggles de Áudio, Metrônomo, Tema e Exibição */}
       <div className="flex items-center gap-2">
+        {/* Áudio do Instrumento / Notas da Partitura */}
+        <button
+          onClick={onToggleAudio}
+          title={enableAudio ? 'Áudio do instrumento ativo (Clique para silenciar)' : 'Áudio do instrumento mudo (Clique para ativar)'}
+          className={`px-2 py-1.5 rounded-lg border flex items-center gap-1.5 text-xs transition-all cursor-pointer ${
+            enableAudio
+              ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
+              : 'bg-white/5 border-white/10 text-slate-500 hover:text-slate-300'
+          }`}
+        >
+          {enableAudio ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+          <span className="hidden md:inline text-[10px] font-bold">Áudio</span>
+        </button>
+
         {/* Metrônomo Sonoro */}
         <button
           onClick={onToggleMetronome}
-          title={enableMetronome ? 'Metrônomo ligado' : 'Metrônomo mudo'}
-          className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+          title={enableMetronome ? 'Metrônomo ligado' : 'Metrônomo desligado'}
+          className={`px-2 py-1.5 rounded-lg border flex items-center gap-1.5 text-xs transition-all cursor-pointer ${
             enableMetronome
               ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300'
-              : 'bg-white/5 border-white/10 text-slate-400 hover:text-slate-200'
+              : 'bg-white/5 border-white/10 text-slate-500 hover:text-slate-300'
           }`}
         >
-          {enableMetronome ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+          <Radio className="w-3.5 h-3.5" />
+          <span className="hidden md:inline text-[10px] font-bold">Metrônomo</span>
         </button>
 
         {/* Tema Claro / Noturno */}
