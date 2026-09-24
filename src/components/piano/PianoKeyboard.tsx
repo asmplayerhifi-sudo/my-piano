@@ -26,6 +26,7 @@ interface Props {
   octaveCount?: number;      // Padrão inicial: 3 ou 4
   highlightedKeys?: HighlightedKey[];
   onKeyPlay?: (midi: number) => void;
+  onKeyRelease?: (midi: number) => void;
   allowOctaveControls?: boolean;
   showWaterfall?: boolean;
   activeExternalNotes?: number[];
@@ -46,6 +47,7 @@ export const PianoKeyboard: React.FC<Props> = ({
   octaveCount: initialOctaveCount = 3,
   highlightedKeys = [],
   onKeyPlay,
+  onKeyRelease,
   allowOctaveControls = true,
   showWaterfall = true,
   activeExternalNotes = [],
@@ -142,15 +144,31 @@ export const PianoKeyboard: React.FC<Props> = ({
       soundEngine.stopPianoNote(midi);
       pressedKeysSetRef.current.delete(midi);
       setActivePressedKeys(Array.from(pressedKeysSetRef.current));
+      if (onKeyRelease) onKeyRelease(midi);
     }
   };
 
-  // Garante liberação mesmo se o cursor for solto fora da tecla
+  const releaseAllKeys = () => {
+    if (pressedKeysSetRef.current.size > 0) {
+      pressedKeysSetRef.current.forEach((m) => {
+        soundEngine.stopPianoNote(m);
+        if (onKeyRelease) onKeyRelease(m);
+      });
+      pressedKeysSetRef.current.clear();
+      activePointersRef.current.clear();
+      setActivePressedKeys([]);
+    }
+  };
+
+  // Garante liberação absoluta de todas as teclas se o cursor for solto dentro ou fora da tecla/janela
   useEffect(() => {
     const handleGlobalPointerUp = (e: PointerEvent) => {
       const midi = activePointersRef.current.get(e.pointerId);
       if (midi !== undefined) {
         handleKeyUp(midi, e.pointerId);
+      }
+      if (e.buttons === 0) {
+        releaseAllKeys();
       }
     };
 
@@ -159,17 +177,36 @@ export const PianoKeyboard: React.FC<Props> = ({
       if (midi !== undefined) {
         handleKeyUp(midi, e.pointerId);
       }
+      releaseAllKeys();
+    };
+
+    const handleGlobalMouseUp = (e: MouseEvent) => {
+      if (e.buttons === 0) {
+        releaseAllKeys();
+      }
+    };
+
+    const handleGlobalBlur = () => {
+      releaseAllKeys();
     };
 
     window.addEventListener('pointerup', handleGlobalPointerUp);
     window.addEventListener('pointercancel', handleGlobalPointerCancel);
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+    window.addEventListener('touchend', handleGlobalPointerUp as any);
+    window.addEventListener('touchcancel', handleGlobalPointerCancel as any);
+    window.addEventListener('blur', handleGlobalBlur);
 
     return () => {
       window.removeEventListener('pointerup', handleGlobalPointerUp);
       window.removeEventListener('pointercancel', handleGlobalPointerCancel);
-      pressedKeysSetRef.current.forEach(midi => soundEngine.stopPianoNote(midi));
+      window.removeEventListener('mouseup', handleGlobalMouseUp);
+      window.removeEventListener('touchend', handleGlobalPointerUp as any);
+      window.removeEventListener('touchcancel', handleGlobalPointerCancel as any);
+      window.removeEventListener('blur', handleGlobalBlur);
+      releaseAllKeys();
     };
-  }, []);
+  }, [onKeyRelease]);
 
   const combinedActiveNotes = Array.from(new Set([...activePressedKeys, ...(activeExternalNotes || [])]));
 
@@ -470,6 +507,8 @@ export const PianoKeyboard: React.FC<Props> = ({
               className="block w-full overflow-hidden"
               viewBox={`0 0 ${svgWidth} ${totalSvgHeight}`}
               preserveAspectRatio="none"
+              onPointerLeave={() => releaseAllKeys()}
+              onPointerCancel={() => releaseAllKeys()}
             >
               <defs>
                 <linearGradient id="whiteKeyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -522,9 +561,10 @@ export const PianoKeyboard: React.FC<Props> = ({
                         }
                       }}
                       onPointerLeave={(e) => {
-                        if (activePointersRef.current.get(e.pointerId) === midi) {
-                          handleKeyUp(midi, e.pointerId);
-                        }
+                        handleKeyUp(midi, e.pointerId);
+                      }}
+                      onPointerCancel={(e) => {
+                        handleKeyUp(midi, e.pointerId);
                       }}
                       className="cursor-pointer group"
                     >
@@ -671,9 +711,10 @@ export const PianoKeyboard: React.FC<Props> = ({
                         }
                       }}
                       onPointerLeave={(e) => {
-                        if (activePointersRef.current.get(e.pointerId) === midi) {
-                          handleKeyUp(midi, e.pointerId);
-                        }
+                        handleKeyUp(midi, e.pointerId);
+                      }}
+                      onPointerCancel={(e) => {
+                        handleKeyUp(midi, e.pointerId);
                       }}
                       className="cursor-pointer group"
                     >

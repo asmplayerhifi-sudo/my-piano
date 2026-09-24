@@ -500,9 +500,12 @@ export const RepertoireView: React.FC = () => {
             allowOctaveControls={true}
             highlightedKeys={highlightedSongKeys}
             activeFingerPrompt={activeFingerPrompt}
-            activeExternalNotes={isPlaying ? activeDemoMidi : (micHearingMidi !== null ? [micHearingMidi] : (lastMidiEvent ? [lastMidiEvent.midi] : []))}
+            activeExternalNotes={isPlaying ? activeDemoMidi : (micHearingMidi !== null ? [micHearingMidi] : [])}
             onKeyPlay={(midi) => {
               if (!isPlaying) handleNoteInput(midi);
+            }}
+            onKeyRelease={() => {
+              setLastMidiEvent(null);
             }}
           />
         </div>
