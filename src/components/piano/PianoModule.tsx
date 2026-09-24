@@ -1,0 +1,179 @@
+import React, { useState, useMemo } from 'react';
+import { PianoKeyboard } from './PianoKeyboard';
+import { ChordSelector } from './ChordSelector';
+import { buildChord, getKeyboardInversions } from '../../core/musicTheory';
+import type { ChordQuality } from '../../core/types';
+import { Music2, Cable, CheckCircle2, ChevronRight, BookOpen } from 'lucide-react';
+
+export const PianoModule: React.FC = () => {
+  const [selectedRoot, setSelectedRoot] = useState<string>('C');
+  const [selectedQuality, setSelectedQuality] = useState<ChordQuality>('major');
+  const [selectedInversion, setSelectedInversion] = useState<0 | 1 | 2>(0);
+  const [hasMidiSupport, setHasMidiSupport] = useState<boolean>(false);
+  const [midiDeviceName, setMidiDeviceName] = useState<string | null>(null);
+
+  // Checa Web MIDI API
+  React.useEffect(() => {
+    if (navigator.requestMIDIAccess) {
+      navigator.requestMIDIAccess().then(
+        (access) => {
+          setHasMidiSupport(true);
+          const inputs = Array.from(access.inputs.values());
+          if (inputs.length > 0) {
+            setMidiDeviceName(inputs[0].name || 'Teclado MIDI');
+          }
+        },
+        () => setHasMidiSupport(false)
+      );
+    }
+  }, []);
+
+  // Acorde atual
+  const chord = useMemo(() => {
+    return buildChord(selectedRoot, selectedQuality);
+  }, [selectedRoot, selectedQuality]);
+
+  // Inversões calculadas
+  const inversions = useMemo(() => {
+    const isMinor = selectedQuality.includes('minor') || selectedQuality.includes('min');
+    return getKeyboardInversions(selectedRoot, isMinor);
+  }, [selectedRoot, selectedQuality]);
+
+  // Mapeamento de teclas ativas e graus para colorização no teclado
+  const activeVoicing = useMemo(() => {
+    if (selectedInversion === 1) return inversions.firstInversion;
+    if (selectedInversion === 2) return inversions.secondInversion;
+    return inversions.fundamental;
+  }, [selectedInversion, inversions]);
+
+  const highlightedKeys = useMemo(() => {
+    return activeVoicing.midi.map((midi, idx) => {
+      // Determina grau harmônico relativo
+      let degree = '1';
+      if (idx === 1) degree = selectedQuality.includes('minor') ? '♭3' : '3';
+      if (idx === 2) degree = '5';
+
+      return {
+        midi,
+        degreeName: degree,
+        finger: activeVoicing.fingeringRH[idx],
+      };
+    });
+  }, [activeVoicing, selectedQuality]);
+
+  return (
+    <div className="w-full max-w-7xl mx-auto space-y-6">
+      {/* Header do Módulo Teclado */}
+      <div className="glass-card rounded-3xl p-6 border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+          <div className="flex items-center gap-2 text-indigo-400 font-mono text-xs font-bold uppercase tracking-wider mb-1">
+            <Music2 className="w-4 h-4" />
+            <span>Módulo 3 — Mapeamento &amp; Condução de Vozes</span>
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-black font-display text-white">
+            Teclado &amp; Montador de Acordes
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-2xl">
+            Visualize as teclas ativas, dedilhado recomendado (1=Polegar a 5=Mínimo) e pratique a transição de inversões para economia de movimento da mão.
+          </p>
+        </div>
+
+        {/* Status Web MIDI / USB-OTG */}
+        <div className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-black/40 border border-white/5 self-start md:self-auto text-xs">
+          <Cable className={`w-4 h-4 ${midiDeviceName ? 'text-emerald-400' : 'text-slate-400'}`} />
+          <div>
+            <div className="font-bold text-white flex items-center gap-1.5">
+              <span>{midiDeviceName ? midiDeviceName : 'Entrada MIDI'}</span>
+              {midiDeviceName && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
+            </div>
+            <div className="text-[10px] text-slate-400">
+              {hasMidiSupport ? (midiDeviceName ? 'Conectado (USB-OTG / MIDI)' : 'Aguardando teclado USB') : 'Navegador sem suporte MIDI'}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Visualizador de Teclado Interativo */}
+      <div className="glass-card rounded-3xl p-6 border border-white/10">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <span className="text-[11px] font-mono text-indigo-400 uppercase tracking-wider font-bold">
+              Acorde em Exibição
+            </span>
+            <div className="flex items-baseline gap-2">
+              <h3 className="text-2xl font-black font-display text-white">{chord.symbol}</h3>
+              <span className="text-xs text-slate-400">({chord.name})</span>
+            </div>
+          </div>
+
+          <div className="text-right">
+            <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block">
+              Notas do Acorde
+            </span>
+            <span className="text-sm font-bold font-mono text-emerald-400">
+              {activeVoicing.notes.join(' • ')}
+            </span>
+          </div>
+        </div>
+
+        <PianoKeyboard
+          startOctave={3}
+          octaveCount={2}
+          highlightedKeys={highlightedKeys}
+        />
+      </div>
+
+      {/* Painel Inferior: Seletor de Acordes + Guia de Inversões */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className="lg:col-span-7">
+          <ChordSelector
+            selectedRoot={selectedRoot}
+            selectedQuality={selectedQuality}
+            selectedInversion={selectedInversion}
+            onSelectRoot={setSelectedRoot}
+            onSelectQuality={setSelectedQuality}
+            onSelectInversion={setSelectedInversion}
+            activeMidiNotes={activeVoicing.midi}
+          />
+        </div>
+
+        {/* Guia de Inversões & Economia de Movimento (RF03.3) */}
+        <div className="lg:col-span-5 glass-card rounded-3xl p-6 border border-white/10 space-y-4">
+          <div className="flex items-center gap-2 text-indigo-300 font-bold text-sm">
+            <BookOpen className="w-4 h-4" />
+            <span>Por que Inverter Acordes? (Voice Leading)</span>
+          </div>
+
+          <p className="text-xs text-slate-300 leading-relaxed">
+            Iniciantes costumam pular com a mão inteira pelo teclado ao trocar de <strong className="text-white">Dó Maior (C)</strong> para <strong className="text-white">Fá Maior (F)</strong>.
+          </p>
+
+          <div className="p-3.5 rounded-2xl bg-white/5 border border-white/5 text-xs space-y-2">
+            <div className="font-bold text-white flex items-center gap-1.5">
+              <span>Exemplo de Encadeamento Econômico:</span>
+            </div>
+            <div className="flex items-center gap-2 font-mono text-[11px] text-cyan-300">
+              <span>C (Dó-Mi-Sol)</span>
+              <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
+              <span>F/A (Dó-Fá-Lá)</span>
+              <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
+              <span>G/B (Si-Ré-Sol)</span>
+            </div>
+            <p className="text-[11px] text-slate-400">
+              Observe que a nota <strong className="text-indigo-300">Dó</strong> permanece no mesmo lugar entre o acorde de C e F/A, movendo apenas os dedos 2 e 4.
+            </p>
+          </div>
+
+          <div className="pt-2 border-t border-white/5">
+            <h4 className="text-xs font-bold text-slate-200 mb-1.5">Dedilhados Recomendados (Mão Direita):</h4>
+            <ul className="text-[11px] text-slate-400 space-y-1 font-mono">
+              <li>• Fundamental: 1 (Polegar) - 3 (Médio) - 5 (Mínimo)</li>
+              <li>• 1ª Inversão: 1 (Polegar) - 2 (Indicador) - 5 (Mínimo)</li>
+              <li>• 2ª Inversão: 1 (Polegar) - 3 (Médio) - 5 (Mínimo)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
