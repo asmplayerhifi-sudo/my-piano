@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { soundEngine } from '../../core/soundEngine';
 import { getNoteInfo } from '../../core/musicTheory';
-import { ChevronLeft, ChevronRight, Layers, Sparkles } from 'lucide-react';
+import { PianoWaterfallCanvas } from './PianoWaterfallCanvas';
+import type { TrailColorTheme } from './PianoWaterfallCanvas';
+import { ChevronLeft, ChevronRight, Layers, Sparkles, Flame } from 'lucide-react';
 
 interface HighlightedKey {
   midi: number;
@@ -16,6 +18,8 @@ interface Props {
   highlightedKeys?: HighlightedKey[];
   onKeyPlay?: (midi: number) => void;
   allowOctaveControls?: boolean;
+  showWaterfall?: boolean;
+  activeExternalNotes?: number[];
 }
 
 export const PianoKeyboard: React.FC<Props> = ({
@@ -24,9 +28,15 @@ export const PianoKeyboard: React.FC<Props> = ({
   highlightedKeys = [],
   onKeyPlay,
   allowOctaveControls = true,
+  showWaterfall = true,
+  activeExternalNotes = [],
 }) => {
   const [startOctave, setStartOctave] = useState<number>(initialStartOctave);
   const [octaveCount, setOctaveCount] = useState<number>(initialOctaveCount);
+  const [isWaterfallActive, setIsWaterfallActive] = useState<boolean>(showWaterfall);
+  const [trailTheme, setTrailTheme] = useState<TrailColorTheme>('coral');
+  const [trailSpeed, setTrailSpeed] = useState<number>(180);
+  const [activePressedKeys, setActivePressedKeys] = useState<number[]>([]);
 
   // Ajusta largura da tecla de acordo com a quantidade de oitavas para caber bem
   const isCompact = octaveCount >= 4;
@@ -49,10 +59,20 @@ export const PianoKeyboard: React.FC<Props> = ({
   const totalWhiteKeys = octaveCount * 7;
   const svgWidth = totalWhiteKeys * whiteKeyWidth;
 
-  const handleKeyPress = (midi: number) => {
+  const handleKeyDown = (midi: number) => {
+    setActivePressedKeys(prev => (prev.includes(midi) ? prev : [...prev, midi]));
     soundEngine.playPianoNote(midi);
     if (onKeyPlay) onKeyPlay(midi);
   };
+
+  const handleKeyUp = (midi: number) => {
+    // Pequeno delay de 180ms para que toques rápidos criem um rastro nítido no canvas
+    window.setTimeout(() => {
+      setActivePressedKeys(prev => prev.filter(m => m !== midi));
+    }, 180);
+  };
+
+  const combinedActiveNotes = Array.from(new Set([...activePressedKeys, ...(activeExternalNotes || [])]));
 
   const getHighlight = (midi: number) => {
     return highlightedKeys.find(k => k.midi === midi);
@@ -76,14 +96,14 @@ export const PianoKeyboard: React.FC<Props> = ({
 
   return (
     <div className="w-full flex flex-col items-center select-none no-select space-y-3">
-      {/* Barra de Controle de Oitavas Interativa */}
+      {/* Barra de Controle de Oitavas & Rastro Synthesia */}
       {allowOctaveControls && (
         <div className="w-full flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-white/5 border border-white/10 text-xs">
           {/* Seletor de Quantidade de Oitavas Visíveis */}
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-mono text-slate-400 font-bold flex items-center gap-1.5">
               <Layers className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Oitavas Visíveis:</span>
+              <span>Oitavas:</span>
             </span>
             <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 font-bold text-[10px]">
               {[2, 3, 4, 5].map((count) => (
@@ -100,6 +120,70 @@ export const PianoKeyboard: React.FC<Props> = ({
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Botão de Toggle do Rastro Synthesia (Waterfall) */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsWaterfallActive(!isWaterfallActive)}
+              className={`px-3 py-1.5 rounded-xl font-bold font-mono text-[10px] uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shadow-md ${
+                isWaterfallActive
+                  ? 'bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-rose-500/30'
+                  : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/10'
+              }`}
+            >
+              <Flame className={`w-3.5 h-3.5 ${isWaterfallActive ? 'fill-current animate-pulse' : ''}`} />
+              <span>{isWaterfallActive ? 'Rastro Synthesia: LIGADO' : 'Ativar Rastro Synthesia'}</span>
+            </button>
+
+            {/* Tema de Cores e Velocidade do Rastro */}
+            {isWaterfallActive && (
+              <div className="flex items-center gap-1.5">
+                <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 text-[9px] font-bold">
+                  <button
+                    onClick={() => setTrailTheme('coral')}
+                    className={`px-2 py-0.5 rounded-lg transition-all cursor-pointer ${
+                      trailTheme === 'coral' ? 'bg-rose-600 text-white' : 'text-slate-400 hover:text-white'
+                    }`}
+                    title="Estilo Milo Andreo / Synthesia Original"
+                  >
+                    Coral
+                  </button>
+                  <button
+                    onClick={() => setTrailTheme('cyan')}
+                    className={`px-2 py-0.5 rounded-lg transition-all cursor-pointer ${
+                      trailTheme === 'cyan' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Ciano
+                  </button>
+                  <button
+                    onClick={() => setTrailTheme('harmonic')}
+                    className={`px-2 py-0.5 rounded-lg transition-all cursor-pointer ${
+                      trailTheme === 'harmonic' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
+                    }`}
+                    title="Cores por Graus Harmônicos"
+                  >
+                    Graus
+                  </button>
+                </div>
+
+                <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 text-[9px] font-bold">
+                  {[120, 180, 240].map((spd) => (
+                    <button
+                      key={spd}
+                      onClick={() => setTrailSpeed(spd)}
+                      className={`px-1.5 py-0.5 rounded-lg transition-all cursor-pointer ${
+                        trailSpeed === spd ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+                      }`}
+                      title={`Velocidade ${spd} px/s`}
+                    >
+                      {spd === 120 ? '1x' : spd === 180 ? '1.5x' : '2x'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Deslocamento de Oitava (Transpose / Shift) */}
@@ -156,9 +240,25 @@ export const PianoKeyboard: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* Contêiner de Teclado SVG com scroll horizontal fluido */}
+      {/* Contêiner Unificado do Rastro Synthesia + Teclado SVG com scroll horizontal fluido */}
       <div className="w-full overflow-x-auto pb-4 no-scrollbar flex justify-center">
-        <div className="p-3 rounded-3xl glass-panel border border-white/10 shadow-2xl bg-[#090814]/90 inline-block">
+        <div className="p-3 rounded-3xl glass-panel border border-white/10 shadow-2xl bg-[#090814]/90 inline-block space-y-2">
+          {/* 1. Rastro Synthesia / Waterfall Canvas alinhado aos pixels das teclas */}
+          {isWaterfallActive && (
+            <PianoWaterfallCanvas
+              startOctave={startOctave}
+              octaveCount={octaveCount}
+              whiteKeyWidth={whiteKeyWidth}
+              blackKeyWidth={blackKeyWidth}
+              activeMidiNotes={combinedActiveNotes}
+              height={230}
+              theme={trailTheme}
+              speed={trailSpeed}
+              onKeyClick={handleKeyDown}
+            />
+          )}
+
+          {/* 2. Teclado Virtual SVG */}
           <svg
             width={svgWidth}
             height={whiteKeyHeight}
@@ -190,11 +290,24 @@ export const PianoKeyboard: React.FC<Props> = ({
                 const noteInfo = getNoteInfo(midi);
                 const highlight = getHighlight(midi);
                 const isMiddleC = (midi === 60);
+                const isPressed = combinedActiveNotes.includes(midi);
+
+                let keyFill = 'url(#whiteKeyGrad)';
+                if (isPressed) {
+                  keyFill = '#ffe4e6'; // Destaque aceso quando pressionada
+                } else if (highlight) {
+                  keyFill = getDegreeColor(highlight.degreeName);
+                }
 
                 return (
                   <g
                     key={`white-${midi}`}
-                    onClick={() => handleKeyPress(midi)}
+                    onPointerDown={(e) => {
+                      e.preventDefault();
+                      handleKeyDown(midi);
+                    }}
+                    onPointerUp={() => handleKeyUp(midi)}
+                    onPointerLeave={() => handleKeyUp(midi)}
                     className="cursor-pointer group"
                   >
                     {/* Tecla Branca Retangular */}
@@ -204,10 +317,10 @@ export const PianoKeyboard: React.FC<Props> = ({
                       width={whiteKeyWidth - 2}
                       height={whiteKeyHeight}
                       rx={6}
-                      fill={highlight ? getDegreeColor(highlight.degreeName) : 'url(#whiteKeyGrad)'}
-                      stroke={isMiddleC ? '#06b6d4' : '#8e94a0'}
-                      strokeWidth={isMiddleC ? 2 : 1}
-                      className="transition-all duration-150 group-active:brightness-90"
+                      fill={keyFill}
+                      stroke={isPressed ? '#f43f5e' : isMiddleC ? '#06b6d4' : '#8e94a0'}
+                      strokeWidth={isPressed ? 2.5 : isMiddleC ? 2 : 1}
+                      className="transition-all duration-100"
                     />
 
                     {/* Destaque visual no topo para o Dó Central (C4) */}
@@ -225,7 +338,7 @@ export const PianoKeyboard: React.FC<Props> = ({
                       x={x + whiteKeyWidth / 2}
                       y={whiteKeyHeight - 12}
                       textAnchor="middle"
-                      fill={highlight ? '#ffffff' : isMiddleC ? '#0284c7' : '#334155'}
+                      fill={isPressed ? '#e11d48' : highlight ? '#ffffff' : isMiddleC ? '#0284c7' : '#334155'}
                       fontSize={isCompact ? 9 : 11}
                       fontWeight="bold"
                       fontFamily="Outfit, sans-serif"
@@ -271,18 +384,28 @@ export const PianoKeyboard: React.FC<Props> = ({
               return accidentalOffsets.map((acc) => {
                 const midi = baseMidi + acc.semitones;
                 const whiteIndex = octIdx * 7 + acc.posAfterWhite;
-                // Centralizado na divisão entre duas teclas brancas
                 const x = (whiteIndex + 1) * whiteKeyWidth - (blackKeyWidth / 2);
                 const noteInfo = getNoteInfo(midi);
                 const highlight = getHighlight(midi);
+                const isPressed = combinedActiveNotes.includes(midi);
+
+                let keyFill = 'url(#blackKeyGrad)';
+                if (isPressed) {
+                  keyFill = '#f43f5e'; // Tecla preta brilha em coral neon quando tocada
+                } else if (highlight) {
+                  keyFill = getDegreeColor(highlight.degreeName);
+                }
 
                 return (
                   <g
                     key={`black-${midi}`}
-                    onClick={(e) => {
+                    onPointerDown={(e) => {
+                      e.preventDefault();
                       e.stopPropagation();
-                      handleKeyPress(midi);
+                      handleKeyDown(midi);
                     }}
+                    onPointerUp={() => handleKeyUp(midi)}
+                    onPointerLeave={() => handleKeyUp(midi)}
                     className="cursor-pointer group"
                   >
                     <rect
@@ -291,10 +414,10 @@ export const PianoKeyboard: React.FC<Props> = ({
                       width={blackKeyWidth}
                       height={blackKeyHeight}
                       rx={5}
-                      fill={highlight ? getDegreeColor(highlight.degreeName) : 'url(#blackKeyGrad)'}
-                      stroke="#0f172a"
-                      strokeWidth={1.5}
-                      className="transition-all duration-150 group-active:brightness-125"
+                      fill={keyFill}
+                      stroke={isPressed ? '#fda4af' : '#0f172a'}
+                      strokeWidth={isPressed ? 2 : 1.5}
+                      className="transition-all duration-100"
                     />
 
                     {/* Nome do sustenido/bemol na ponta */}
@@ -302,7 +425,7 @@ export const PianoKeyboard: React.FC<Props> = ({
                       x={x + blackKeyWidth / 2}
                       y={blackKeyHeight - 12}
                       textAnchor="middle"
-                      fill={highlight ? '#ffffff' : '#94a3b8'}
+                      fill={isPressed ? '#ffffff' : highlight ? '#ffffff' : '#94a3b8'}
                       fontSize={isCompact ? 7.5 : 9}
                       fontWeight="bold"
                       fontFamily="Outfit, sans-serif"

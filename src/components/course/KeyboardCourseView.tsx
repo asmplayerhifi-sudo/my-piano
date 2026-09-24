@@ -236,6 +236,7 @@ export const KeyboardCourseView: React.FC = () => {
                       startOctave={2}
                       octaveCount={3}
                       allowOctaveControls={true}
+                      activeExternalNotes={lastMidiEvent ? [lastMidiEvent.midi] : []}
                       onKeyPlay={(midi) => handleNoteInput(midi)}
                     />
                   </div>
@@ -265,6 +266,7 @@ export const KeyboardCourseView: React.FC = () => {
                     startOctave={2}
                     octaveCount={3}
                     allowOctaveControls={true}
+                    activeExternalNotes={lastMidiEvent ? [lastMidiEvent.midi] : []}
                     onKeyPlay={(midi) => handleNoteInput(midi)}
                   />
                 </div>

@@ -4,7 +4,6 @@ import type { RepertoireSong, SongGenre } from '../../core/repertoireData';
 import { ScrollingScoreCanvas } from './ScrollingScoreCanvas';
 import { PianoKeyboard } from '../piano/PianoKeyboard';
 import { MicrophonePitchBar } from '../audio/MicrophonePitchBar';
-import { soundEngine } from '../../core/soundEngine';
 import {
   Music,
   BookOpen,
@@ -48,7 +47,7 @@ export const RepertoireView: React.FC = () => {
     const speedMs = (60 / activeSong.recommendedBpm) * 1000;
     activeSong.scoreTrack.slice(0, 10).forEach((note, idx) => {
       window.setTimeout(() => {
-        soundEngine.playPianoNote(note.midi, 1.4);
+        handleNoteInput(note.midi);
         if (idx === Math.min(activeSong.scoreTrack.length - 1, 9)) {
           setIsPlayingDemo(false);
         }
@@ -319,6 +318,7 @@ export const RepertoireView: React.FC = () => {
                   startOctave={2}
                   octaveCount={3}
                   allowOctaveControls={true}
+                  activeExternalNotes={lastMidiEvent ? [lastMidiEvent.midi] : []}
                   onKeyPlay={(midi) => handleNoteInput(midi)}
                 />
               </div>
