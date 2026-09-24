@@ -6,6 +6,13 @@ import { Play, Pause, RotateCcw, Sparkles } from 'lucide-react';
 
 export type MidiInputNote = number | { midi: number; timestamp?: number } | null;
 
+export interface ChordSpan {
+  chordName: string;
+  startBeat: number;
+  duration: number;
+  measure: number;
+}
+
 interface Props {
   notes: ScoreNote[];
   bpm?: number;
@@ -80,7 +87,7 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
     const noteOffsets: number[] = [];
 
     if (!notes || notes.length === 0) {
-      return { noteOffsets, measureStartBeats, maxMeasure: 1, totalBeats: 4 };
+      return { noteOffsets, measureStartBeats, maxMeasure: 1, totalBeats: 4, chordSpans: [] as ChordSpan[] };
     }
 
     let maxMeasure = 1;
@@ -114,11 +121,70 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
       }
     }
 
+    // Identifica e agrupa ocupação no tempo dos acordes para a Pista de Acordes
+    const chordSpans: ChordSpan[] = [];
+    const rawChords: { chordName: string; startBeat: number; duration: number; measure: number }[] = [];
+
+    for (let i = 0; i < notes.length; i++) {
+      const note = notes[i];
+      if (note.chordName && note.chordName.trim()) {
+        const m = Math.max(1, note.measure || 1);
+        const b = (note.beat !== undefined ? Math.max(0, note.beat - 1) : 0);
+        const measureStart = measureStartBeats.get(m) ?? (m - 1) * beatsPerMeasure;
+        const startBeat = measureStart + b;
+        const dur = note.duration || 1;
+        rawChords.push({
+          chordName: note.chordName.trim(),
+          startBeat,
+          duration: dur,
+          measure: m,
+        });
+      }
+    }
+
+    // Ordena os acordes pelo tempo de início
+    rawChords.sort((a, b) => a.startBeat - b.startBeat);
+
+    // Agrupa acordes contíguos de mesmo nome
+    for (const rc of rawChords) {
+      if (chordSpans.length === 0) {
+        chordSpans.push({ ...rc });
+      } else {
+        const prev = chordSpans[chordSpans.length - 1];
+        if (prev.chordName === rc.chordName && rc.startBeat <= prev.startBeat + prev.duration + 0.05) {
+          prev.duration = Math.max(prev.duration, (rc.startBeat - prev.startBeat) + rc.duration);
+        } else if (rc.startBeat === prev.startBeat) {
+          prev.duration = Math.max(prev.duration, rc.duration);
+        } else {
+          chordSpans.push({ ...rc });
+        }
+      }
+    }
+
+    // Estende a ocupação no tempo até o próximo acorde ou o fim do compasso
+    for (let i = 0; i < chordSpans.length; i++) {
+      const curr = chordSpans[i];
+      const next = chordSpans[i + 1];
+      const measureEndBeat = curr.measure * beatsPerMeasure;
+
+      if (next && next.startBeat > curr.startBeat) {
+        const gap = next.startBeat - curr.startBeat;
+        if (gap <= beatsPerMeasure * 2) {
+          curr.duration = Math.max(curr.duration, gap);
+        }
+      } else {
+        if (measureEndBeat > curr.startBeat) {
+          curr.duration = Math.max(curr.duration, measureEndBeat - curr.startBeat);
+        }
+      }
+    }
+
     return {
       noteOffsets,
       measureStartBeats,
       maxMeasure,
       totalBeats: Math.max(maxMeasure * beatsPerMeasure, maxBeat),
+      chordSpans,
     };
   }, [notes, beatsPerMeasure]);
 
@@ -310,12 +376,18 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
   // =========================================================================
   // GEOMETRIA AMPLIADA DA PARTITURA: Alta Legibilidade e Conforto Visual
   // =========================================================================
-  const trebleLineStep = 14; // Espaçamento entre linhas da pauta (antes 10px -> agora 14px)
+  const trebleLineStep = 14; // Espaçamento entre linhas da pauta (14px)
   const trebleBaseY = 126;   // Linha 1 da Clave de Sol (E3 = Y=126, Linha 5 F4 = Y=70)
-  const middleCY = 190;      // Linha suplementar de Dó Central (C3 = MIDI 60)
-  const bassBaseY = 306;     // Linha 1 da Clave de Fá (G1 = Y=306)
-  const bassLineStep = 14;   // Espaçamento entre linhas da pauta de Fá
-  const bassTopY = 250;      // Linha 5 da Clave de Fá (A2 = Y=250)
+  const middleCY = trebleBaseY + trebleLineStep; // Y=140: Dó Central exatamente 1 linha (14px) abaixo da Linha 1 da Clave de Sol
+  const trebleNoteNameY = 168; // Linha estática contínua para nomes das notas na Clave de Sol
+  const trebleFingerY = 198;   // Linha estática contínua para dedilhado (MD) na Clave de Sol
+
+  const bassTopY = 248;      // Linha 5 da Clave de Fá (A2 = Y=248)
+  const bassLineStep = 14;   // Espaçamento entre linhas da pauta de Fá (14px)
+  const bassBaseY = 304;     // Linha 1 da Clave de Fá (G1 = Y=304: 248 + 4 * 14)
+  const bassNoteNameY = 338; // Linha estática contínua para nomes das notas na Clave de Fá
+  const bassFingerY = 368;   // Linha estática contínua para dedilhado (ME) na Clave de Fá
+
   const attackLineX = 145;   // Posição horizontal fixa da barra de ataque
 
   const getNoteY = (midi: number, clef: 'treble' | 'bass' = 'treble'): number => {
@@ -604,12 +676,13 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
       ctx.fillText('𝄞', 32, 122);
 
       // =======================================================================
-      // 3. LINHA GUIA & IDENTIFICAÇÃO DO DÓ CENTRAL (C3 = MIDI 60)
+      // 3. LINHA PONTILHADA DE DÓ CENTRAL NA CLAVE DE SOL (C3 = MIDI 60)
       // =======================================================================
+      // Espaçamento idêntico às demais linhas da pauta (14px abaixo da Linha 1)
       ctx.save();
-      ctx.strokeStyle = isTrad ? 'rgba(15, 23, 42, 0.22)' : 'rgba(56, 189, 248, 0.45)';
+      ctx.strokeStyle = isTrad ? 'rgba(15, 23, 42, 0.28)' : 'rgba(56, 189, 248, 0.45)';
       ctx.lineWidth = 1.2;
-      ctx.setLineDash([6, 6]);
+      ctx.setLineDash([5, 5]);
       ctx.beginPath();
       ctx.moveTo(24, middleCY);
       ctx.lineTo(width - 24, middleCY);
@@ -620,20 +693,67 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
       ctx.fillStyle = isTrad ? '#f1f5f9' : 'rgba(14, 165, 233, 0.18)';
       ctx.strokeStyle = isTrad ? '#94a3b8' : 'rgba(56, 189, 248, 0.55)';
       ctx.lineWidth = 1;
-      ctx.beginPath();
-      if (ctx.roundRect) {
-        ctx.roundRect(96, middleCY - 10, 96, 20, 5);
-      } else {
-        ctx.rect(96, middleCY - 10, 96, 20);
-      }
+      drawRoundedPill(ctx, 24, middleCY - 9, 94, 18, 4);
       ctx.fill();
       ctx.stroke();
 
       ctx.fillStyle = isTrad ? '#0f172a' : '#38bdf8';
-      ctx.font = 'bold 9.5px JetBrains Mono, monospace';
+      ctx.font = 'bold 9px JetBrains Mono, monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('DÓ CENTRAL (C3)', 144, middleCY + 3.5);
+      ctx.textBaseline = 'middle';
+      ctx.fillText('DÓ CENTRAL (C3)', 71, middleCY);
       ctx.restore();
+
+      // =======================================================================
+      // 3.1 LINHAS ESTÁTICAS DE NOTA E DEDILHADO DA CLAVE DE SOL (ABAIXO DA PAUTA)
+      // =======================================================================
+      if (displayOptions.showNoteNames) {
+        ctx.save();
+        ctx.strokeStyle = isTrad ? '#e2e8f0' : 'rgba(99, 102, 241, 0.22)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(24, trebleNoteNameY);
+        ctx.lineTo(width - 24, trebleNoteNameY);
+        ctx.stroke();
+
+        ctx.fillStyle = isTrad ? '#f8fafc' : 'rgba(99, 102, 241, 0.15)';
+        ctx.strokeStyle = isTrad ? '#cbd5e1' : 'rgba(99, 102, 241, 0.4)';
+        drawRoundedPill(ctx, 24, trebleNoteNameY - 8, 48, 16, 3.5);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = isTrad ? '#475569' : '#a5b4fc';
+        ctx.font = 'bold 8.5px JetBrains Mono, monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('NOTA', 48, trebleNoteNameY);
+        ctx.restore();
+      }
+
+      if (displayOptions.showFingering) {
+        ctx.save();
+        ctx.strokeStyle = isTrad ? '#e2e8f0' : 'rgba(168, 85, 247, 0.2)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(24, trebleFingerY);
+        ctx.lineTo(width - 24, trebleFingerY);
+        ctx.stroke();
+
+        ctx.fillStyle = isTrad ? '#f8fafc' : 'rgba(168, 85, 247, 0.15)';
+        ctx.strokeStyle = isTrad ? '#cbd5e1' : 'rgba(168, 85, 247, 0.4)';
+        drawRoundedPill(ctx, 24, trebleFingerY - 8, 62, 16, 3.5);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = isTrad ? '#475569' : '#d8b4fe';
+        ctx.font = 'bold 8px JetBrains Mono, monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('DEDO (MD)', 55, trebleFingerY);
+        ctx.restore();
+      }
 
       // =======================================================================
       // 4. PENTAGRAMA DE FÁ (Bass Staff - 5 Linhas: G1 até A2)
@@ -651,7 +771,58 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
       // Clave de Fá Impressa (Tamanho Clássico Ampliado)
       ctx.fillStyle = isTrad ? '#09090b' : '#a855f7';
       ctx.font = 'bold 42px serif';
-      ctx.fillText('𝄢', 32, 282);
+      ctx.fillText('𝄢', 32, 280);
+
+      // =======================================================================
+      // 4.1 LINHAS ESTÁTICAS DE NOTA E DEDILHADO DA CLAVE DE FÁ (ABAIXO DA PAUTA)
+      // =======================================================================
+      if (displayOptions.showNoteNames) {
+        ctx.save();
+        ctx.strokeStyle = isTrad ? '#e2e8f0' : 'rgba(99, 102, 241, 0.22)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(24, bassNoteNameY);
+        ctx.lineTo(width - 24, bassNoteNameY);
+        ctx.stroke();
+
+        ctx.fillStyle = isTrad ? '#f8fafc' : 'rgba(99, 102, 241, 0.15)';
+        ctx.strokeStyle = isTrad ? '#cbd5e1' : 'rgba(99, 102, 241, 0.4)';
+        drawRoundedPill(ctx, 24, bassNoteNameY - 8, 48, 16, 3.5);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = isTrad ? '#475569' : '#a5b4fc';
+        ctx.font = 'bold 8.5px JetBrains Mono, monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('NOTA', 48, bassNoteNameY);
+        ctx.restore();
+      }
+
+      if (displayOptions.showFingering) {
+        ctx.save();
+        ctx.strokeStyle = isTrad ? '#e2e8f0' : 'rgba(168, 85, 247, 0.2)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(24, bassFingerY);
+        ctx.lineTo(width - 24, bassFingerY);
+        ctx.stroke();
+
+        ctx.fillStyle = isTrad ? '#f8fafc' : 'rgba(168, 85, 247, 0.15)';
+        ctx.strokeStyle = isTrad ? '#cbd5e1' : 'rgba(168, 85, 247, 0.4)';
+        drawRoundedPill(ctx, 24, bassFingerY - 8, 62, 16, 3.5);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = isTrad ? '#475569' : '#d8b4fe';
+        ctx.font = 'bold 8px JetBrains Mono, monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('DEDO (ME)', 55, bassFingerY);
+        ctx.restore();
+      }
 
       // =======================================================================
       // 5. FÓRMULA DE COMPASSO (Time Signature: 4/4, 3/4)
@@ -696,31 +867,33 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
                   ctx.fillStyle = '#eff6ff';
                   ctx.strokeStyle = '#3b82f6';
                   ctx.lineWidth = 1.2;
-                  drawRoundedPill(ctx, rulerLeft + 2, 6, rulerWidth - 4, 20, 4);
+                  drawRoundedPill(ctx, rulerLeft + 2, 4, rulerWidth - 4, 15, 3.5);
                   ctx.fill();
                   ctx.stroke();
 
                   ctx.fillStyle = '#2563eb';
                   ctx.beginPath();
-                  ctx.arc(rulerLeft + 12, 16, 3.5, 0, Math.PI * 2);
+                  ctx.arc(rulerLeft + 10, 11.5, 3, 0, Math.PI * 2);
                   ctx.fill();
 
                   ctx.fillStyle = '#1e3a8a';
-                  ctx.font = 'bold 10px JetBrains Mono, monospace';
+                  ctx.font = 'bold 9.5px JetBrains Mono, monospace';
                   ctx.textAlign = 'center';
-                  ctx.fillText(`COMPASSO ${m} • EM ANDAMENTO`, (rulerLeft + rulerRight) / 2, 19.5);
+                  ctx.textBaseline = 'middle';
+                  ctx.fillText(`COMPASSO ${m} • EM ANDAMENTO`, (rulerLeft + rulerRight) / 2, 12);
                 } else {
                   ctx.fillStyle = '#f8fafc';
                   ctx.strokeStyle = '#cbd5e1';
                   ctx.lineWidth = 1;
-                  drawRoundedPill(ctx, rulerLeft + 2, 6, rulerWidth - 4, 20, 4);
+                  drawRoundedPill(ctx, rulerLeft + 2, 4, rulerWidth - 4, 15, 3.5);
                   ctx.fill();
                   ctx.stroke();
 
                   ctx.fillStyle = '#475569';
-                  ctx.font = 'bold 9.5px JetBrains Mono, monospace';
+                  ctx.font = 'bold 9px JetBrains Mono, monospace';
                   ctx.textAlign = 'center';
-                  ctx.fillText(`COMPASSO ${m}`, (rulerLeft + rulerRight) / 2, 19.5);
+                  ctx.textBaseline = 'middle';
+                  ctx.fillText(`COMPASSO ${m}`, (rulerLeft + rulerRight) / 2, 12);
                 }
               } else {
                 // Fundo Noturno
@@ -728,31 +901,33 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
                   ctx.fillStyle = 'rgba(99, 102, 241, 0.16)';
                   ctx.strokeStyle = 'rgba(129, 140, 248, 0.6)';
                   ctx.lineWidth = 1.2;
-                  drawRoundedPill(ctx, rulerLeft + 2, 6, rulerWidth - 4, 18, 4);
+                  drawRoundedPill(ctx, rulerLeft + 2, 4, rulerWidth - 4, 15, 3.5);
                   ctx.fill();
                   ctx.stroke();
 
                   ctx.fillStyle = '#22d3ee';
                   ctx.beginPath();
-                  ctx.arc(rulerLeft + 12, 15, 3, 0, Math.PI * 2);
+                  ctx.arc(rulerLeft + 10, 11.5, 2.5, 0, Math.PI * 2);
                   ctx.fill();
 
                   ctx.fillStyle = '#e0e7ff';
-                  ctx.font = 'bold 9.5px JetBrains Mono, monospace';
+                  ctx.font = 'bold 9px JetBrains Mono, monospace';
                   ctx.textAlign = 'center';
-                  ctx.fillText(`COMPASSO ${m} • EM ANDAMENTO`, (rulerLeft + rulerRight) / 2, 18.5);
+                  ctx.textBaseline = 'middle';
+                  ctx.fillText(`COMPASSO ${m} • EM ANDAMENTO`, (rulerLeft + rulerRight) / 2, 12);
                 } else {
                   ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
                   ctx.strokeStyle = 'rgba(148, 163, 184, 0.16)';
                   ctx.lineWidth = 1;
-                  drawRoundedPill(ctx, rulerLeft + 2, 6, rulerWidth - 4, 18, 4);
+                  drawRoundedPill(ctx, rulerLeft + 2, 4, rulerWidth - 4, 15, 3.5);
                   ctx.fill();
                   ctx.stroke();
 
                   ctx.fillStyle = 'rgba(148, 163, 184, 0.7)';
-                  ctx.font = 'bold 9px JetBrains Mono, monospace';
+                  ctx.font = 'bold 8.5px JetBrains Mono, monospace';
                   ctx.textAlign = 'center';
-                  ctx.fillText(`COMPASSO ${m}`, (rulerLeft + rulerRight) / 2, 18.5);
+                  ctx.textBaseline = 'middle';
+                  ctx.fillText(`COMPASSO ${m}`, (rulerLeft + rulerRight) / 2, 12);
                 }
               }
               ctx.restore();
@@ -769,14 +944,15 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
                 ctx.strokeStyle = isTrad ? '#cbd5e1' : 'rgba(56, 189, 248, 0.18)';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
-                ctx.moveTo(subBeatX, 46);
+                ctx.moveTo(subBeatX, 36);
                 ctx.lineTo(subBeatX, bassBaseY + 14);
                 ctx.stroke();
 
                 ctx.fillStyle = isTrad ? '#2563eb' : 'rgba(56, 189, 248, 0.75)';
-                ctx.font = 'bold 9px JetBrains Mono, monospace';
+                ctx.font = 'bold 8.5px JetBrains Mono, monospace';
                 ctx.textAlign = 'center';
-                ctx.fillText('e', subBeatX, 42);
+                ctx.textBaseline = 'middle';
+                ctx.fillText('e', subBeatX, 29);
                 ctx.restore();
               }
             }
@@ -793,14 +969,15 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
                     ctx.fillStyle = isTrad ? '#fef3c7' : 'rgba(245, 158, 11, 0.22)';
                     ctx.strokeStyle = isTrad ? '#f59e0b' : 'rgba(245, 158, 11, 0.65)';
                     ctx.lineWidth = 1;
-                    drawRoundedPill(ctx, beatX + 4, 30, 56, 16, 4);
+                    drawRoundedPill(ctx, beatX + 2, 21, 52, 13, 3);
                     ctx.fill();
                     ctx.stroke();
 
                     ctx.fillStyle = isTrad ? '#92400e' : '#fbbf24';
-                    ctx.font = 'bold 9px JetBrains Mono, monospace';
+                    ctx.font = 'bold 8.5px JetBrains Mono, monospace';
                     ctx.textAlign = 'center';
-                    ctx.fillText('1 [FORTE]', beatX + 32, 41.5);
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('1 [FORTE]', beatX + 28, 28);
                     ctx.restore();
                   }
                 } else {
@@ -809,7 +986,7 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
                   ctx.strokeStyle = isTrad ? '#cbd5e1' : 'rgba(255, 255, 255, 0.18)';
                   ctx.lineWidth = 1.2;
                   ctx.beginPath();
-                  ctx.moveTo(beatX, 48);
+                  ctx.moveTo(beatX, 36);
                   ctx.lineTo(beatX, bassBaseY + 14);
                   ctx.stroke();
                   ctx.restore();
@@ -819,14 +996,16 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
                     const isMediumStrong = (b === 2 && beatsPerMeasure === 4);
                     if (isMediumStrong) {
                       ctx.fillStyle = isTrad ? '#1e40af' : '#a5b4fc';
-                      ctx.font = 'bold 9px JetBrains Mono, monospace';
+                      ctx.font = 'bold 8.5px JetBrains Mono, monospace';
                       ctx.textAlign = 'center';
-                      ctx.fillText('3 [mF]', beatX, 42);
+                      ctx.textBaseline = 'middle';
+                      ctx.fillText('3 [mF]', beatX, 28);
                     } else {
                       ctx.fillStyle = isTrad ? '#475569' : 'rgba(203, 213, 225, 0.7)';
-                      ctx.font = 'bold 9.5px JetBrains Mono, monospace';
+                      ctx.font = 'bold 9px JetBrains Mono, monospace';
                       ctx.textAlign = 'center';
-                      ctx.fillText((b + 1).toString(), beatX, 42);
+                      ctx.textBaseline = 'middle';
+                      ctx.fillText((b + 1).toString(), beatX, 28);
                     }
                     ctx.restore();
                   }
@@ -843,14 +1022,14 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
               ctx.strokeStyle = isTrad ? '#09090b' : '#94a3b8';
               ctx.lineWidth = 2;
               ctx.beginPath();
-              ctx.moveTo(barX - 7, 46);
+              ctx.moveTo(barX - 7, 36);
               ctx.lineTo(barX - 7, bassBaseY + 14);
               ctx.stroke();
 
               ctx.lineWidth = 5;
               ctx.strokeStyle = isTrad ? '#09090b' : '#cbd5e1';
               ctx.beginPath();
-              ctx.moveTo(barX, 46);
+              ctx.moveTo(barX, 36);
               ctx.lineTo(barX, bassBaseY + 14);
               ctx.stroke();
 
@@ -858,19 +1037,20 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
               ctx.fillStyle = isTrad ? '#fee2e2' : 'rgba(244, 63, 94, 0.2)';
               ctx.strokeStyle = isTrad ? '#ef4444' : 'rgba(244, 63, 94, 0.6)';
               ctx.lineWidth = 1;
-              drawRoundedPill(ctx, barX - 16, 28, 32, 16, 4);
+              drawRoundedPill(ctx, barX - 16, 4, 32, 14, 3.5);
               ctx.fill();
               ctx.stroke();
               ctx.fillStyle = isTrad ? '#b91c1c' : '#fda4af';
-              ctx.font = 'bold 9px JetBrains Mono, monospace';
+              ctx.font = 'bold 8.5px JetBrains Mono, monospace';
               ctx.textAlign = 'center';
-              ctx.fillText('FIM', barX, 39.5);
+              ctx.textBaseline = 'middle';
+              ctx.fillText('FIM', barX, 11.5);
             } else {
               // Barra de Compasso Vertical Padrão
               ctx.strokeStyle = isCurrentActiveMeasure ? (isTrad ? '#2563eb' : '#818cf8') : (isTrad ? '#475569' : '#64748b');
               ctx.lineWidth = isCurrentActiveMeasure ? 2.4 : 1.6;
               ctx.beginPath();
-              ctx.moveTo(barX, 46);
+              ctx.moveTo(barX, 36);
               ctx.lineTo(barX, bassBaseY + 14);
               ctx.stroke();
 
@@ -879,15 +1059,126 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
               ctx.fillStyle = isCurrentActiveMeasure ? (isTrad ? '#dbeafe' : 'rgba(99, 102, 241, 0.35)') : (isTrad ? '#f1f5f9' : 'rgba(30, 41, 59, 0.85)');
               ctx.strokeStyle = isCurrentActiveMeasure ? (isTrad ? '#3b82f6' : '#818cf8') : (isTrad ? '#94a3b8' : '#475569');
               ctx.lineWidth = 1;
-              drawRoundedPill(ctx, barX - badgeW / 2, 26, badgeW, 14, 3.5);
+              drawRoundedPill(ctx, barX - badgeW / 2, 4, badgeW, 14, 3.5);
               ctx.fill();
               ctx.stroke();
 
               ctx.fillStyle = isCurrentActiveMeasure ? (isTrad ? '#1e40af' : '#e0e7ff') : (isTrad ? '#334155' : '#94a3b8');
-              ctx.font = 'bold 8.5px JetBrains Mono, monospace';
+              ctx.font = 'bold 8px JetBrains Mono, monospace';
               ctx.textAlign = 'center';
-              ctx.fillText(`c.${m}`, barX, 36.5);
+              ctx.textBaseline = 'middle';
+              ctx.fillText(`c.${m}`, barX, 11.5);
             }
+            ctx.restore();
+          }
+        });
+      }
+
+      // =======================================================================
+      // 6.1 PISTA DE ACORDES COM OCUPAÇÃO NO TEMPO (ACIMA DAS PAUTAS)
+      // =======================================================================
+      if (displayOptions.showChords && timeline.chordSpans && timeline.chordSpans.length > 0) {
+        const currentBeat = scrollOffsetRef.current / pixelsPerBeat;
+        const chordY = 40;
+        const chordH = 22;
+
+        timeline.chordSpans.forEach((chord) => {
+          const chordX = attackLineX + (chord.startBeat * pixelsPerBeat) - scrollOffsetRef.current;
+          const chordW = Math.max(38, (chord.duration * pixelsPerBeat) - 6);
+
+          if (chordX + chordW > 10 && chordX < width - 10) {
+            ctx.save();
+            const isActive = currentBeat >= chord.startBeat && currentBeat < (chord.startBeat + chord.duration);
+
+            // 1. Fundo do Contêiner da Tag de Acorde (Ocupação no Tempo)
+            if (isTrad) {
+              if (isActive) {
+                ctx.fillStyle = '#fef3c7';
+                ctx.strokeStyle = '#d97706';
+                ctx.lineWidth = 1.5;
+              } else {
+                ctx.fillStyle = '#ffffff';
+                ctx.strokeStyle = '#cbd5e1';
+                ctx.lineWidth = 1;
+              }
+            } else {
+              if (isActive) {
+                ctx.fillStyle = 'rgba(245, 158, 11, 0.22)';
+                ctx.strokeStyle = 'rgba(251, 191, 36, 0.85)';
+                ctx.lineWidth = 1.4;
+                ctx.shadowColor = 'rgba(245, 158, 11, 0.45)';
+                ctx.shadowBlur = 8;
+              } else {
+                ctx.fillStyle = 'rgba(30, 41, 59, 0.7)';
+                ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
+                ctx.lineWidth = 1;
+              }
+            }
+
+            drawRoundedPill(ctx, chordX, chordY, chordW, chordH, 5);
+            ctx.fill();
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // 2. Trilho de Progresso Rítmico de Ocupação no Tempo
+            if (isActive) {
+              const elapsedBeats = Math.max(0, Math.min(chord.duration, currentBeat - chord.startBeat));
+              const progressRatio = elapsedBeats / chord.duration;
+              const progressW = Math.max(4, (chordW - 4) * progressRatio);
+
+              ctx.fillStyle = isTrad ? 'rgba(217, 119, 6, 0.22)' : 'rgba(251, 191, 36, 0.28)';
+              drawRoundedPill(ctx, chordX + 2, chordY + 2, progressW, chordH - 4, 3.5);
+              ctx.fill();
+            }
+
+            // 3. Badge com a Letra/Cifra do Acorde (Na esquerda da tag)
+            const badgeW = Math.min(chordW - 6, Math.max(28, ctx.measureText(chord.chordName).width + 14));
+            if (isTrad) {
+              ctx.fillStyle = isActive ? '#d97706' : '#f1f5f9';
+              ctx.strokeStyle = isActive ? '#b45309' : '#94a3b8';
+            } else {
+              ctx.fillStyle = isActive ? '#f59e0b' : 'rgba(255, 255, 255, 0.08)';
+              ctx.strokeStyle = isActive ? '#fbbf24' : 'rgba(148, 163, 184, 0.4)';
+            }
+            ctx.lineWidth = 1;
+            drawRoundedPill(ctx, chordX + 2, chordY + 2, badgeW, chordH - 4, 4);
+            ctx.fill();
+            ctx.stroke();
+
+            // Letra do Acorde
+            ctx.fillStyle = isTrad ? (isActive ? '#ffffff' : '#92400e') : (isActive ? '#090814' : '#fbbf24');
+            ctx.font = 'bold 12px Outfit, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(chord.chordName, chordX + 2 + badgeW / 2, chordY + chordH / 2);
+
+            // 4. Indicador de Ocupação no Tempo (Duração em tempos e subdivisões)
+            const remainingW = chordW - badgeW - 8;
+            if (remainingW > 24) {
+              const beatsCount = Math.round(chord.duration);
+              const durationLabel = beatsCount > 1 ? `${beatsCount} tempos` : `${chord.duration}t`;
+
+              ctx.fillStyle = isTrad ? (isActive ? '#78350f' : '#64748b') : (isActive ? '#fde68a' : '#94a3b8');
+              ctx.font = 'bold 8.5px JetBrains Mono, monospace';
+              ctx.textAlign = 'right';
+              ctx.textBaseline = 'middle';
+              ctx.fillText(durationLabel, chordX + chordW - 6, chordY + chordH / 2);
+
+              // Ticks/marcadores rítmicos intermediários se houver espaço
+              if (remainingW > 54 && beatsCount > 1) {
+                const tickStartX = chordX + 4 + badgeW + 6;
+                const tickEndX = chordX + chordW - 52;
+                const tickStep = (tickEndX - tickStartX) / Math.max(1, beatsCount - 1);
+                ctx.fillStyle = isTrad ? 'rgba(217, 119, 6, 0.4)' : 'rgba(251, 191, 36, 0.4)';
+                for (let b = 0; b < beatsCount; b++) {
+                  const tx = tickStartX + b * tickStep;
+                  ctx.beginPath();
+                  ctx.arc(tx, chordY + chordH / 2, 1.8, 0, Math.PI * 2);
+                  ctx.fill();
+                }
+              }
+            }
+
             ctx.restore();
           }
         });
@@ -1159,51 +1450,85 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
             ctx.fill();
           }
 
-          // F. Destaque Especial e Nome da Nota
+          // F. Nome da Nota na Linha Estática (Clave de Sol: trebleNoteNameY | Clave de Fá: bassNoteNameY)
           const isBass = note.clef === 'bass' || (!note.clef && note.midi < 60);
+          const targetNoteLineY = isBass ? bassNoteNameY : trebleNoteNameY;
+          const targetFingerLineY = isBass ? bassFingerY : trebleFingerY;
+
           if (displayOptions.showNoteNames) {
-            ctx.fillStyle = isCurrentTarget
-              ? (isTrad ? '#2563eb' : '#fbbf24')
-              : (isMiddleC ? (isTrad ? '#0284c7' : '#38bdf8') : (isTrad ? '#0f172a' : '#94a3b8'));
-            ctx.font = isMiddleC
-              ? 'bold 12px Outfit, sans-serif'
-              : 'bold 11.5px Outfit, sans-serif';
-            ctx.textAlign = 'center';
+            ctx.save();
             const noteInfo = getNoteInfo(note.midi);
             const dynamicName = `${noteInfo.name}${noteInfo.octave}`;
             const labelText = isMiddleC ? `${dynamicName} (Dó Central)` : dynamicName;
-            const nameY = isMiddleC
-              ? middleCY + 22
-              : isBass
-              ? Math.max(bassBaseY + 18, noteY + 20)
-              : Math.max(trebleBaseY + 18, noteY + 20);
-            ctx.fillText(labelText, noteX, nameY);
+
+            ctx.font = isMiddleC ? 'bold 9.5px JetBrains Mono, monospace' : 'bold 10px JetBrains Mono, monospace';
+            const textWidth = ctx.measureText(labelText).width;
+            const pillW = Math.max(34, textWidth + 14);
+            const pillH = 18;
+
+            if (isTrad) {
+              if (isCurrentTarget) {
+                ctx.fillStyle = '#dbeafe';
+                ctx.strokeStyle = '#2563eb';
+                ctx.lineWidth = 1.2;
+              } else if (isMiddleC) {
+                ctx.fillStyle = '#e0f2fe';
+                ctx.strokeStyle = '#0284c7';
+                ctx.lineWidth = 1;
+              } else {
+                ctx.fillStyle = '#ffffff';
+                ctx.strokeStyle = '#cbd5e1';
+                ctx.lineWidth = 1;
+              }
+            } else {
+              if (isCurrentTarget) {
+                ctx.fillStyle = 'rgba(56, 189, 248, 0.28)';
+                ctx.strokeStyle = '#38bdf8';
+                ctx.lineWidth = 1.2;
+              } else if (isMiddleC) {
+                ctx.fillStyle = 'rgba(14, 165, 233, 0.25)';
+                ctx.strokeStyle = '#38bdf8';
+                ctx.lineWidth = 1;
+              } else {
+                ctx.fillStyle = 'rgba(30, 41, 59, 0.75)';
+                ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
+                ctx.lineWidth = 1;
+              }
+            }
+
+            drawRoundedPill(ctx, noteX - pillW / 2, targetNoteLineY - pillH / 2, pillW, pillH, 4);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = isTrad
+              ? (isCurrentTarget ? '#1d4ed8' : (isMiddleC ? '#0369a1' : '#0f172a'))
+              : (isCurrentTarget ? '#38bdf8' : (isMiddleC ? '#38bdf8' : '#e2e8f0'));
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(labelText, noteX, targetNoteLineY);
+            ctx.restore();
           }
 
-          // G. Apontamento de Dedo na Partitura (MD / ME / Violão) - ABAIXO DA PAUTA
+          // G. Apontamento de Dedo na Linha Estática (Clave de Sol: trebleFingerY | Clave de Fá: bassFingerY)
           if (displayOptions.showFingering) {
             const fingering = getScoreNoteFingering(note, instrument);
             if (fingering) {
-              const badgeY = isMiddleC
-                ? middleCY + 34
-                : isBass
-                ? Math.max(bassBaseY + 36, noteY + 34)
-                : Math.max(trebleBaseY + 36, noteY + 34);
-              const badgeW = 50;
+              const badgeW = 52;
               const badgeH = 19;
               const cx = noteX;
+              const badgeY = targetFingerLineY - badgeH / 2;
 
               ctx.save();
               ctx.fillStyle = fingering.color;
               ctx.beginPath();
-              ctx.moveTo(cx - 5, badgeY);
-              ctx.lineTo(cx + 5, badgeY);
-              ctx.lineTo(cx, badgeY - 6);
+              ctx.moveTo(cx - 4, badgeY);
+              ctx.lineTo(cx + 4, badgeY);
+              ctx.lineTo(cx, badgeY - 4);
               ctx.closePath();
               ctx.fill();
 
               ctx.shadowColor = isTrad ? 'rgba(0,0,0,0.12)' : fingering.color;
-              ctx.shadowBlur = isTrad ? 4 : 6;
+              ctx.shadowBlur = isTrad ? 3 : 6;
               ctx.fillStyle = fingering.color;
               drawRoundedPill(ctx, cx - badgeW / 2, badgeY, badgeW, badgeH, 4.5);
               ctx.fill();
@@ -1214,19 +1539,12 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
               ctx.stroke();
 
               ctx.fillStyle = '#ffffff';
-              ctx.font = 'bold 10px JetBrains Mono, monospace';
+              ctx.font = 'bold 9.5px JetBrains Mono, monospace';
               ctx.textAlign = 'center';
               ctx.textBaseline = 'middle';
-              ctx.fillText(`👆 ${fingering.label}`, cx, badgeY + badgeH / 2);
+              ctx.fillText(`👆 ${fingering.label}`, cx, targetFingerLineY);
               ctx.restore();
             }
-          }
-
-          // H. Cifras de Acordes
-          if (displayOptions.showChords && note.chordName) {
-            ctx.fillStyle = isTrad ? '#b45309' : '#f59e0b';
-            ctx.font = 'bold 16px Outfit, sans-serif';
-            ctx.fillText(note.chordName, noteX, 44);
           }
 
           ctx.restore();
@@ -1266,9 +1584,13 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
     trebleBaseY,
     trebleLineStep,
     middleCY,
+    trebleNoteNameY,
+    trebleFingerY,
     bassBaseY,
     bassLineStep,
     bassTopY,
+    bassNoteNameY,
+    bassFingerY,
     attackLineX,
   ]);
 
