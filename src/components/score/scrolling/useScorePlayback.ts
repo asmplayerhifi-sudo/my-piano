@@ -65,11 +65,35 @@ export function useScorePlayback({
   const playedBeatsRef = useRef<Set<number>>(new Set());
   const evaluateStrikeUseCase = useRef(new EvaluateRhythmStrikeUseCase()).current;
 
-  // Notifica o componente pai sobre a nota alvo atual da partitura
+  // Refs para manter callbacks estáveis e blindados contra loops infinitos de renderização (React Error #185)
+  const onTargetNoteChangeRef = useRef(onTargetNoteChange);
+  onTargetNoteChangeRef.current = onTargetNoteChange;
+
+  const onNoteHitRef = useRef(onNoteHit);
+  onNoteHitRef.current = onNoteHit;
+
+  const onNoteErrorRef = useRef(onNoteError);
+  onNoteErrorRef.current = onNoteError;
+
+  const onLessonCompleteRef = useRef(onLessonComplete);
+  onLessonCompleteRef.current = onLessonComplete;
+
+  const onPlayPauseToggleRef = useRef(onPlayPauseToggle);
+  onPlayPauseToggleRef.current = onPlayPauseToggle;
+
+  const onTempoChangeRef = useRef(onTempoChange);
+  onTempoChangeRef.current = onTempoChange;
+
+  // Notifica o componente pai sobre a nota alvo atual da partitura APENAS quando o alvo realmente mudar
+  const lastTargetMidiRef = useRef<number | null | undefined>(undefined);
   useEffect(() => {
     const target = notes[currentIndex] || null;
-    onTargetNoteChange?.(target, currentIndex);
-  }, [currentIndex, notes, onTargetNoteChange]);
+    const targetMidi = target ? target.midi : null;
+    if (lastTargetMidiRef.current !== targetMidi) {
+      lastTargetMidiRef.current = targetMidi;
+      onTargetNoteChangeRef.current?.(target, currentIndex);
+    }
+  }, [currentIndex, notes]);
 
   // Limpa o estado visual de erro após 1.4s de inatividade
   useEffect(() => {
@@ -83,19 +107,20 @@ export function useScorePlayback({
   const handlePlayToggle = () => {
     const next = !isPlaying;
     setInternalIsPlaying(next);
-    onPlayPauseToggle?.(next);
+    onPlayPauseToggleRef.current?.(next);
   };
 
   const handleTempoChange = (val: number) => {
     const clamped = Math.max(30, Math.min(220, val));
     setTempo(clamped);
-    onTempoChange?.(clamped);
+    onTempoChangeRef.current?.(clamped);
   };
 
   const handleRestart = () => {
     scrollOffsetRef.current = 0;
     setCurrentIndex(0);
     setLastError(null);
+    lastTargetMidiRef.current = undefined;
     playedNotesRef.current.clear();
     playedBeatsRef.current.clear();
     isPausedWaitingRef.current = false;
@@ -121,14 +146,14 @@ export function useScorePlayback({
       };
       setFeedback({ text: `${evaluation.grade}! (±${Math.round(Math.abs(diffMs))}ms)`, color: colorMap[evaluation.grade] });
       setScore(s => s + evaluation.scorePoints);
-      onNoteHit?.(note, diffMs);
+      onNoteHitRef.current?.(note, diffMs);
     }
 
     setLastError(null);
     isPausedWaitingRef.current = false;
     setCurrentIndex(noteIndex + 1);
-    if (noteIndex + 1 >= notes.length) onLessonComplete?.();
-  }, [notes, isDemoMode, tempo, toleranceMs, evaluateStrikeUseCase, onNoteHit, onLessonComplete]);
+    if (noteIndex + 1 >= notes.length) onLessonCompleteRef.current?.();
+  }, [notes, isDemoMode, tempo, toleranceMs, evaluateStrikeUseCase]);
 
   useEffect(() => {
     if (currentNoteIndex !== undefined) setCurrentIndex(currentNoteIndex);
@@ -160,9 +185,9 @@ export function useScorePlayback({
         text: `✕ NOTA ERRADA: Tocou ${playedInfo.name}${playedInfo.octave} (Esperada: ${targetInfo.name}${targetInfo.octave})`,
         color: 'text-rose-400',
       });
-      onNoteError?.(err);
+      onNoteErrorRef.current?.(err);
     }
-  }, [currentMidiPressed, currentIndex, notes, timeline, tempo, isDemoMode, processStrike, pixelsPerBeat, onNoteError]);
+  }, [currentMidiPressed, currentIndex, notes, timeline, tempo, isDemoMode, processStrike, pixelsPerBeat]);
 
   return {
     isPlaying,

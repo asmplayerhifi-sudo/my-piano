@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { KEYBOARD_COURSE_MODULES } from '../../core/coursesData';
 import type { CourseLesson, CourseModule, ScoreNote } from '../../core/coursesData';
 import { getNoteInfo } from '../../core/musicTheory';
@@ -91,7 +91,7 @@ export const KeyboardCourseView: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isFullscreenLesson, isFullscreenTrail]);
 
-  const handleNoteInput = (midi: number) => {
+  const handleNoteInput = useCallback((midi: number) => {
     setLastMidiEvent({ midi, timestamp: performance.now() });
     if (targetScoreNote) {
       if (targetScoreNote.midi === midi) {
@@ -103,7 +103,26 @@ export const KeyboardCourseView: React.FC = () => {
         setTimeout(() => setErrorMidiNotes([]), 1400);
       }
     }
-  };
+  }, [targetScoreNote]);
+
+  const handleTargetNoteChange = useCallback((note: ScoreNote | null) => {
+    setTargetScoreNote(prev => {
+      if (prev === note) return prev;
+      if (prev?.midi === note?.midi && prev?.duration === note?.duration) return prev;
+      return note;
+    });
+  }, []);
+
+  const handleNoteHit = useCallback((note: ScoreNote) => {
+    setCorrectMidiNotes([note.midi]);
+    setErrorMidiNotes([]);
+    setTimeout(() => setCorrectMidiNotes([]), 600);
+  }, []);
+
+  const handleNoteError = useCallback((err: { playedMidi: number }) => {
+    setErrorMidiNotes([err.playedMidi]);
+    setTimeout(() => setErrorMidiNotes([]), 1400);
+  }, []);
 
   // Teclas ativas com erro (vermelho vivo no teclado virtual e partitura)
   const activeErrors = useMemo(() => {
@@ -129,11 +148,12 @@ export const KeyboardCourseView: React.FC = () => {
     setPracticeTab('all');
   };
 
-  const handleLessonComplete = (lessonId: string) => {
-    if (!completedLessonIds.includes(lessonId)) {
-      setCompletedLessonIds(prev => [...prev, lessonId]);
-    }
-  };
+  const handleLessonComplete = useCallback((lessonId: string) => {
+    setCompletedLessonIds(prev => {
+      if (prev.includes(lessonId)) return prev;
+      return [...prev, lessonId];
+    });
+  }, []);
 
   // Teclas destacadas e dedilhado orientativo para a lição ativa
   const highlightedLessonKeys = useMemo(() => {
@@ -494,16 +514,9 @@ export const KeyboardCourseView: React.FC = () => {
                   timeSignature="4/4"
                   bpm={75}
                   currentMidiPressed={lastMidiEvent}
-                  onTargetNoteChange={(note) => setTargetScoreNote(note)}
-                  onNoteHit={(note) => {
-                    setCorrectMidiNotes([note.midi]);
-                    setErrorMidiNotes([]);
-                    setTimeout(() => setCorrectMidiNotes([]), 600);
-                  }}
-                  onNoteError={(err) => {
-                    setErrorMidiNotes([err.playedMidi]);
-                    setTimeout(() => setErrorMidiNotes([]), 1400);
-                  }}
+                  onTargetNoteChange={handleTargetNoteChange}
+                  onNoteHit={handleNoteHit}
+                  onNoteError={handleNoteError}
                   onLessonComplete={() => handleLessonComplete(activeLesson.id)}
                 />
               </div>
