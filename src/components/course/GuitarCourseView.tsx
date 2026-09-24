@@ -3,6 +3,8 @@ import { GUITAR_COURSE_MODULES } from '../../core/coursesData';
 import type { CourseLesson, CourseModule } from '../../core/coursesData';
 import { FretboardView } from '../guitar/FretboardView';
 import { CAGED_SHAPES_C_MAJOR } from '../guitar/CAGEDMapper';
+import { ScrollingScoreCanvas } from '../score/ScrollingScoreCanvas';
+import { MicrophonePitchBar } from '../audio/MicrophonePitchBar';
 import type { GuitarChordShape } from '../../core/types';
 import {
   Guitar,
@@ -13,6 +15,8 @@ import {
   ShieldAlert,
   Layers,
   Zap,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 
 const COMMON_OPEN_CHORDS: Record<string, GuitarChordShape> = {
@@ -66,21 +70,81 @@ const COMMON_OPEN_CHORDS: Record<string, GuitarChordShape> = {
     barreStrings: [1, 6],
     bassNote: 'F',
   },
+  'A': {
+    name: 'Lá Maior (A)',
+    cagedLetter: 'A',
+    rootNote: 'A',
+    frets: [-1, 0, 2, 2, 2, 0],
+    fingers: [0, 0, 1, 2, 3, 0],
+    bassNote: 'A',
+  },
+  'E': {
+    name: 'Mi Maior (E)',
+    cagedLetter: 'E',
+    rootNote: 'E',
+    frets: [0, 2, 2, 1, 0, 0],
+    fingers: [0, 2, 3, 1, 0, 0],
+    bassNote: 'E',
+  },
+  'Dm': {
+    name: 'Ré Menor (Dm)',
+    cagedLetter: 'D',
+    rootNote: 'D',
+    frets: [-1, -1, 0, 2, 3, 1],
+    fingers: [0, 0, 0, 2, 3, 1],
+    bassNote: 'D',
+  },
+  'Bm': {
+    name: 'Si Menor com Pestana (Bm)',
+    cagedLetter: 'A',
+    rootNote: 'B',
+    frets: [-1, 2, 4, 4, 3, 2],
+    fingers: [0, 1, 3, 4, 2, 1],
+    barreFret: 2,
+    barreStrings: [1, 5],
+    bassNote: 'B',
+  },
+  'B7': {
+    name: 'Si com Sétima (B7)',
+    cagedLetter: 'A',
+    rootNote: 'B',
+    frets: [-1, 2, 1, 2, 0, 2],
+    fingers: [0, 2, 1, 3, 0, 4],
+    bassNote: 'B',
+  },
+  'C7': {
+    name: 'Dó com Sétima (C7)',
+    cagedLetter: 'C',
+    rootNote: 'C',
+    frets: [-1, 3, 2, 3, 1, 0],
+    fingers: [0, 3, 2, 4, 1, 0],
+    bassNote: 'C',
+  },
 };
 
 export const GuitarCourseView: React.FC = () => {
   const [selectedModule, setSelectedModule] = useState<CourseModule>(GUITAR_COURSE_MODULES[0]);
   const [activeLesson, setActiveLesson] = useState<CourseLesson>(GUITAR_COURSE_MODULES[0].lessons[0]);
   const [completedLessonIds, setCompletedLessonIds] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<'theory' | 'fretboard' | 'transitions'>('theory');
+  const [activeTab, setActiveTab] = useState<'theory' | 'score' | 'fretboard' | 'transitions'>('theory');
   const [selectedChordKey, setSelectedChordKey] = useState<string>('C');
   const [selectedCagedLetter, setSelectedCagedLetter] = useState<'C' | 'A' | 'G' | 'E' | 'D'>('C');
+  const [isWidescreenStage, setIsWidescreenStage] = useState<boolean>(false);
+  const [lastMidiEvent, setLastMidiEvent] = useState<{ midi: number; timestamp: number } | null>(null);
+
+  const handleNoteInput = (midi: number) => {
+    setLastMidiEvent({ midi, timestamp: performance.now() });
+  };
 
   const handleSelectLesson = (lesson: CourseLesson, mod: CourseModule) => {
     setSelectedModule(mod);
     setActiveLesson(lesson);
-    if (mod.code === 'V3' || mod.code === 'V4') {
+    if (lesson.scoreTrack) {
+      setActiveTab('score');
+    } else if (mod.code === 'V4' || mod.code === 'V5') {
       setActiveTab('fretboard');
+    } else {
+      setActiveTab('theory');
     }
   };
 
@@ -93,102 +157,124 @@ export const GuitarCourseView: React.FC = () => {
   const isCurrentCompleted = completedLessonIds.includes(activeLesson.id);
 
   const activeChordShape: GuitarChordShape =
-    selectedModule.code === 'V3'
+    selectedModule.code === 'V5'
       ? CAGED_SHAPES_C_MAJOR[selectedCagedLetter]
       : COMMON_OPEN_CHORDS[selectedChordKey] || COMMON_OPEN_CHORDS['C'];
 
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-6">
-      {/* Banner Principal do Curso de Violão */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-950 via-[#26150b] to-[#120a05] border-2 border-amber-500/40 p-6 sm:p-8 shadow-2xl">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+    <div className="w-full max-w-[1850px] mx-auto space-y-4">
+      {/* Banner Principal do Curso de Violão (Bordas Sutis & Widescreen) */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-950/70 via-[#22130a]/80 to-[#100804]/90 border border-white/5 p-5 sm:p-6 shadow-2xl backdrop-blur-md">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center text-slate-950 shadow-xl shadow-amber-500/40 shrink-0">
-              <Guitar className="w-8 h-8" />
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center text-slate-950 shadow-xl shadow-amber-500/30 shrink-0">
+              <Guitar className="w-6 h-6" />
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-500/30 text-amber-300 border border-amber-500/30">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/20">
                   Do Zero ao Avançado
                 </span>
                 <span className="text-xs text-slate-400 font-mono">
                   {completedLessonIds.length} lições concluídas
                 </span>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-black font-display text-white">
+              <h2 className="text-xl sm:text-2xl font-black font-display text-white">
                 Curso Interativo de Violão &amp; Guitarra
               </h2>
-              <p className="text-xs sm:text-sm text-amber-200/80 mt-1 max-w-2xl">
-                Aprenda a tocar com som limpo sem zumbidos, domine a pestana sem dor, troque acordes com o dedo âncora e decodifique o braço com o Sistema CAGED.
-              </p>
             </div>
           </div>
+
+          <button
+            onClick={() => setIsWidescreenStage(!isWidescreenStage)}
+            className="px-4 py-2 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 hover:text-white font-mono text-xs font-bold flex items-center gap-2 border border-white/5 cursor-pointer transition-all self-start md:self-auto"
+          >
+            {isWidescreenStage ? (
+              <>
+                <Minimize2 className="w-3.5 h-3.5 text-amber-400" />
+                <span>Exibir Módulos</span>
+              </>
+            ) : (
+              <>
+                <Maximize2 className="w-3.5 h-3.5 text-amber-400" />
+                <span>Modo Palco Total (100% Largura)</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 
       {/* Grid: Grade de Módulos (Esquerda) e Painel de Aula (Direita) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         {/* Coluna 1: Grade de Lições e Módulos */}
-        <div className="lg:col-span-4 space-y-4">
-          <div className="glass-card rounded-3xl p-5 border border-white/10 space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-white/5">
-              <h3 className="text-sm font-bold font-display text-white flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-amber-400" />
-                <span>Trilha do Violão</span>
-              </h3>
-              <span className="text-[10px] font-mono text-slate-400 font-bold">
-                {GUITAR_COURSE_MODULES.length} Módulos
-              </span>
-            </div>
+        {!isWidescreenStage && (
+          <div className="lg:col-span-4 space-y-4">
+            <div className="glass-card rounded-3xl p-4 border border-white/5 space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                <h3 className="text-sm font-bold font-display text-white flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-amber-400" />
+                  <span>Trilha do Violão</span>
+                </h3>
+                <span className="text-[10px] font-mono text-slate-400 font-bold">
+                  {GUITAR_COURSE_MODULES.length} Módulos
+                </span>
+              </div>
 
-            <div className="space-y-4 max-h-[580px] overflow-y-auto pr-1 no-scrollbar">
-              {GUITAR_COURSE_MODULES.map((mod) => (
-                <div key={mod.id} className="space-y-1.5">
-                  <div className="flex items-center justify-between text-[11px] font-mono font-bold text-amber-300 px-2">
-                    <span>{mod.code}: {mod.title}</span>
-                  </div>
+              <div className="space-y-4 max-h-[580px] overflow-y-auto pr-1 no-scrollbar">
+                {GUITAR_COURSE_MODULES.map((mod) => (
+                  <div key={mod.id} className="space-y-1.5">
+                    <div className="flex items-center justify-between text-[11px] font-mono font-bold text-amber-300 px-2">
+                      <span>{mod.code}: {mod.title}</span>
+                    </div>
 
-                  <div className="space-y-1">
-                    {mod.lessons.map((lesson) => {
-                      const isSelected = activeLesson.id === lesson.id;
-                      const isDone = completedLessonIds.includes(lesson.id);
+                    <div className="space-y-1">
+                      {mod.lessons.map((lesson) => {
+                        const isSelected = activeLesson.id === lesson.id;
+                        const isDone = completedLessonIds.includes(lesson.id);
 
-                      return (
-                        <button
-                          key={lesson.id}
-                          onClick={() => handleSelectLesson(lesson, mod)}
-                          className={`w-full p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                            isSelected
-                              ? 'bg-amber-600/30 border-amber-500 text-white shadow-md'
-                              : 'bg-white/5 border-white/5 text-slate-400 hover:text-slate-200 hover:bg-white/10'
-                          }`}
-                        >
-                          <div className="min-w-0">
-                            <div className="font-bold text-xs text-white truncate">
-                              {lesson.title}
+                        return (
+                          <button
+                            key={lesson.id}
+                            onClick={() => handleSelectLesson(lesson, mod)}
+                            className={`w-full p-2.5 rounded-2xl border text-left transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                              isSelected
+                                ? 'bg-amber-600/30 border-amber-500/40 text-white shadow-md'
+                                : 'bg-white/[0.02] border-white/5 text-slate-400 hover:text-white hover:bg-white/[0.06]'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 truncate">
+                              <span className={`w-2 h-2 rounded-full shrink-0 ${
+                                isDone ? 'bg-emerald-400 shadow-sm shadow-emerald-400/50' : 'bg-slate-600'
+                              }`} />
+                              <div className="truncate">
+                                <div className="text-xs font-bold truncate text-white">
+                                  {lesson.title}
+                                </div>
+                                <div className="text-[10px] text-slate-400 truncate">
+                                  {lesson.subtitle}
+                                </div>
+                              </div>
                             </div>
-                            <div className="text-[10px] text-slate-400 truncate mt-0.5">
-                              {lesson.subtitle}
-                            </div>
-                          </div>
 
-                          <div className="shrink-0 flex items-center gap-1.5">
-                            {isDone && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
-                            <ChevronRight className={`w-3.5 h-3.5 ${isSelected ? 'text-amber-400' : 'text-slate-600'}`} />
-                          </div>
-                        </button>
-                      );
-                    })}
+                            {isDone ? (
+                              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                            ) : (
+                              <ChevronRight className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Coluna 2: Palco da Lição Ativa */}
-        <div className="lg:col-span-8 space-y-4">
-          <div className="glass-card rounded-3xl p-6 border border-white/10 space-y-4">
+        {/* Coluna 2 / Palco Total: Painel da Lição Ativa */}
+        <div className={isWidescreenStage ? 'lg:col-span-12 space-y-4' : 'lg:col-span-8 space-y-4'}>
+          <div className="glass-card rounded-3xl p-4 sm:p-6 border border-white/5 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <span className="text-[10px] font-mono text-amber-400 font-bold uppercase tracking-wider block">
@@ -212,6 +298,18 @@ export const GuitarCourseView: React.FC = () => {
                 >
                   Teoria &amp; Postura
                 </button>
+
+                {activeLesson.scoreTrack && (
+                  <button
+                    onClick={() => setActiveTab('score')}
+                    className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                      activeTab === 'score' ? 'bg-cyan-600 text-white font-black shadow-md' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Partitura &amp; Tab
+                  </button>
+                )}
+
                 <button
                   onClick={() => setActiveTab('fretboard')}
                   className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
@@ -223,7 +321,7 @@ export const GuitarCourseView: React.FC = () => {
                 <button
                   onClick={() => setActiveTab('transitions')}
                   className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                    activeTab === 'transitions' ? 'bg-cyan-600 text-white font-black shadow-md' : 'text-slate-400 hover:text-white'
+                    activeTab === 'transitions' ? 'bg-purple-600 text-white font-black shadow-md' : 'text-slate-400 hover:text-white'
                   }`}
                 >
                   Dedo Âncora
@@ -234,7 +332,7 @@ export const GuitarCourseView: React.FC = () => {
             {/* Conteúdo 1: Teoria Didática da Lição */}
             {activeTab === 'theory' && (
               <div className="space-y-4 pt-2 border-t border-white/5 animate-fade-in">
-                <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-2">
+                <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-2">
                   <h4 className="text-sm font-bold text-white flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-amber-400" />
                     <span>{activeLesson.instructions.heading}</span>
@@ -253,33 +351,74 @@ export const GuitarCourseView: React.FC = () => {
                 </div>
 
                 {activeLesson.instructions.fingeringTip && (
-                  <div className="p-3.5 rounded-2xl bg-amber-950/40 border border-amber-500/30 text-xs text-amber-200">
+                  <div className="p-3.5 rounded-2xl bg-amber-950/20 border border-amber-500/20 text-xs text-amber-200">
                     <strong className="text-amber-300">Dica de Digitação:</strong> {activeLesson.instructions.fingeringTip}
                   </div>
                 )}
 
                 {activeLesson.instructions.postureAlert && (
-                  <div className="p-3.5 rounded-2xl bg-rose-950/40 border border-rose-500/30 text-xs text-rose-200 flex items-start gap-2">
+                  <div className="p-3.5 rounded-2xl bg-rose-950/20 border border-rose-500/20 text-xs text-rose-200 flex items-start gap-2">
                     <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
                     <div>
                       <strong className="text-rose-300">Alerta de Postura:</strong> {activeLesson.instructions.postureAlert}
                     </div>
                   </div>
                 )}
+
+                {/* Braço interativo demonstrativo */}
+                <div className="pt-2">
+                  <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block mb-2 font-bold">
+                    Visualização no Braço do Violão:
+                  </span>
+                  <FretboardView
+                    chordShape={activeChordShape}
+                    fretCount={14}
+                    showNoteNames={true}
+                  />
+                </div>
               </div>
             )}
 
-            {/* Conteúdo 2: Braço & Mapeamento de Shapes */}
+            {/* Conteúdo 2: Motor de Partitura & Tablatura com Detecção por Microfone */}
+            {activeTab === 'score' && activeLesson.scoreTrack && (
+              <div className="space-y-4 pt-2 border-t border-white/5 animate-fade-in">
+                <MicrophonePitchBar
+                  onNoteDetected={(midi) => handleNoteInput(midi)}
+                />
+
+                <ScrollingScoreCanvas
+                  notes={activeLesson.scoreTrack}
+                  timeSignature="4/4"
+                  bpm={75}
+                  instrument="guitar"
+                  currentMidiPressed={lastMidiEvent}
+                  onLessonComplete={() => handleLessonComplete(activeLesson.id)}
+                />
+
+                <div className="pt-2">
+                  <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block mb-2 font-bold">
+                    Posição das Notas e Acordes no Braço:
+                  </span>
+                  <FretboardView
+                    chordShape={activeChordShape}
+                    fretCount={14}
+                    showNoteNames={true}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Conteúdo 3: Braço & Mapeamento de Shapes */}
             {activeTab === 'fretboard' && (
               <div className="space-y-4 pt-2 border-t border-white/5 animate-fade-in">
                 {/* Seletor de Shapes / CAGED */}
-                <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-black/40 border border-white/10">
+                <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-black/40 border border-white/5">
                   <span className="text-xs font-mono text-amber-400 font-bold flex items-center gap-2">
                     <Layers className="w-4 h-4" />
-                    <span>{selectedModule.code === 'V3' ? 'Shapes do Sistema CAGED:' : 'Acordes Abertos Comuns:'}</span>
+                    <span>{selectedModule.code === 'V5' ? 'Shapes do Sistema CAGED:' : 'Acordes Mais Usados:'}</span>
                   </span>
 
-                  {selectedModule.code === 'V3' ? (
+                  {selectedModule.code === 'V5' ? (
                     <div className="flex items-center gap-1.5">
                       {(['C', 'A', 'G', 'E', 'D'] as const).map((letter) => (
                         <button
@@ -296,12 +435,12 @@ export const GuitarCourseView: React.FC = () => {
                       ))}
                     </div>
                   ) : (
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex flex-wrap items-center gap-1.5">
                       {Object.keys(COMMON_OPEN_CHORDS).map((chordKey) => (
                         <button
                           key={chordKey}
                           onClick={() => setSelectedChordKey(chordKey)}
-                          className={`px-3 py-1 rounded-xl font-bold font-display text-xs cursor-pointer transition-all ${
+                          className={`px-2.5 py-1 rounded-xl font-bold font-display text-xs cursor-pointer transition-all ${
                             selectedChordKey === chordKey
                               ? 'bg-amber-500 text-slate-950 shadow-md scale-105'
                               : 'bg-white/5 text-slate-400 hover:text-white'
@@ -319,16 +458,16 @@ export const GuitarCourseView: React.FC = () => {
                   <FretboardView
                     chordShape={activeChordShape}
                     fretCount={14}
-                    showNoteNames={false}
+                    showNoteNames={true}
                   />
                 </div>
               </div>
             )}
 
-            {/* Conteúdo 3: Treino de Trocas com Dedo Âncora */}
+            {/* Conteúdo 4: Treino de Trocas com Dedo Âncora */}
             {activeTab === 'transitions' && (
               <div className="space-y-4 pt-2 border-t border-white/5 animate-fade-in">
-                <div className="p-4 rounded-2xl bg-cyan-950/30 border border-cyan-500/30 space-y-2">
+                <div className="p-4 rounded-2xl bg-cyan-950/20 border border-cyan-500/20 space-y-2">
                   <h4 className="text-sm font-bold text-white flex items-center gap-2">
                     <Zap className="w-4 h-4 text-cyan-400" />
                     <span>Princípio do Dedo Âncora no Violão</span>
@@ -337,13 +476,13 @@ export const GuitarCourseView: React.FC = () => {
                     Quando dois acordes compartilham cordas e casas idênticas, não retire a mão inteira do braço!
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                    <div className="p-3 rounded-xl bg-black/40 border border-white/10 text-xs">
+                    <div className="p-3 rounded-xl bg-black/40 border border-white/5 text-xs">
                       <strong className="text-cyan-300 block mb-1">Transição C ➔ Am:</strong>
                       <p className="text-slate-300">
                         O Dedo 1 (2ª corda casa 1) e o Dedo 2 (4ª corda casa 2) são <strong>âncoras fixas</strong>. Apenas mova o Dedo 3 da 5ª corda para a 3ª corda casa 2!
                       </p>
                     </div>
-                    <div className="p-3 rounded-xl bg-black/40 border border-white/10 text-xs">
+                    <div className="p-3 rounded-xl bg-black/40 border border-white/5 text-xs">
                       <strong className="text-amber-300 block mb-1">Transição G ➔ D:</strong>
                       <p className="text-slate-300">
                         Mantenha o Dedo 3 pousado na 2ª corda casa 3 como <strong>eixo pivô</strong> enquanto os outros dedos trocam de posição!
@@ -356,7 +495,7 @@ export const GuitarCourseView: React.FC = () => {
                   <FretboardView
                     chordShape={COMMON_OPEN_CHORDS['C']}
                     fretCount={14}
-                    showNoteNames={false}
+                    showNoteNames={true}
                   />
                 </div>
               </div>
@@ -365,7 +504,7 @@ export const GuitarCourseView: React.FC = () => {
             {/* Rodapé da Aula: Botão Concluir Lição */}
             <div className="flex items-center justify-between pt-4 border-t border-white/5">
               <span className="text-xs text-slate-400">
-                {isCurrentCompleted ? '✅ Lição Concluída!' : 'Pratique a digitação no instrumento'}
+                {isCurrentCompleted ? '✅ Lição Concluída!' : 'Pratique a digitação no violão'}
               </span>
 
               <button
@@ -385,4 +524,3 @@ export const GuitarCourseView: React.FC = () => {
     </div>
   );
 };
-
