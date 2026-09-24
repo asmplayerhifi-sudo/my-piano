@@ -1,7 +1,8 @@
 /**
  * illustrations/LessonIllustration.tsx
  * Componente orquestrador da Figura Explicativa / Diagrama Vetorial da Tríade Didática.
- * Regra: Orquestrador limpo (< 180 linhas).
+ * Mapeia 100% das lições de Teoria Musical, Teclado e Violão para diagramas vetoriais dedicados e exclusivos.
+ * Regra: Orquestrador limpo (< 220 linhas).
  */
 
 import React from 'react';
@@ -33,14 +34,27 @@ import {
 } from './GuitarDiagramsAdvanced';
 import {
   SoundPropertiesDiagram,
-  TimeSignatureAnatomyDiagram,
-  MajorScaleStepPatternDiagram,
+  GrandStaffCompleteDiagram,
+  RhythmAndMeterComboDiagram,
+  TonesSemitonesEnharmonicsDiagram,
 } from './TheoryDiagramsAcoustics';
 import {
   IntervalRulerWideDiagram,
+  TritoneAndRuleOfNineDiagram,
+  MajorScaleStepPatternDiagram,
+  KeySignaturesAndFifthsDiagram,
+  ThreeMinorScalesDiagram,
   HarmonicPillarsDiagram,
-  CircleOfFifthsClockDiagram,
 } from './TheoryDiagramsHarmony';
+import {
+  FourTriadsFamilyDiagram,
+  ChordInversionsSlashChordsDiagram,
+  FiveTetradsFamiliesDiagram,
+  DiatonicHarmonicFieldDiagram,
+  CadencesAndPopProgressionDiagram,
+  GreekModesPanoramicDiagram,
+  SecondaryDominantsAndModalInterchangeDiagram,
+} from './TheoryDiagramsAdvanced';
 import { Eye } from 'lucide-react';
 
 export const LessonIllustration: React.FC<LessonDiagramProps> = ({
@@ -50,10 +64,81 @@ export const LessonIllustration: React.FC<LessonDiagramProps> = ({
   instrument,
   className = '',
 }) => {
-  const query = (lessonId + ' ' + title + ' ' + moduleCode).toLowerCase();
+  const normId = (lessonId || '').toLowerCase().trim();
+  const query = (normId + ' ' + title + ' ' + moduleCode).toLowerCase();
 
   const renderDiagram = () => {
-    // ── 1. Instrumento: TECLADO / PIANO ──
+    // ── 1. MAPA DEDICADO DAS 17 LIÇÕES DO CURSO DE TEORIA MUSICAL (M1 a M7) ──
+    if (instrument === 'theory') {
+      // Módulo 1: Fundamentos do Som, Notação & Pentagrama
+      if (normId === 'm1-1' || query.includes('propriedades') || query.includes('física da música')) {
+        return <SoundPropertiesDiagram />;
+      }
+      if (normId === 'm1-2' || query.includes('pauta') || query.includes('pentagrama') || query.includes('linhas suplementares')) {
+        return <GrandStaffCompleteDiagram />;
+      }
+      if (normId === 'm1-3' || query.includes('figuras rítmicas') || query.includes('proporções de duração') || query.includes('fórmulas de compasso')) {
+        return <RhythmAndMeterComboDiagram />;
+      }
+
+      // Módulo 2: Intervalos, Semitons & Enarmonia
+      if (normId === 'm2-1' || query.includes('semitons naturais') || query.includes('enarmonia')) {
+        return <TonesSemitonesEnharmonicsDiagram />;
+      }
+      if (normId === 'm2-2' || query.includes('classificação completa dos intervalos') || query.includes('régua intervalar')) {
+        return <IntervalRulerWideDiagram />;
+      }
+      if (normId === 'm2-3' || query.includes('trítono') || query.includes('regra do 9') || query.includes('inversão de intervalos')) {
+        return <TritoneAndRuleOfNineDiagram />;
+      }
+
+      // Módulo 3: Escalas Maiores, Menores & Armaduras
+      if (normId === 'm3-1' || query.includes('escala maior natural') || query.includes('t-t-st')) {
+        return <MajorScaleStepPatternDiagram />;
+      }
+      if (normId === 'm3-2' || query.includes('armaduras') || query.includes('sustenidos e bemóis') || query.includes('ordem dos sustenidos')) {
+        return <KeySignaturesAndFifthsDiagram />;
+      }
+      if (normId === 'm3-3' || query.includes('três escalas menores') || query.includes('harmônica e melódica') || query.includes('menor natural')) {
+        return <ThreeMinorScalesDiagram />;
+      }
+
+      // Módulo 4: Tríades, Inversões & Tétrades
+      if (normId === 'm4-1' || query.includes('4 tríades') || query.includes('diminuta e aumentada') || query.includes('tríades fundamentais')) {
+        return <FourTriadsFamilyDiagram />;
+      }
+      if (normId === 'm4-2' || query.includes('inversões de acordes') || query.includes('slash chords') || query.includes('notação de baixo')) {
+        return <ChordInversionsSlashChordsDiagram />;
+      }
+      if (normId === 'm4-3' || query.includes('tétrades') || query.includes('5 famílias') || query.includes('acordes com sétima')) {
+        return <FiveTetradsFamiliesDiagram />;
+      }
+
+      // Módulo 5: Campo Harmônico, Funções & Cadências
+      if (normId === 'm5-1' || query.includes('campo harmônico maior') || query.includes('tríades e tétrades')) {
+        return <DiatonicHarmonicFieldDiagram />;
+      }
+      if (normId === 'm5-2' || query.includes('funções harmônicas') || query.includes('tônica, subdominante')) {
+        return <HarmonicPillarsDiagram />;
+      }
+      if (normId === 'm5-3' || query.includes('cadências históricas') || query.includes('ii - v - i') || query.includes('progressão pop')) {
+        return <CadencesAndPopProgressionDiagram />;
+      }
+
+      // Módulo 6: Modos Gregos
+      if (normId === 'm6-1' || query.includes('modos gregos') || query.includes('jônio') || query.includes('dórico') || query.includes('lídio')) {
+        return <GreekModesPanoramicDiagram />;
+      }
+
+      // Módulo 7: Harmonia Funcional Avançada
+      if (normId === 'm7-1' || query.includes('dominantes secundários') || query.includes('empréstimo modal') || query.includes('aem')) {
+        return <SecondaryDominantsAndModalInterchangeDiagram />;
+      }
+
+      return <IntervalRulerWideDiagram />;
+    }
+
+    // ── 2. INSTRUMENTO: TECLADO / PIANO ──
     if (instrument === 'keyboard') {
       if (query.includes('geografia') || query.includes('preta') || query.includes('t1-1') || query.includes('dó central')) {
         return <BlackKeyGeographyDiagram />;
@@ -85,7 +170,7 @@ export const LessonIllustration: React.FC<LessonDiagramProps> = ({
       return <BlackKeyGeographyDiagram />;
     }
 
-    // ── 2. Instrumento: VIOLÃO ──
+    // ── 3. INSTRUMENTO: VIOLÃO ──
     if (instrument === 'guitar') {
       if (query.includes('traste') || query.includes('mecânica') || query.includes('zumbido') || query.includes('buzz') || query.includes('v1-1')) {
         return <FretProximityDiagram />;
@@ -105,22 +190,6 @@ export const LessonIllustration: React.FC<LessonDiagramProps> = ({
       return <OpenChordsShapesDiagram />;
     }
 
-    // ── 3. TEORIA MUSICAL ──
-    if (query.includes('propriedades') || query.includes('física') || query.includes('altura') || query.includes('timbre') || query.includes('m1-1')) {
-      return <SoundPropertiesDiagram />;
-    }
-    if (query.includes('compasso') || query.includes('métrica') || query.includes('fórmula') || query.includes('m1-3') || query.includes('m1-4')) {
-      return <TimeSignatureAnatomyDiagram />;
-    }
-    if (query.includes('escala') || query.includes('diatônica') || query.includes('tom') || query.includes('m2-1')) {
-      return <MajorScaleStepPatternDiagram />;
-    }
-    if (query.includes('quintas') || query.includes('ciclo') || query.includes('armadura')) {
-      return <CircleOfFifthsClockDiagram />;
-    }
-    if (query.includes('campo') || query.includes('grau') || query.includes('funç') || query.includes('tônica') || query.includes('pilar')) {
-      return <HarmonicPillarsDiagram />;
-    }
     return <IntervalRulerWideDiagram />;
   };
 
