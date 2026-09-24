@@ -9,6 +9,7 @@ import { PianoModule } from './components/piano/PianoModule';
 import { GuitarModule } from './components/guitar/GuitarModule';
 import { HybridRhythmChord } from './components/hybrid/HybridRhythmChord';
 import { TheoryModule } from './components/theory/TheoryModule';
+import { RepertoireView } from './components/score/RepertoireView';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabId>('course-keyboard');
@@ -25,6 +26,7 @@ export const App: React.FC = () => {
       <main className="flex-1 px-4 sm:px-8 py-6 max-w-7xl w-full mx-auto">
         {activeTab === 'course-keyboard' && <KeyboardCourseView />}
         {activeTab === 'course-guitar' && <GuitarCourseView />}
+        {activeTab === 'repertoire' && <RepertoireView />}
         {activeTab === 'rhythm' && <RhythmLab />}
         {activeTab === 'piano' && <PianoModule />}
         {activeTab === 'guitar' && <GuitarModule />}

@@ -1,9 +1,10 @@
 import React from 'react';
-import { GraduationCap, Guitar, Activity, Music2, Layers, Compass } from 'lucide-react';
+import { GraduationCap, Guitar, Activity, Music2, Layers, Compass, Music } from 'lucide-react';
 
 export type TabId =
   | 'course-keyboard'
   | 'course-guitar'
+  | 'repertoire'
   | 'rhythm'
   | 'piano'
   | 'guitar'
@@ -34,6 +35,15 @@ export const Navigation: React.FC<Props> = ({ activeTab, onSelectTab }) => {
       desc: 'Pestana, CAGED & Dedo Âncora',
       badge: 'Completo',
       color: 'amber',
+    },
+    {
+      id: 'repertoire' as TabId,
+      label: 'Repertório de Partituras',
+      shortLabel: 'Partituras',
+      icon: Music,
+      desc: 'Clássicos, Rock Clássico & MPB',
+      badge: 'Obras',
+      color: 'purple',
     },
     {
       id: 'rhythm' as TabId,
