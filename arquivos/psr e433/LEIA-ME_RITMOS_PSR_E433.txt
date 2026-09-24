@@ -1,0 +1,89 @@
+# ==============================================================================
+# COLEÇÃO DE RITMOS (.STY) PARA YAMAHA PSR-E433 (FORMATO SFF1)
+# ==============================================================================
+
+Esta pasta contém ritmos configurados e aninhados por categorias e artistas,
+totalmente compatíveis com o teclado Yamaha PSR-E433 (e compatíveis também com
+PSR-E423, PSR-E443, PSR-E453, PSR-E463).
+
+Todos os ritmos contam com o bloco proprietário CASM da Yamaha e seções com
+muita variação:
+- INTRO A (Introdução musical)
+- MAIN A  (Acompanhamento principal enxuto)
+- FILL IN AA (Virada conectando ao Main A)
+- MAIN B  (Acompanhamento encorpado com pratos, frases e instrumentos adicionais)
+- FILL IN BB (Virada dinâmica conectando ao Main B)
+- ENDING A (Finalização musical)
+
+------------------------------------------------------------------------------
+ESTRUTURA DAS PASTAS:
+------------------------------------------------------------------------------
+01_FORRO/
+  - BRASAS DO FORRO.STY, BONDE DO BRASIL.STY, Camisa Suada.STY,
+    FLAVIO JOSE.STY, FORROSER.STY, FORRO_NATAN.STY, FORRO_PEGADO.STY,
+    ARRASTA PE.STY, CATCHACA.STY, CATCHAK2.STY
+
+02_PISEIRO/
+  - PISEIRO_BAROES_SHOW.STY (BPM 138 - Batida pesada, synth bass e sanfona)
+  - PISEIRO_VAQUEJADA.STY   (BPM 142 - Estilo João Gomes / Vaquejada rápida)
+  - PISADINHA_MODERNA.STY   (BPM 138 - Groove moderno com claps e viradas)
+
+03_SERESTA_E_ARROCHA/
+  - DEO SERESTEIRO.STY, ARROCHA V.STY, BREGA.STY, BREGA LIGHT.STY,
+    GARCON_REGINALDO_ROSSI.STY, SERESTA_NOITE_ZEZO.STY
+
+04_ZEZO_DOS_TECLADOS/
+  - ZEZO_SERESTA_SHOW.STY     (BPM 106 - A levada clássica de teclado do Zezo)
+  - ZEZO_BOLERO_APAIXONADO.STY (BPM 106 - Bolero seresteiro marcante)
+  - DEO_SERESTEIRO.STY        (Seresta tradicional de barzinho)
+  - ARROCHA_SERESTA_ZEZO.STY  (Arrocha romântico no teclado)
+
+05_BAIAO/
+  - BAIAO_LUIZ_GONZAGA.STY   (BPM 112 - Zabumba sincopado, triângulo e sanfona)
+  - BAIAO_PE_DE_SERRA.STY    (BPM 112 - Baião tradicional de Pernambuco)
+  - ARRASTA_PE_QUADRILHA.STY (Arrasta-pé festivo)
+
+06_XOTE/
+  - XOTE_PE_DE_SERRA.STY    (BPM 84 - Cadência dengosa de Dominguinhos / Flávio José)
+  - XOTE_UNIVERSITARIO.STY  (BPM 84 - Xote animado com violão e sanfona)
+  - FLAVIO_JOSE_XOTE.STY    (Clássico do mestre Flávio José)
+
+07_ROCK/
+  - CLASSIC_ROCK_80S.STY      (BPM 124 - Rock 4/4 com power chords e baixo pulsante)
+  - HARD_ROCK_GROOVE.STY      (BPM 124 - Bateria pesada e guitarras dobradas no Main B)
+  - DOORS_PSYCHEDELIC_ROCK.STY (Rock psicodélico dos anos 60)
+
+08_THE_DOORS/
+  - DOORS_LIGHT_MY_FIRE.STY  (BPM 126 - Órgão Vox Continental, baixo Ray Manzarek, bateria Densmore)
+  - DOORS_ORGAN_ROCK.STY     (BPM 126 - Levada modal com solo de teclado no Main B)
+
+09_REGGAE/
+  - REGGAE_ROOTS_ONE_DROP.STY (BPM 76 - O autêntico One Drop: bumbo+aro no tempo 3, skanks no 2 e 4)
+  - REGGAE_BOB_MARLEY.STY     (BPM 76 - Linha de baixo roots profunda e órgão bubble)
+  - REGGAE_MARANHAO_TRIBO.STY (BPM 76 - Balanço maranhense com metais marcantes)
+
+10_ELTON_JOHN/
+  - ELTON_CROCODILE_ROCK.STY (BPM 150 - Rock'n'roll boogie piano acelerado com walking bass)
+  - ELTON_YOUR_SONG_BALLAD.STY (BPM 72 - Balada pop clássica com arpejos de piano de cauda)
+  - ELTON_BOOGIE_PIANO.STY   (BPM 150 - Piano rítmico alegre com seção de metais)
+
+11_OUTROS_RITMOS/
+  - BANDAP50.STY, BANDIN50.STY, BUGIU.STY, CAPRICHO.STY,
+    CHAMAME.STY, GARANTID.STY, GUARANIA.STY
+
+------------------------------------------------------------------------------
+COMO PASSAR PARA O PENDRIVE E CARREGAR NO YAMAHA PSR-E433:
+------------------------------------------------------------------------------
+1. Formate o pendrive em FAT ou FAT32 no computador.
+2. Copie as pastas ou os arquivos .STY desejados para o pendrive (você pode copiar
+   as pastas inteiras ou colocar os arquivos na raiz do pendrive).
+3. Conecte o pendrive na porta [USB TO DEVICE] do PSR-E433.
+4. No painel do teclado:
+   a. Pressione e segure o botão [FUNCTION] até aparecer "File Control" ou pressione
+      o botão [FUNCTION] repetidamente até a tela mostrar: "Load Style".
+   b. Pressione o botão [EXECUTE].
+   c. Gire o dial para escolher o ritmo desejado (ex: "PISEIRO", "ELTON", etc.).
+   d. Pressione [EXECUTE].
+   e. Escolha a posição de usuário onde deseja salvar (posições 187 a 191 do PSR-E433).
+   f. Pressione [EXECUTE] e confirme com [EXECUTE] novamente quando pedir "YES".
+   g. Pronto! O ritmo agora está carregado e pronto para tocar!
