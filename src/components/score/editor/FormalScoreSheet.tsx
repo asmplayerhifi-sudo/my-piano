@@ -71,7 +71,7 @@ export const FormalScoreSheet: React.FC<FormalScoreSheetProps> = ({
     drawFormalScoreSheet({
       ctx,
       width: totalWidth,
-      height: 260,
+      height: 300,
       notes,
       timeSignature,
       playheadBeat,
@@ -149,7 +149,7 @@ export const FormalScoreSheet: React.FC<FormalScoreSheetProps> = ({
         <canvas
           ref={canvasRef}
           width={totalWidth}
-          height={260}
+          height={300}
           onClick={handleCanvasClick}
           className="cursor-pointer block"
         />

@@ -1,7 +1,7 @@
 /**
  * editor/drawFormalScoreSheet.ts
- * Renderizador de Partitura Formal Clássica (Grand Staff) para o Editor de Partituras.
- * Regra: Função pura de renderização Canvas (< 190 linhas).
+ * Renderizador de Partitura Formal Clássica (Grand Staff) com Pautas Amplamente Espaçadas.
+ * Regra: Função pura de renderização Canvas (< 250 linhas).
  */
 
 import type { FormalScoreNote, ScoreSheetRenderOptions } from './scoreSheetTypes';
@@ -21,17 +21,24 @@ interface DrawSheetParams {
 }
 
 const START_X = 95;
-const MIDDLE_C_Y = 138;
-const NOTE_STEP = 6; // metade do espaçamento de linha (12px)
 
-function getDiatonicY(noteName: string): number {
+/** Calcula a posição vertical Y exata respeitando a respectiva clave com espaçamento amplo */
+function getDiatonicY(noteName: string, clef: 'treble' | 'bass' = 'treble'): number {
   const match = noteName.match(/^([A-G])([#b♭♯]?)(\d+)$/i);
-  if (!match) return MIDDLE_C_Y;
+  if (!match) return clef === 'treble' ? 120 : 172;
   const letter = match[1].toUpperCase();
   const octave = parseInt(match[3], 10);
   const letterSteps: Record<string, number> = { C: 0, D: 1, E: 2, F: 3, G: 4, A: 5, B: 6 };
-  const diatonicIndex = (octave - 4) * 7 + (letterSteps[letter] ?? 0);
-  return MIDDLE_C_Y - diatonicIndex * NOTE_STEP;
+
+  if (clef === 'treble') {
+    // Linha 1 da Clave de Sol (Mi4 / E4) = Y 108
+    const diatonicIndex = (octave - 4) * 7 + (letterSteps[letter] ?? 0) - 2;
+    return 108 - diatonicIndex * 6;
+  } else {
+    // Linha 4 da Clave de Fá (Fá3 / F3) = Y 196
+    const diatonicIndex = (octave - 3) * 7 + (letterSteps[letter] ?? 0) - 3;
+    return 196 - diatonicIndex * 6;
+  }
 }
 
 export function drawFormalScoreSheet({
@@ -55,9 +62,10 @@ export function drawFormalScoreSheet({
   ctx.fillStyle = isPaper ? '#fcfbf7' : '#0a0a1a';
   ctx.fillRect(0, 0, width, height);
 
-  // 2. Pentagrama Superior (Clave de Sol) e Inferior (Clave de Fá)
-  const trebleLinesY = [78, 90, 102, 114, 126];
-  const bassLinesY = [150, 162, 174, 186, 198];
+  // 2. Pentagrama Superior (Clave de Sol: Y 60 a 108) e Inferior (Clave de Fá: Y 184 a 232)
+  // Espaço respirável central de 76px entre as pautas!
+  const trebleLinesY = [60, 72, 84, 96, 108];
+  const bassLinesY = [184, 196, 208, 220, 232];
   const staffColor = isPaper ? '#18181b' : '#475569';
 
   ctx.strokeStyle = staffColor;
@@ -80,22 +88,24 @@ export function drawFormalScoreSheet({
 
   // Símbolos de Clave fixos na margem esquerda
   ctx.fillStyle = isPaper ? '#09090b' : '#818cf8';
-  ctx.font = 'bold 38px serif';
-  ctx.fillText('𝄞', 30, 122);
+  ctx.font = 'bold 44px serif';
+  ctx.fillText('𝄞', 30, 106);
 
   ctx.fillStyle = isPaper ? '#09090b' : '#a78bfa';
-  ctx.font = 'bold 32px serif';
-  ctx.fillText('𝄢', 32, 180);
+  ctx.font = 'bold 36px serif';
+  ctx.fillText('𝄢', 32, 206);
 
   // Fórmula de Compasso (ex: 4/4)
   const [num, den] = timeSignature;
   ctx.fillStyle = isPaper ? '#1e293b' : '#e2e8f0';
   ctx.font = 'bold 20px "JetBrains Mono", serif';
   ctx.textAlign = 'center';
-  ctx.fillText(`${num}`, 72, 100);
-  ctx.fillText(`${den}`, 72, 122);
-  ctx.fillText(`${num}`, 72, 172);
-  ctx.fillText(`${den}`, 72, 194);
+  // Clave de Sol
+  ctx.fillText(`${num}`, 72, 84);
+  ctx.fillText(`${den}`, 72, 106);
+  // Clave de Fá
+  ctx.fillText(`${num}`, 72, 208);
+  ctx.fillText(`${den}`, 72, 230);
 
   // 3. Barras de Compasso e Numeração
   for (let m = 0; m <= totalMeasures; m++) {
@@ -113,7 +123,7 @@ export function drawFormalScoreSheet({
       ctx.fillStyle = isPaper ? '#475569' : '#94a3b8';
       ctx.font = 'bold 9px "JetBrains Mono", monospace';
       ctx.textAlign = 'left';
-      ctx.fillText(`c.${m + 1}`, barX + 6, 68);
+      ctx.fillText(`c.${m + 1}`, barX + 6, 48);
     }
   }
 
@@ -122,7 +132,7 @@ export function drawFormalScoreSheet({
     const noteX = START_X + note.beat * pixelsPerBeat - scrollLeft;
     if (noteX < -30 || noteX > width + 40) return;
 
-    const noteY = getDiatonicY(note.noteName);
+    const noteY = getDiatonicY(note.noteName, note.clef);
     const isSelected = note.id === selectedNoteId;
     const dur = note.duration;
     const isWhole = dur >= 3.5;
@@ -144,27 +154,43 @@ export function drawFormalScoreSheet({
     // Linhas Suplementares (Ledger lines)
     ctx.lineWidth = 1.8;
     ctx.strokeStyle = staffColor;
-    if (Math.abs(noteY - MIDDLE_C_Y) < 3) {
-      // Dó Central (C4)
-      ctx.beginPath();
-      ctx.moveTo(noteX - 12, MIDDLE_C_Y);
-      ctx.lineTo(noteX + 12, MIDDLE_C_Y);
-      ctx.stroke();
-    } else if (noteY < trebleLinesY[0]) {
-      // Acima da Clave de Sol
-      for (let ly = trebleLinesY[0] - 12; ly >= noteY - 1; ly -= 12) {
-        ctx.beginPath();
-        ctx.moveTo(noteX - 12, ly);
-        ctx.lineTo(noteX + 12, ly);
-        ctx.stroke();
+
+    if (note.clef === 'treble') {
+      if (noteY <= 48) {
+        // Acima da Clave de Sol
+        for (let ly = 48; ly >= noteY - 1; ly -= 12) {
+          ctx.beginPath();
+          ctx.moveTo(noteX - 12, ly);
+          ctx.lineTo(noteX + 12, ly);
+          ctx.stroke();
+        }
+      } else if (noteY >= 120) {
+        // Abaixo da Clave de Sol (linha 1 = 108, Dó Central = 120)
+        for (let ly = 120; ly <= noteY + 1; ly += 12) {
+          ctx.beginPath();
+          ctx.moveTo(noteX - 12, ly);
+          ctx.lineTo(noteX + 12, ly);
+          ctx.stroke();
+        }
       }
-    } else if (noteY > bassLinesY[bassLinesY.length - 1]) {
-      // Abaixo da Clave de Fá
-      for (let ly = bassLinesY[bassLinesY.length - 1] + 12; ly <= noteY + 1; ly += 12) {
-        ctx.beginPath();
-        ctx.moveTo(noteX - 12, ly);
-        ctx.lineTo(noteX + 12, ly);
-        ctx.stroke();
+    } else {
+      // Clave de Fá
+      if (noteY <= 172) {
+        // Acima da Clave de Fá (linha 5 = 184, Dó Central = 172)
+        for (let ly = 172; ly >= noteY - 1; ly -= 12) {
+          ctx.beginPath();
+          ctx.moveTo(noteX - 12, ly);
+          ctx.lineTo(noteX + 12, ly);
+          ctx.stroke();
+        }
+      } else if (noteY >= 244) {
+        // Abaixo da Clave de Fá (linha 1 = 232, Mi2 = 244, Dó2 = 256)
+        for (let ly = 244; ly <= noteY + 1; ly += 12) {
+          ctx.beginPath();
+          ctx.moveTo(noteX - 12, ly);
+          ctx.lineTo(noteX + 12, ly);
+          ctx.stroke();
+        }
       }
     }
 
@@ -173,12 +199,12 @@ export function drawFormalScoreSheet({
       ctx.fillStyle = isPaper ? '#0f172a' : '#f8fafc';
       ctx.font = 'bold 16px serif';
       ctx.textAlign = 'right';
-      ctx.fillText('♯', noteX - 8, noteY + 5);
+      ctx.fillText('♯', noteX - 9, noteY + 5);
     } else if (note.noteName.includes('b') || note.noteName.includes('♭')) {
       ctx.fillStyle = isPaper ? '#0f172a' : '#f8fafc';
       ctx.font = 'bold 16px serif';
       ctx.textAlign = 'right';
-      ctx.fillText('♭', noteX - 8, noteY + 4);
+      ctx.fillText('♭', noteX - 9, noteY + 4);
     }
 
     // Cabeça da Nota
@@ -197,9 +223,10 @@ export function drawFormalScoreSheet({
 
     // Haste (Stem) se não for semibreve
     if (!isWhole) {
-      const isUp = noteY > 114;
+      const middleLineY = note.clef === 'treble' ? 84 : 208;
+      const isUp = noteY >= middleLineY;
       const stemX = isUp ? noteX + 7 : noteX - 7;
-      const stemY = isUp ? noteY - 30 : noteY + 30;
+      const stemY = isUp ? noteY - 32 : noteY + 32;
       ctx.lineWidth = 1.6;
       ctx.beginPath();
       ctx.moveTo(stemX, noteY);
@@ -220,7 +247,10 @@ export function drawFormalScoreSheet({
       ctx.fillStyle = isPaper ? '#475569' : '#94a3b8';
       ctx.font = 'bold 8.5px "JetBrains Mono", monospace';
       ctx.textAlign = 'center';
-      ctx.fillText(note.noteName, noteX, noteY > 138 ? noteY + 18 : noteY - 14);
+      const labelY = note.clef === 'treble'
+        ? (noteY >= 108 ? noteY + 16 : noteY - 12)
+        : (noteY >= 232 ? noteY + 16 : noteY - 12);
+      ctx.fillText(note.noteName, noteX, labelY);
     }
 
     ctx.restore();
@@ -235,14 +265,9 @@ export function drawFormalScoreSheet({
     ctx.shadowColor = '#ec4899';
     ctx.shadowBlur = 8;
     ctx.beginPath();
-    ctx.moveTo(playheadX, 50);
-    ctx.lineTo(playheadX, 220);
+    ctx.moveTo(playheadX, 40);
+    ctx.lineTo(playheadX, 260);
     ctx.stroke();
-    ctx.fillStyle = '#f43f5e';
-    ctx.beginPath();
-    ctx.arc(playheadX, 50, 4.5, 0, Math.PI * 2);
-    ctx.arc(playheadX, 220, 4.5, 0, Math.PI * 2);
-    ctx.fill();
     ctx.restore();
   }
 }
