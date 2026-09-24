@@ -31,12 +31,12 @@ function getDiatonicY(noteName: string, clef: 'treble' | 'bass' = 'treble'): num
   const letterSteps: Record<string, number> = { C: 0, D: 1, E: 2, F: 3, G: 4, A: 5, B: 6 };
 
   if (clef === 'treble') {
-    // Linha 1 da Clave de Sol (Mi4 / E4) = Y 108
-    const diatonicIndex = (octave - 4) * 7 + (letterSteps[letter] ?? 0) - 2;
+    // Linha 1 da Clave de Sol (Mi3 / E3) = Y 108, Dó Central (C3) = Y 120 (linha suplementar inferior)
+    const diatonicIndex = (octave - 3) * 7 + (letterSteps[letter] ?? 0) - 2;
     return 108 - diatonicIndex * 6;
   } else {
-    // Linha 4 da Clave de Fá (Fá3 / F3) = Y 196
-    const diatonicIndex = (octave - 3) * 7 + (letterSteps[letter] ?? 0) - 3;
+    // Linha 4 da Clave de Fá (Fá2 / F2) = Y 196, Dó Central (C3) = Y 172 (linha suplementar superior)
+    const diatonicIndex = (octave - 2) * 7 + (letterSteps[letter] ?? 0) - 3;
     return 196 - diatonicIndex * 6;
   }
 }

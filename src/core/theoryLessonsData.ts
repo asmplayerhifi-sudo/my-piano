@@ -77,7 +77,7 @@ export const THEORY_MODULES: TheoryModuleData[] = [
               'Para dominar a teoria musical, o músico precisa compreender as 4 qualidades inseparáveis de qualquer som:'
             ],
             bulletPoints: [
-              'Altura: Determinada pela frequência de vibração, medida em Hertz (Hz). Quanto mais rápida a vibração, mais AGUDO o som; quanto mais lenta, mais GRAVE. O Dó central (C3/C4) vibra por volta de 261.6 Hz, enquanto o Lá de afinação (A4) vibra exatamente a 440 Hz.',
+              'Altura: Determinada pela frequência de vibração, medida em Hertz (Hz). Quanto mais rápida a vibração, mais AGUDO o som; quanto mais lenta, mais GRAVE. O Dó central (C3) vibra por volta de 261.6 Hz, enquanto o Lá de afinação (A3 a 440 Hz) vibra com precisão.',
               'Duração: O tempo durante o qual o som é sustentado. Na partitura, é representado pelas figuras rítmicas (semibreve, mínima, semínima, colcheia).',
               'Intensidade: A energia ou amplitude da onda sonoro (volume). Representada na música por sinais de dinâmica: Pianíssimo (pp), Piano (p), Mezzo-forte (mf), Forte (f) e Fortíssimo (ff).',
               'Timbre: A "cor" do som. É a característica que nos permite distinguir perfeitamente um Dó tocado em um piano de cauda de um Dó tocado em um violão ou saxofone, mesmo estando na mesmíssima altura e intensidade. O timbre é gerado pela combinação única de harmônicos (Série Harmônica).'
@@ -131,7 +131,7 @@ export const THEORY_MODULES: TheoryModuleData[] = [
             ]
           }
         ],
-        goldenRule: 'O Dó Central (C3 no teclado brasileiro / C4 internacional) é a ponte cósmica entre a Clave de Sol e a Clave de Fá.',
+        goldenRule: 'O Dó Central (C3) é a ponte cósmica entre a Clave de Sol e a Clave de Fá.',
         audioExamples: [
           {
             title: 'Grande Pauta: Do Grave da Clave de Fá ao Agudo da Clave de Sol',

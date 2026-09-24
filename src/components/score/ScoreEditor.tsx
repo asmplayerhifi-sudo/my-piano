@@ -45,68 +45,68 @@ interface ScoreProject {
 // ────────────────────────────────────────────────────────────────────────────
 
 const TREBLE_NOTES: { midi: number; name: string; label: string }[] = [
-  { midi: 93, name: 'A6', label: 'Lá6' },
-  { midi: 92, name: 'G#6', label: 'Sol♯6' },
-  { midi: 91, name: 'G6', label: 'Sol6' },
-  { midi: 90, name: 'F#6', label: 'Fá♯6' },
-  { midi: 89, name: 'F6', label: 'Fá6' },
-  { midi: 88, name: 'E6', label: 'Mi6' },
-  { midi: 87, name: 'D#6', label: 'Ré♯6' },
-  { midi: 86, name: 'D6', label: 'Ré6' },
-  { midi: 85, name: 'C#6', label: 'Dó♯6' },
-  { midi: 84, name: 'C6', label: 'Dó6' },
-  { midi: 83, name: 'B5', label: 'Si5' },
-  { midi: 82, name: 'A#5', label: 'Lá♯5' },
-  { midi: 81, name: 'A5', label: 'Lá5' },
-  { midi: 80, name: 'G#5', label: 'Sol♯5' },
-  { midi: 79, name: 'G5', label: 'Sol5' },
-  { midi: 78, name: 'F#5', label: 'Fá♯5' },
-  { midi: 77, name: 'F5', label: 'Fá5' },
-  { midi: 76, name: 'E5', label: 'Mi5' },
-  { midi: 75, name: 'D#5', label: 'Ré♯5' },
-  { midi: 74, name: 'D5', label: 'Ré5' },
-  { midi: 73, name: 'C#5', label: 'Dó♯5' },
-  { midi: 72, name: 'C5', label: 'Dó5' },
-  { midi: 71, name: 'B4', label: 'Si4' },
-  { midi: 70, name: 'A#4', label: 'Lá♯4' },
-  { midi: 69, name: 'A4', label: 'Lá4 (A440)' },
-  { midi: 68, name: 'G#4', label: 'Sol♯4' },
-  { midi: 67, name: 'G4', label: 'Sol4' },
-  { midi: 66, name: 'F#4', label: 'Fá♯4' },
-  { midi: 65, name: 'F4', label: 'Fá4' },
-  { midi: 64, name: 'E4', label: 'Mi4' },
-  { midi: 63, name: 'D#4', label: 'Ré♯4' },
-  { midi: 62, name: 'D4', label: 'Ré4' },
-  { midi: 61, name: 'C#4', label: 'Dó♯4' },
-  { midi: 60, name: 'C4', label: 'Dó4 Central (Dó3 Brasil)' },
+  { midi: 93, name: 'A5', label: 'Lá5' },
+  { midi: 92, name: 'G#5', label: 'Sol♯5' },
+  { midi: 91, name: 'G5', label: 'Sol5' },
+  { midi: 90, name: 'F#5', label: 'Fá♯5' },
+  { midi: 89, name: 'F5', label: 'Fá5' },
+  { midi: 88, name: 'E5', label: 'Mi5' },
+  { midi: 87, name: 'D#5', label: 'Ré♯5' },
+  { midi: 86, name: 'D5', label: 'Ré5' },
+  { midi: 85, name: 'C#5', label: 'Dó♯5' },
+  { midi: 84, name: 'C5', label: 'Dó5' },
+  { midi: 83, name: 'B4', label: 'Si4' },
+  { midi: 82, name: 'A#4', label: 'Lá♯4' },
+  { midi: 81, name: 'A4', label: 'Lá4' },
+  { midi: 80, name: 'G#4', label: 'Sol♯4' },
+  { midi: 79, name: 'G4', label: 'Sol4' },
+  { midi: 78, name: 'F#4', label: 'Fá♯4' },
+  { midi: 77, name: 'F4', label: 'Fá4' },
+  { midi: 76, name: 'E4', label: 'Mi4' },
+  { midi: 75, name: 'D#4', label: 'Ré♯4' },
+  { midi: 74, name: 'D4', label: 'Ré4' },
+  { midi: 73, name: 'C#4', label: 'Dó♯4' },
+  { midi: 72, name: 'C4', label: 'Dó4' },
+  { midi: 71, name: 'B3', label: 'Si3' },
+  { midi: 70, name: 'A#3', label: 'Lá♯3' },
+  { midi: 69, name: 'A3', label: 'Lá3 (A440)' },
+  { midi: 68, name: 'G#3', label: 'Sol♯3' },
+  { midi: 67, name: 'G3', label: 'Sol3' },
+  { midi: 66, name: 'F#3', label: 'Fá♯3' },
+  { midi: 65, name: 'F3', label: 'Fá3' },
+  { midi: 64, name: 'E3', label: 'Mi3' },
+  { midi: 63, name: 'D#3', label: 'Ré♯3' },
+  { midi: 62, name: 'D3', label: 'Ré3' },
+  { midi: 61, name: 'C#3', label: 'Dó♯3' },
+  { midi: 60, name: 'C3', label: 'Dó3 (Central)' },
 ];
 
 const BASS_NOTES: { midi: number; name: string; label: string }[] = [
-  { midi: 60, name: 'C4', label: 'Dó4 Central (Dó3 Brasil)' },
-  { midi: 59, name: 'B3', label: 'Si3' },
-  { midi: 58, name: 'A#3', label: 'Lá♯3' },
-  { midi: 57, name: 'A3', label: 'Lá3' },
-  { midi: 56, name: 'G#3', label: 'Sol♯3' },
-  { midi: 55, name: 'G3', label: 'Sol3' },
-  { midi: 54, name: 'F#3', label: 'Fá♯3' },
-  { midi: 53, name: 'F3', label: 'Fá3' },
-  { midi: 52, name: 'E3', label: 'Mi3' },
-  { midi: 51, name: 'D#3', label: 'Ré♯3' },
-  { midi: 50, name: 'D3', label: 'Ré3' },
-  { midi: 49, name: 'C#3', label: 'Dó♯3' },
-  { midi: 48, name: 'C3', label: 'Dó3 Grave (Dó2 Brasil)' },
-  { midi: 47, name: 'B2', label: 'Si2' },
-  { midi: 46, name: 'A#2', label: 'Lá♯2' },
-  { midi: 45, name: 'A2', label: 'Lá2' },
-  { midi: 44, name: 'G#2', label: 'Sol♯2' },
-  { midi: 43, name: 'G2', label: 'Sol2' },
-  { midi: 42, name: 'F#2', label: 'Fá♯2' },
-  { midi: 41, name: 'F2', label: 'Fá2' },
-  { midi: 40, name: 'E2', label: 'Mi2' },
-  { midi: 39, name: 'D#2', label: 'Ré♯2' },
-  { midi: 38, name: 'D2', label: 'Ré2' },
-  { midi: 37, name: 'C#2', label: 'Dó♯2' },
-  { midi: 36, name: 'C2', label: 'Dó2 Muito Grave' },
+  { midi: 60, name: 'C3', label: 'Dó3 (Central)' },
+  { midi: 59, name: 'B2', label: 'Si2' },
+  { midi: 58, name: 'A#2', label: 'Lá♯2' },
+  { midi: 57, name: 'A2', label: 'Lá2' },
+  { midi: 56, name: 'G#2', label: 'Sol♯2' },
+  { midi: 55, name: 'G2', label: 'Sol2' },
+  { midi: 54, name: 'F#2', label: 'Fá♯2' },
+  { midi: 53, name: 'F2', label: 'Fá2' },
+  { midi: 52, name: 'E2', label: 'Mi2' },
+  { midi: 51, name: 'D#2', label: 'Ré♯2' },
+  { midi: 50, name: 'D2', label: 'Ré2' },
+  { midi: 49, name: 'C#2', label: 'Dó♯2' },
+  { midi: 48, name: 'C2', label: 'Dó2 (Grave)' },
+  { midi: 47, name: 'B1', label: 'Si1' },
+  { midi: 46, name: 'A#1', label: 'Lá♯1' },
+  { midi: 45, name: 'A1', label: 'Lá1' },
+  { midi: 44, name: 'G#1', label: 'Sol♯1' },
+  { midi: 43, name: 'G1', label: 'Sol1' },
+  { midi: 42, name: 'F#1', label: 'Fá♯1' },
+  { midi: 41, name: 'F1', label: 'Fá1' },
+  { midi: 40, name: 'E1', label: 'Mi1' },
+  { midi: 39, name: 'D#1', label: 'Ré♯1' },
+  { midi: 38, name: 'D1', label: 'Ré1' },
+  { midi: 37, name: 'C#1', label: 'Dó♯1' },
+  { midi: 36, name: 'C1', label: 'Dó1 (Muito Grave)' },
 ];
 
 const DURATION_OPTIONS: { value: NoteDuration; label: string; symbol: string; beats: number }[] = [
@@ -318,7 +318,7 @@ const NoteGrid: React.FC<NoteGridProps> = ({
           const isTreble = row.midi >= 60;
           const rowNotes = notes.filter(n => n.midi === row.midi);
           const isBlack = isBlackKey(row.midi);
-          const isSeparator = row.midi === 60; // Dó4 central
+          const isSeparator = row.midi === 60; // Dó3 central
           const isClefSep = row.midi === 59; // separação treble/bass
 
           return (
@@ -940,7 +940,7 @@ export const ScoreEditor: React.FC = () => {
             <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
               <span>Inserir Nota — {selectedClef === 'treble' ? '𝄞 Clave de Sol' : '𝄢 Clave de Fá'}</span>
               <span className="text-[10px] font-normal text-indigo-300 bg-indigo-500/15 px-2 py-0.5 rounded-full border border-indigo-500/30">
-                Dó Central = C4 (Dó3 Brasil)
+                Dó Central = C3 (MIDI 60)
               </span>
             </span>
           </div>
@@ -953,7 +953,7 @@ export const ScoreEditor: React.FC = () => {
           {noteRows.map(row => {
             const black = isBlackKey(row.midi);
             const isCenter = row.midi === 60;
-            const isC3 = row.midi === 48;
+            const isC2 = row.midi === 48;
             return (
               <button
                 key={row.midi}
@@ -965,7 +965,7 @@ export const ScoreEditor: React.FC = () => {
                     ? 'bg-slate-800/80 border-slate-600/40 text-slate-300 hover:bg-slate-700 hover:text-white'
                     : isCenter
                     ? 'bg-indigo-500/25 border-indigo-400 text-indigo-100 shadow-md shadow-indigo-500/20 ring-1 ring-indigo-400/50 hover:bg-indigo-500/35'
-                    : isC3
+                    : isC2
                     ? 'bg-amber-500/20 border-amber-400/60 text-amber-100 hover:bg-amber-500/30'
                     : selectedClef === 'treble'
                     ? 'bg-violet-500/15 border-violet-500/30 text-violet-200 hover:bg-violet-500/25 hover:text-white'
@@ -977,7 +977,7 @@ export const ScoreEditor: React.FC = () => {
                   <span className="text-[7px] leading-none opacity-60 mt-0.5">♯/♭</span>
                 ) : isCenter ? (
                   <span className="text-[6.5px] font-bold text-indigo-200 leading-none mt-0.5 uppercase tracking-tighter">Central</span>
-                ) : isC3 ? (
+                ) : isC2 ? (
                   <span className="text-[6.5px] font-bold text-amber-200 leading-none mt-0.5 uppercase tracking-tighter">Grave</span>
                 ) : null}
               </button>

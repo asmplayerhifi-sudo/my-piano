@@ -17,9 +17,9 @@ export class Note {
     this.midi = Math.max(0, Math.min(127, Math.round(midi)));
     const noteIndex = ((this.midi % 12) + 12) % 12;
     this.name = Note.NOTE_NAMES[noteIndex];
-    this.octave = Math.floor(this.midi / 12) - 1;
+    this.octave = Math.floor(this.midi / 12) - 2;
     this.fullName = `${this.name}${this.octave}`;
-    // A4 (69) = 440 Hz
+    // A3 (MIDI 69) = 440 Hz
     this.frequencyHz = 440 * Math.pow(2, (this.midi - 69) / 12);
   }
 
@@ -27,13 +27,13 @@ export class Note {
     return new Note(midi);
   }
 
-  public static fromName(name: string, octave = 4): Note {
+  public static fromName(name: string, octave = 3): Note {
     const cleanName = name.trim().toUpperCase();
     const index = Note.NOTE_NAMES.indexOf(cleanName);
     if (index === -1) {
       throw new Error(`Nota inválida: ${name}`);
     }
-    const midi = (octave + 1) * 12 + index;
+    const midi = (octave + 2) * 12 + index;
     return new Note(midi);
   }
 

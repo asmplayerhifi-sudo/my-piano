@@ -19,9 +19,9 @@ export function midiToFrequency(midi: number): number {
   return 440 * Math.pow(2, (midi - 69) / 12);
 }
 
-// Constrói objeto NoteInfo completo (Padrão Internacional SPN / MIDI Standard: Dó Central = C4 / MIDI 60)
+// Constrói objeto NoteInfo completo (Padrão Teclado Brasileiro / Yamaha: Dó Central = C3 / MIDI 60)
 export function getNoteInfo(midi: number, preferFlat = false): NoteInfo {
-  const octave = Math.floor(midi / 12) - 1;
+  const octave = Math.floor(midi / 12) - 2;
   const noteIndex = ((midi % 12) + 12) % 12;
   const name = preferFlat ? CHROMATIC_NOTES_FLAT[noteIndex] : CHROMATIC_NOTES_SHARP[noteIndex];
   const letter = name[0];

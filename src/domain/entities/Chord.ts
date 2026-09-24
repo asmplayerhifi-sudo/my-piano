@@ -35,7 +35,7 @@ export class Chord {
   }
 
   public static createTriad(options: CreateTriadOptions): Chord {
-    const rootNote = Note.fromName(options.root, options.octave ?? 4);
+    const rootNote = Note.fromName(options.root, options.octave ?? 3);
     const intervals = Chord.TRIAD_INTERVALS[options.quality];
     const notes = intervals.map(semitones => rootNote.transpose(semitones));
     const symbolSuffix = options.quality === 'MINOR' ? 'm' : options.quality === 'DIMINISHED' ? 'dim' : options.quality === 'AUGMENTED' ? 'aug' : '';

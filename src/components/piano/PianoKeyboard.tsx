@@ -43,7 +43,7 @@ export const FINGER_INFO: Record<number, { name: string; short: string; color: s
 };
 
 export const PianoKeyboard: React.FC<Props> = ({
-  startOctave: initialStartOctave = 3,
+  startOctave: initialStartOctave = 2,
   octaveCount: initialOctaveCount = 3,
   highlightedKeys = [],
   onKeyPlay,
@@ -541,7 +541,7 @@ export const PianoKeyboard: React.FC<Props> = ({
               {/* 1. Camada de Teclas Brancas */}
               {Array.from({ length: octaveCount }).map((_, octIdx) => {
                 const currentOctave = startOctave + octIdx;
-                const baseMidi = (currentOctave + 1) * 12;
+                const baseMidi = (currentOctave + 2) * 12;
 
                 return naturalOffsets.map((offset, noteIdx) => {
                   const midi = baseMidi + offset;
@@ -616,7 +616,7 @@ export const PianoKeyboard: React.FC<Props> = ({
                             fontWeight="black"
                             fontFamily="Outfit, sans-serif"
                           >
-                            {whiteKeyWidth > 38 ? 'DÓ CENTRAL' : 'C3'}
+                            {whiteKeyWidth > 38 ? 'DÓ CENTRAL (C3)' : 'C3'}
                           </text>
                         </g>
                       )}
@@ -690,7 +690,7 @@ export const PianoKeyboard: React.FC<Props> = ({
               {/* 2. Camada de Teclas Pretas (Acima das brancas) */}
               {Array.from({ length: octaveCount }).map((_, octIdx) => {
                 const currentOctave = startOctave + octIdx;
-                const baseMidi = (currentOctave + 1) * 12;
+                const baseMidi = (currentOctave + 2) * 12;
 
                 return accidentalOffsets.map((acc) => {
                   const midi = baseMidi + acc.semitones;

@@ -59,7 +59,7 @@ export function getKeyPosition(
   whiteKeyWidth: number,
   blackKeyWidth: number
 ): { x: number; width: number; isBlack: boolean; noteName: string } | null {
-  const octave = Math.floor(midi / 12) - 1;
+  const octave = Math.floor(midi / 12) - 2;
   const semitone = ((midi % 12) + 12) % 12;
   const octIdx = octave - startOctave;
 

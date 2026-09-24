@@ -77,7 +77,7 @@ export const BlackKeyGeographyDiagram: React.FC = () => (
       <g transform="translate(433, 100)">
         <polygon points="0,-16 6,-26 -6,-26" fill="#38bdf8" />
         <rect x="-65" y="-55" width="130" height="26" rx="6" fill="#0369a1" stroke="#38bdf8" strokeWidth="1.5" />
-        <text x="0" y="-38" textAnchor="middle" fill="#ffffff" fontSize="11" fontWeight="black">★ DÓ CENTRAL (C4)</text>
+        <text x="0" y="-38" textAnchor="middle" fill="#ffffff" fontSize="11" fontWeight="black">★ DÓ CENTRAL (C3)</text>
       </g>
     </g>
   </svg>

@@ -89,7 +89,7 @@ export const BassStaffReadingDiagram: React.FC = () => (
       <g transform="translate(740, 0)">
         <line x1="-15" y1="0" x2="35" y2="0" stroke="#38bdf8" strokeWidth="2" />
         <ellipse cx="10" cy="0" rx="12" ry="8" fill="#38bdf8" transform="rotate(-20 10 0)" />
-        <text x="10" y="-14" textAnchor="middle" fill="#38bdf8" fontSize="11" fontWeight="black">★ Dó Central (C4)</text>
+        <text x="10" y="-14" textAnchor="middle" fill="#38bdf8" fontSize="11" fontWeight="black">★ Dó Central (C3)</text>
         <text x="10" y="30" textAnchor="middle" fill="#94a3b8" fontSize="9">Linha Suplementar</text>
       </g>
     </g>

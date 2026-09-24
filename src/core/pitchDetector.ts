@@ -18,7 +18,7 @@ export function frequencyToMidi(freq: number): number {
 
 export function midiToNoteName(midi: number): string {
   const noteIndex = ((midi % 12) + 12) % 12;
-  const octave = Math.floor(midi / 12) - 1;
+  const octave = Math.floor(midi / 12) - 2;
   return `${NOTE_NAMES[noteIndex]}${octave}`;
 }
 
