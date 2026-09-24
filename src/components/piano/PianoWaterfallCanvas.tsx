@@ -70,18 +70,20 @@ export function getKeyPosition(
     const whiteIdxInOct = whiteOffsets[semitone];
     const totalWhiteIndex = octIdx * 7 + whiteIdxInOct;
     const x = totalWhiteIndex * whiteKeyWidth;
+    const padW = Math.max(0.5, Math.min(2.5, whiteKeyWidth * 0.05));
     return {
-      x: x + 2,
-      width: whiteKeyWidth - 4,
+      x: x + padW,
+      width: Math.max(3, whiteKeyWidth - padW * 2),
       isBlack: false,
       noteName: `${noteInfo.name}${noteInfo.octave}`,
     };
   } else if (semitone in blackOffsets) {
     const posAfterWhite = blackOffsets[semitone];
     const x = (octIdx * 7 + posAfterWhite + 1) * whiteKeyWidth - blackKeyWidth / 2;
+    const padB = Math.max(0.5, Math.min(2, blackKeyWidth * 0.05));
     return {
-      x: x + 1,
-      width: blackKeyWidth - 2,
+      x: x + padB,
+      width: Math.max(3, blackKeyWidth - padB * 2),
       isBlack: true,
       noteName: `${noteInfo.name}${noteInfo.octave}`,
     };
@@ -474,12 +476,12 @@ export const PianoWaterfallCanvas: React.FC<Props> = ({
   }, [octaveCount, startOctave, whiteKeyWidth, blackKeyWidth, speed, direction, getThemeColors]);
 
   return (
-    <div className={`relative overflow-hidden rounded-2xl border border-white/10 shadow-2xl ${className}`}>
+    <div className={`relative overflow-hidden rounded-2xl border border-white/5 shadow-2xl w-full ${className}`}>
       <canvas
         ref={canvasRef}
         width={canvasWidth}
         height={height}
-        className="block cursor-pointer select-none no-select"
+        className="block w-full cursor-pointer select-none no-select"
         onClick={(e) => {
           if (!onKeyClick) return;
           const rect = e.currentTarget.getBoundingClientRect();

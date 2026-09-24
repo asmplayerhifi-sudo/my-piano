@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { soundEngine } from '../../core/soundEngine';
 import { getNoteInfo } from '../../core/musicTheory';
 import { PianoWaterfallCanvas } from './PianoWaterfallCanvas';
@@ -31,6 +31,9 @@ export const PianoKeyboard: React.FC<Props> = ({
   showWaterfall = true,
   activeExternalNotes = [],
 }) => {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [containerWidth, setContainerWidth] = useState<number>(1000);
+
   const [startOctave, setStartOctave] = useState<number>(initialStartOctave);
   const [octaveCount, setOctaveCount] = useState<number>(initialOctaveCount);
   const [isWaterfallActive, setIsWaterfallActive] = useState<boolean>(showWaterfall);
@@ -38,12 +41,47 @@ export const PianoKeyboard: React.FC<Props> = ({
   const [trailSpeed, setTrailSpeed] = useState<number>(180);
   const [activePressedKeys, setActivePressedKeys] = useState<number[]>([]);
 
-  // Ajusta largura da tecla de acordo com a quantidade de oitavas para caber bem
-  const isCompact = octaveCount >= 4;
-  const whiteKeyWidth = isCompact ? 36 : 42;
-  const whiteKeyHeight = isCompact ? 160 : 170;
-  const blackKeyWidth = isCompact ? 22 : 26;
-  const blackKeyHeight = isCompact ? 100 : 108;
+  // Monitora a largura real disponível para preencher 100% da tela sem scrollbar
+  useEffect(() => {
+    const updateWidth = () => {
+      if (containerRef.current) {
+        const measured = containerRef.current.clientWidth;
+        if (measured > 150) {
+          setContainerWidth(measured);
+        }
+      }
+    };
+
+    updateWidth();
+
+    const observer = new ResizeObserver(() => {
+      updateWidth();
+    });
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    window.addEventListener('resize', updateWidth);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateWidth);
+    };
+  }, []);
+
+  // Número total de teclas brancas para a quantidade de oitavas selecionada
+  const totalWhiteKeys = octaveCount * 7;
+
+  // Largura calculada dinamicamente: ocupa exatamente 100% do container com margem interna de 6px
+  const availableWidth = Math.max(300, containerWidth - 16);
+  const whiteKeyWidth = availableWidth / totalWhiteKeys;
+  const isUltraCompact = whiteKeyWidth < 25;
+
+  // Altura proporcional para manter proporções de piano de cauda
+  const whiteKeyHeight = Math.max(125, Math.min(185, whiteKeyWidth * 4.6));
+  const blackKeyWidth = Math.max(10, whiteKeyWidth * 0.62);
+  const blackKeyHeight = whiteKeyHeight * 0.64;
+  const svgWidth = availableWidth;
 
   // Notas naturais por oitava (C, D, E, F, G, A, B)
   const naturalOffsets = [0, 2, 4, 5, 7, 9, 11];
@@ -55,9 +93,6 @@ export const PianoKeyboard: React.FC<Props> = ({
     { semitones: 8, posAfterWhite: 4 }, // G#
     { semitones: 10, posAfterWhite: 5 }, // A#
   ];
-
-  const totalWhiteKeys = octaveCount * 7;
-  const svgWidth = totalWhiteKeys * whiteKeyWidth;
 
   const handleKeyDown = (midi: number) => {
     setActivePressedKeys(prev => (prev.includes(midi) ? prev : [...prev, midi]));
@@ -93,12 +128,14 @@ export const PianoKeyboard: React.FC<Props> = ({
   };
 
   const endOctave = startOctave + octaveCount - 1;
+  const labelFontSize = Math.max(7.5, Math.min(11, whiteKeyWidth * 0.28));
+  const blackLabelFontSize = Math.max(6.5, Math.min(9.5, blackKeyWidth * 0.38));
 
   return (
-    <div className="w-full flex flex-col items-center select-none no-select space-y-3">
-      {/* Barra de Controle de Oitavas & Rastro Synthesia */}
+    <div ref={containerRef} className="w-full flex flex-col items-center select-none no-select space-y-3">
+      {/* Barra de Controle de Oitavas & Rastro Synthesia (Bordas Sutis) */}
       {allowOctaveControls && (
-        <div className="w-full flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-white/5 border border-white/10 text-xs">
+        <div className="w-full flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-white/[0.03] border border-white/5 text-xs backdrop-blur-md">
           {/* Seletor de Quantidade de Oitavas Visíveis */}
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-mono text-slate-400 font-bold flex items-center gap-1.5">
@@ -128,8 +165,8 @@ export const PianoKeyboard: React.FC<Props> = ({
               onClick={() => setIsWaterfallActive(!isWaterfallActive)}
               className={`px-3 py-1.5 rounded-xl font-bold font-mono text-[10px] uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shadow-md ${
                 isWaterfallActive
-                  ? 'bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-rose-500/30'
-                  : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/10'
+                  ? 'bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-rose-500/20'
+                  : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5'
               }`}
             >
               <Flame className={`w-3.5 h-3.5 ${isWaterfallActive ? 'fill-current animate-pulse' : ''}`} />
@@ -218,7 +255,7 @@ export const PianoKeyboard: React.FC<Props> = ({
 
       {/* Legenda de Cores de Graus Harmônicos & Dó Central */}
       <div className="flex flex-wrap items-center justify-center gap-4 text-xs">
-        <div className="flex items-center gap-1.5 bg-cyan-950/40 px-2.5 py-0.5 rounded-lg border border-cyan-500/30">
+        <div className="flex items-center gap-1.5 bg-cyan-950/40 px-2.5 py-0.5 rounded-lg border border-cyan-500/20">
           <Sparkles className="w-3 h-3 text-cyan-400" />
           <span className="text-cyan-200 font-bold text-[10px]">C4 = Dó Central (Marcador Ciano)</span>
         </div>
@@ -240,9 +277,9 @@ export const PianoKeyboard: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* Contêiner Unificado do Rastro Synthesia + Teclado SVG com scroll horizontal fluido */}
-      <div className="w-full overflow-x-auto pb-4 no-scrollbar flex justify-center">
-        <div className="p-3 rounded-3xl glass-panel border border-white/10 shadow-2xl bg-[#090814]/90 inline-block space-y-2">
+      {/* Contêiner Unificado do Rastro Synthesia + Teclado SVG — 100% da Largura, Zero Scroll, Bordas Sutis */}
+      <div className="w-full overflow-hidden flex justify-center">
+        <div className="w-full p-2.5 sm:p-4 rounded-3xl glass-panel border border-white/5 shadow-2xl bg-[#090814]/95 space-y-2">
           {/* 1. Rastro Synthesia / Waterfall Canvas alinhado aos pixels das teclas */}
           {isWaterfallActive && (
             <PianoWaterfallCanvas
@@ -258,208 +295,215 @@ export const PianoKeyboard: React.FC<Props> = ({
             />
           )}
 
-          {/* 2. Teclado Virtual SVG */}
-          <svg
-            width={svgWidth}
-            height={whiteKeyHeight}
-            className="block overflow-visible"
-            viewBox={`0 0 ${svgWidth} ${whiteKeyHeight}`}
-          >
-            <defs>
-              <linearGradient id="whiteKeyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#fdfdfd" />
-                <stop offset="90%" stopColor="#eceef2" />
-                <stop offset="100%" stopColor="#d5d8de" />
-              </linearGradient>
-              <linearGradient id="blackKeyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#2e2d3b" />
-                <stop offset="85%" stopColor="#15141f" />
-                <stop offset="100%" stopColor="#08070d" />
-              </linearGradient>
-            </defs>
+          {/* 2. Teclado Virtual SVG Responsivo que preenche 100% da largura sem scrollbar */}
+          <div className="w-full overflow-hidden">
+            <svg
+              width="100%"
+              height={whiteKeyHeight}
+              className="block w-full overflow-hidden"
+              viewBox={`0 0 ${svgWidth} ${whiteKeyHeight}`}
+              preserveAspectRatio="none"
+            >
+              <defs>
+                <linearGradient id="whiteKeyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#fdfdfd" />
+                  <stop offset="90%" stopColor="#eceef2" />
+                  <stop offset="100%" stopColor="#d5d8de" />
+                </linearGradient>
+                <linearGradient id="blackKeyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="#2e2d3b" />
+                  <stop offset="85%" stopColor="#15141f" />
+                  <stop offset="100%" stopColor="#08070d" />
+                </linearGradient>
+              </defs>
 
-            {/* 1. Camada de Teclas Brancas */}
-            {Array.from({ length: octaveCount }).map((_, octIdx) => {
-              const currentOctave = startOctave + octIdx;
-              const baseMidi = (currentOctave + 1) * 12;
+              {/* 1. Camada de Teclas Brancas */}
+              {Array.from({ length: octaveCount }).map((_, octIdx) => {
+                const currentOctave = startOctave + octIdx;
+                const baseMidi = (currentOctave + 1) * 12;
 
-              return naturalOffsets.map((offset, noteIdx) => {
-                const midi = baseMidi + offset;
-                const whiteIndex = octIdx * 7 + noteIdx;
-                const x = whiteIndex * whiteKeyWidth;
-                const noteInfo = getNoteInfo(midi);
-                const highlight = getHighlight(midi);
-                const isMiddleC = (midi === 60);
-                const isPressed = combinedActiveNotes.includes(midi);
+                return naturalOffsets.map((offset, noteIdx) => {
+                  const midi = baseMidi + offset;
+                  const whiteIndex = octIdx * 7 + noteIdx;
+                  const x = whiteIndex * whiteKeyWidth;
+                  const noteInfo = getNoteInfo(midi);
+                  const highlight = getHighlight(midi);
+                  const isMiddleC = (midi === 60);
+                  const isPressed = combinedActiveNotes.includes(midi);
 
-                let keyFill = 'url(#whiteKeyGrad)';
-                if (isPressed) {
-                  keyFill = '#ffe4e6'; // Destaque aceso quando pressionada
-                } else if (highlight) {
-                  keyFill = getDegreeColor(highlight.degreeName);
-                }
+                  let keyFill = 'url(#whiteKeyGrad)';
+                  if (isPressed) {
+                    keyFill = '#ffe4e6'; // Destaque aceso quando pressionada
+                  } else if (highlight) {
+                    keyFill = getDegreeColor(highlight.degreeName);
+                  }
 
-                return (
-                  <g
-                    key={`white-${midi}`}
-                    onPointerDown={(e) => {
-                      e.preventDefault();
-                      handleKeyDown(midi);
-                    }}
-                    onPointerUp={() => handleKeyUp(midi)}
-                    onPointerLeave={() => handleKeyUp(midi)}
-                    className="cursor-pointer group"
-                  >
-                    {/* Tecla Branca Retangular */}
-                    <rect
-                      x={x + 1}
-                      y={0}
-                      width={whiteKeyWidth - 2}
-                      height={whiteKeyHeight}
-                      rx={6}
-                      fill={keyFill}
-                      stroke={isPressed ? '#f43f5e' : isMiddleC ? '#06b6d4' : '#8e94a0'}
-                      strokeWidth={isPressed ? 2.5 : isMiddleC ? 2 : 1}
-                      className="transition-all duration-100"
-                    />
-
-                    {/* Destaque visual no topo para o Dó Central (C4) */}
-                    {isMiddleC && (
-                      <circle
-                        cx={x + whiteKeyWidth / 2}
-                        cy={16}
-                        r={4}
-                        fill="#06b6d4"
-                      />
-                    )}
-
-                    {/* Rótulo da Nota no rodapé da tecla */}
-                    <text
-                      x={x + whiteKeyWidth / 2}
-                      y={whiteKeyHeight - 12}
-                      textAnchor="middle"
-                      fill={isPressed ? '#e11d48' : highlight ? '#ffffff' : isMiddleC ? '#0284c7' : '#334155'}
-                      fontSize={isCompact ? 9 : 11}
-                      fontWeight="bold"
-                      fontFamily="Outfit, sans-serif"
+                  return (
+                    <g
+                      key={`white-${midi}`}
+                      onPointerDown={(e) => {
+                        e.preventDefault();
+                        handleKeyDown(midi);
+                      }}
+                      onPointerUp={() => handleKeyUp(midi)}
+                      onPointerLeave={() => handleKeyUp(midi)}
+                      className="cursor-pointer group"
                     >
-                      {noteInfo.name}
-                      <tspan fontSize={isCompact ? 8 : 9} opacity={0.7}>
-                        {noteInfo.octave}
-                      </tspan>
-                    </text>
-
-                    {/* Dedo sugerido (1 a 5) se destacado */}
-                    {highlight && highlight.finger && (
-                      <circle
-                        cx={x + whiteKeyWidth / 2}
-                        cy={whiteKeyHeight - 34}
-                        r={isCompact ? 9 : 11}
-                        fill="#0f172a"
+                      {/* Tecla Branca Retangular */}
+                      <rect
+                        x={x + 0.5}
+                        y={0}
+                        width={Math.max(2, whiteKeyWidth - 1)}
+                        height={whiteKeyHeight}
+                        rx={Math.min(5, whiteKeyWidth * 0.15)}
+                        fill={keyFill}
+                        stroke={isPressed ? '#f43f5e' : isMiddleC ? '#06b6d4' : '#8e94a0'}
+                        strokeWidth={isPressed ? 2 : isMiddleC ? 1.5 : 0.8}
+                        className="transition-all duration-100"
                       />
-                    )}
-                    {highlight && highlight.finger && (
+
+                      {/* Destaque visual no topo para o Dó Central (C4) */}
+                      {isMiddleC && (
+                        <circle
+                          cx={x + whiteKeyWidth / 2}
+                          cy={14}
+                          r={Math.min(3.5, whiteKeyWidth * 0.12)}
+                          fill="#06b6d4"
+                        />
+                      )}
+
+                      {/* Rótulo da Nota no rodapé da tecla */}
                       <text
                         x={x + whiteKeyWidth / 2}
-                        y={whiteKeyHeight - 30}
+                        y={whiteKeyHeight - 10}
                         textAnchor="middle"
-                        fill="#ffffff"
-                        fontSize={isCompact ? 9 : 11}
-                        fontWeight="black"
-                        fontFamily="JetBrains Mono, monospace"
+                        fill={isPressed ? '#e11d48' : highlight ? '#ffffff' : isMiddleC ? '#0284c7' : '#334155'}
+                        fontSize={labelFontSize}
+                        fontWeight="bold"
+                        fontFamily="Outfit, sans-serif"
                       >
-                        {highlight.finger}
+                        {noteInfo.name}
+                        {!isUltraCompact && (
+                          <tspan fontSize={Math.max(6, labelFontSize * 0.8)} opacity={0.7}>
+                            {noteInfo.octave}
+                          </tspan>
+                        )}
                       </text>
-                    )}
-                  </g>
-                );
-              });
-            })}
 
-            {/* 2. Camada de Teclas Pretas (Acima das brancas) */}
-            {Array.from({ length: octaveCount }).map((_, octIdx) => {
-              const currentOctave = startOctave + octIdx;
-              const baseMidi = (currentOctave + 1) * 12;
+                      {/* Dedo sugerido (1 a 5) se destacado (ocultado se ultra compacto) */}
+                      {highlight && highlight.finger && !isUltraCompact && (
+                        <circle
+                          cx={x + whiteKeyWidth / 2}
+                          cy={whiteKeyHeight - 28}
+                          r={Math.min(9, whiteKeyWidth * 0.24)}
+                          fill="#0f172a"
+                        />
+                      )}
+                      {highlight && highlight.finger && !isUltraCompact && (
+                        <text
+                          x={x + whiteKeyWidth / 2}
+                          y={whiteKeyHeight - 25}
+                          textAnchor="middle"
+                          fill="#ffffff"
+                          fontSize={Math.max(7, labelFontSize * 0.9)}
+                          fontWeight="black"
+                          fontFamily="JetBrains Mono, monospace"
+                        >
+                          {highlight.finger}
+                        </text>
+                      )}
+                    </g>
+                  );
+                });
+              })}
 
-              return accidentalOffsets.map((acc) => {
-                const midi = baseMidi + acc.semitones;
-                const whiteIndex = octIdx * 7 + acc.posAfterWhite;
-                const x = (whiteIndex + 1) * whiteKeyWidth - (blackKeyWidth / 2);
-                const noteInfo = getNoteInfo(midi);
-                const highlight = getHighlight(midi);
-                const isPressed = combinedActiveNotes.includes(midi);
+              {/* 2. Camada de Teclas Pretas (Acima das brancas) */}
+              {Array.from({ length: octaveCount }).map((_, octIdx) => {
+                const currentOctave = startOctave + octIdx;
+                const baseMidi = (currentOctave + 1) * 12;
 
-                let keyFill = 'url(#blackKeyGrad)';
-                if (isPressed) {
-                  keyFill = '#f43f5e'; // Tecla preta brilha em coral neon quando tocada
-                } else if (highlight) {
-                  keyFill = getDegreeColor(highlight.degreeName);
-                }
+                return accidentalOffsets.map((acc) => {
+                  const midi = baseMidi + acc.semitones;
+                  const whiteIndex = octIdx * 7 + acc.posAfterWhite;
+                  const x = (whiteIndex + 1) * whiteKeyWidth - (blackKeyWidth / 2);
+                  const noteInfo = getNoteInfo(midi);
+                  const highlight = getHighlight(midi);
+                  const isPressed = combinedActiveNotes.includes(midi);
 
-                return (
-                  <g
-                    key={`black-${midi}`}
-                    onPointerDown={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleKeyDown(midi);
-                    }}
-                    onPointerUp={() => handleKeyUp(midi)}
-                    onPointerLeave={() => handleKeyUp(midi)}
-                    className="cursor-pointer group"
-                  >
-                    <rect
-                      x={x}
-                      y={0}
-                      width={blackKeyWidth}
-                      height={blackKeyHeight}
-                      rx={5}
-                      fill={keyFill}
-                      stroke={isPressed ? '#fda4af' : '#0f172a'}
-                      strokeWidth={isPressed ? 2 : 1.5}
-                      className="transition-all duration-100"
-                    />
+                  let keyFill = 'url(#blackKeyGrad)';
+                  if (isPressed) {
+                    keyFill = '#f43f5e'; // Tecla preta brilha em coral neon quando tocada
+                  } else if (highlight) {
+                    keyFill = getDegreeColor(highlight.degreeName);
+                  }
 
-                    {/* Nome do sustenido/bemol na ponta */}
-                    <text
-                      x={x + blackKeyWidth / 2}
-                      y={blackKeyHeight - 12}
-                      textAnchor="middle"
-                      fill={isPressed ? '#ffffff' : highlight ? '#ffffff' : '#94a3b8'}
-                      fontSize={isCompact ? 7.5 : 9}
-                      fontWeight="bold"
-                      fontFamily="Outfit, sans-serif"
+                  return (
+                    <g
+                      key={`black-${midi}`}
+                      onPointerDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleKeyDown(midi);
+                      }}
+                      onPointerUp={() => handleKeyUp(midi)}
+                      onPointerLeave={() => handleKeyUp(midi)}
+                      className="cursor-pointer group"
                     >
-                      {noteInfo.name}
-                    </text>
-
-                    {/* Dedo sugerido */}
-                    {highlight && highlight.finger && (
-                      <circle
-                        cx={x + blackKeyWidth / 2}
-                        cy={blackKeyHeight - 28}
-                        r={isCompact ? 7.5 : 9}
-                        fill="#0f172a"
+                      <rect
+                        x={x}
+                        y={0}
+                        width={blackKeyWidth}
+                        height={blackKeyHeight}
+                        rx={Math.min(4, blackKeyWidth * 0.18)}
+                        fill={keyFill}
+                        stroke={isPressed ? '#fda4af' : '#0f172a'}
+                        strokeWidth={isPressed ? 1.8 : 1}
+                        className="transition-all duration-100"
                       />
-                    )}
-                    {highlight && highlight.finger && (
-                      <text
-                        x={x + blackKeyWidth / 2}
-                        y={blackKeyHeight - 25}
-                        textAnchor="middle"
-                        fill="#ffffff"
-                        fontSize={isCompact ? 8 : 10}
-                        fontWeight="black"
-                        fontFamily="JetBrains Mono, monospace"
-                      >
-                        {highlight.finger}
-                      </text>
-                    )}
-                  </g>
-                );
-              });
-            })}
-          </svg>
+
+                      {/* Nome do sustenido/bemol na ponta */}
+                      {!isUltraCompact && (
+                        <text
+                          x={x + blackKeyWidth / 2}
+                          y={blackKeyHeight - 8}
+                          textAnchor="middle"
+                          fill={isPressed ? '#ffffff' : highlight ? '#ffffff' : '#94a3b8'}
+                          fontSize={blackLabelFontSize}
+                          fontWeight="bold"
+                          fontFamily="Outfit, sans-serif"
+                        >
+                          {noteInfo.name}
+                        </text>
+                      )}
+
+                      {/* Dedo sugerido */}
+                      {highlight && highlight.finger && !isUltraCompact && (
+                        <circle
+                          cx={x + blackKeyWidth / 2}
+                          cy={blackKeyHeight - 24}
+                          r={Math.min(7.5, blackKeyWidth * 0.28)}
+                          fill="#0f172a"
+                        />
+                      )}
+                      {highlight && highlight.finger && !isUltraCompact && (
+                        <text
+                          x={x + blackKeyWidth / 2}
+                          y={blackKeyHeight - 21}
+                          textAnchor="middle"
+                          fill="#ffffff"
+                          fontSize={Math.max(6.5, blackLabelFontSize * 0.85)}
+                          fontWeight="black"
+                          fontFamily="JetBrains Mono, monospace"
+                        >
+                          {highlight.finger}
+                        </text>
+                      )}
+                    </g>
+                  );
+                });
+              })}
+            </svg>
+          </div>
         </div>
       </div>
     </div>

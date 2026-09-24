@@ -12,6 +12,8 @@ import {
   Sparkles,
   ChevronRight,
   ShieldAlert,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 
 export const KeyboardCourseView: React.FC = () => {
@@ -20,6 +22,7 @@ export const KeyboardCourseView: React.FC = () => {
   const [completedLessonIds, setCompletedLessonIds] = useState<string[]>([]);
   const [practiceTab, setPracticeTab] = useState<'theory' | 'score' | 'chords'>('theory');
   const [lastMidiEvent, setLastMidiEvent] = useState<{ midi: number; timestamp: number } | null>(null);
+  const [isWidescreenStage, setIsWidescreenStage] = useState<boolean>(false);
 
   const handleNoteInput = (midi: number) => {
     setLastMidiEvent({ midi, timestamp: performance.now() });
@@ -46,98 +49,119 @@ export const KeyboardCourseView: React.FC = () => {
   const isCurrentCompleted = completedLessonIds.includes(activeLesson.id);
 
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-6">
-      {/* Banner Principal do Curso de Teclado */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-indigo-950 via-[#181033] to-[#0c081e] border-2 border-indigo-500/40 p-6 sm:p-8 shadow-2xl">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+    <div className="w-full max-w-[1850px] mx-auto space-y-4">
+      {/* Banner Principal do Curso de Teclado (Bordas Sutis & Widescreen) */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-indigo-950/70 via-[#140e2b]/80 to-[#0a0718]/90 border border-white/5 p-5 sm:p-6 shadow-2xl backdrop-blur-md">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-xl shadow-indigo-500/40 shrink-0">
-              <GraduationCap className="w-8 h-8" />
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-xl shadow-indigo-500/20 shrink-0">
+              <GraduationCap className="w-6 h-6" />
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-indigo-500/30 text-indigo-300 border border-indigo-500/30">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/20">
                   Do Zero ao Avançado
                 </span>
                 <span className="text-xs text-slate-400 font-mono">
                   {completedLessonIds.length} lições concluídas
                 </span>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-black font-display text-white">
+              <h2 className="text-xl sm:text-2xl font-black font-display text-white">
                 Curso Interativo de Teclado &amp; Piano
               </h2>
-              <p className="text-xs sm:text-sm text-indigo-200/80 mt-1 max-w-2xl">
-                Aprenda a tocar com postura correta, leitura de partitura dinâmica, montagem rápida de acordes e condução elegante de inversões (Voice Leading).
-              </p>
             </div>
           </div>
+
+          <button
+            onClick={() => setIsWidescreenStage(!isWidescreenStage)}
+            className="px-4 py-2 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 hover:text-white font-mono text-xs font-bold flex items-center gap-2 border border-white/5 cursor-pointer transition-all self-start md:self-auto"
+          >
+            {isWidescreenStage ? (
+              <>
+                <Minimize2 className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Exibir Módulos</span>
+              </>
+            ) : (
+              <>
+                <Maximize2 className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Modo Palco Total (100% Largura)</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 
       {/* Grid: Grade de Módulos (Esquerda) e Painel de Aula Interativa (Direita) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Coluna 1: Grade de Lições e Módulos (4 Colunas) */}
-        <div className="lg:col-span-4 space-y-4">
-          <div className="glass-card rounded-3xl p-5 border border-white/10 space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-white/5">
-              <h3 className="text-sm font-bold font-display text-white flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-indigo-400" />
-                <span>Trilha de Aprendizado</span>
-              </h3>
-              <span className="text-[10px] font-mono text-slate-400 font-bold">
-                {KEYBOARD_COURSE_MODULES.length} Módulos
-              </span>
-            </div>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        {/* Coluna 1: Grade de Lições e Módulos */}
+        {!isWidescreenStage && (
+          <div className="lg:col-span-4 space-y-4">
+            <div className="glass-card rounded-3xl p-4 border border-white/5 space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                <h3 className="text-sm font-bold font-display text-white flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-indigo-400" />
+                  <span>Trilha de Aprendizado</span>
+                </h3>
+                <span className="text-[10px] font-mono text-slate-400 font-bold">
+                  {KEYBOARD_COURSE_MODULES.length} Módulos
+                </span>
+              </div>
 
-            <div className="space-y-4 max-h-[580px] overflow-y-auto pr-1 no-scrollbar">
-              {KEYBOARD_COURSE_MODULES.map((mod) => (
-                <div key={mod.id} className="space-y-1.5">
-                  <div className="flex items-center justify-between text-[11px] font-mono font-bold text-indigo-300 px-2">
-                    <span>{mod.code}: {mod.title}</span>
-                  </div>
+              <div className="space-y-4 max-h-[580px] overflow-y-auto pr-1 no-scrollbar">
+                {KEYBOARD_COURSE_MODULES.map((mod) => (
+                  <div key={mod.id} className="space-y-1.5">
+                    <div className="flex items-center justify-between text-[11px] font-mono font-bold text-indigo-300 px-2">
+                      <span>{mod.code}: {mod.title}</span>
+                    </div>
 
-                  <div className="space-y-1">
-                    {mod.lessons.map((lesson) => {
-                      const isSelected = activeLesson.id === lesson.id;
-                      const isDone = completedLessonIds.includes(lesson.id);
+                    <div className="space-y-1">
+                      {mod.lessons.map((lesson) => {
+                        const isSelected = activeLesson.id === lesson.id;
+                        const isDone = completedLessonIds.includes(lesson.id);
 
-                      return (
-                        <button
-                          key={lesson.id}
-                          onClick={() => handleSelectLesson(lesson, mod)}
-                          className={`w-full p-3 rounded-2xl border text-left transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                            isSelected
-                              ? 'bg-indigo-600/30 border-indigo-500 text-white shadow-md'
-                              : 'bg-white/5 border-white/5 text-slate-400 hover:text-slate-200 hover:bg-white/10'
-                          }`}
-                        >
-                          <div className="min-w-0">
-                            <div className="font-bold text-xs text-white truncate">
-                              {lesson.title}
+                        return (
+                          <button
+                            key={lesson.id}
+                            onClick={() => handleSelectLesson(lesson, mod)}
+                            className={`w-full p-2.5 rounded-2xl border text-left transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                              isSelected
+                                ? 'bg-indigo-600/30 border-indigo-500/40 text-white shadow-md'
+                                : 'bg-white/[0.02] border-white/5 text-slate-400 hover:text-white hover:bg-white/[0.06]'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 truncate">
+                              <span className={`w-2 h-2 rounded-full shrink-0 ${
+                                isDone ? 'bg-emerald-400 shadow-sm shadow-emerald-400/50' : 'bg-slate-600'
+                              }`} />
+                              <div className="truncate">
+                                <div className="text-xs font-bold truncate text-white">
+                                  {lesson.title}
+                                </div>
+                                <div className="text-[10px] text-slate-400 truncate">
+                                  {lesson.subtitle}
+                                </div>
+                              </div>
                             </div>
-                            <div className="text-[10px] text-slate-400 truncate mt-0.5">
-                              {lesson.subtitle}
-                            </div>
-                          </div>
 
-                          <div className="shrink-0 flex items-center gap-1.5">
-                            {isDone && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
-                            <ChevronRight className={`w-3.5 h-3.5 ${isSelected ? 'text-indigo-400' : 'text-slate-600'}`} />
-                          </div>
-                        </button>
-                      );
-                    })}
+                            {isDone ? (
+                              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                            ) : (
+                              <ChevronRight className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Coluna 2: Palco Interativo da Lição Atual (8 Colunas) */}
-        <div className="lg:col-span-8 space-y-4">
-          {/* Cabeçalho da Lição Ativa */}
-          <div className="glass-card rounded-3xl p-6 border border-white/10 space-y-4">
+        {/* Coluna 2 / Palco Total: Painel da Lição */}
+        <div className={isWidescreenStage ? 'lg:col-span-12 space-y-4' : 'lg:col-span-8 space-y-4'}>
+          <div className="glass-card rounded-3xl p-4 sm:p-6 border border-white/5 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <span className="text-[10px] font-mono text-indigo-400 font-bold uppercase tracking-wider block">
@@ -189,7 +213,7 @@ export const KeyboardCourseView: React.FC = () => {
             {/* Conteúdo 1: Teoria & Biomecânica da Mão */}
             {practiceTab === 'theory' && (
               <div className="space-y-4 pt-2 border-t border-white/5 animate-fade-in">
-                <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-2">
+                <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-2">
                   <h4 className="text-sm font-bold text-white flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-indigo-400" />
                     <span>{activeLesson.instructions.heading}</span>
@@ -208,13 +232,13 @@ export const KeyboardCourseView: React.FC = () => {
                 </div>
 
                 {activeLesson.instructions.fingeringTip && (
-                  <div className="p-3.5 rounded-2xl bg-cyan-950/40 border border-cyan-500/30 text-xs text-cyan-200">
+                  <div className="p-3.5 rounded-2xl bg-cyan-950/20 border border-cyan-500/20 text-xs text-cyan-200">
                     <strong className="text-cyan-300">Dica de Digitação:</strong> {activeLesson.instructions.fingeringTip}
                   </div>
                 )}
 
                 {activeLesson.instructions.postureAlert && (
-                  <div className="p-3.5 rounded-2xl bg-rose-950/40 border border-rose-500/30 text-xs text-rose-200 flex items-start gap-2">
+                  <div className="p-3.5 rounded-2xl bg-rose-950/20 border border-rose-500/20 text-xs text-rose-200 flex items-start gap-2">
                     <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
                     <div>
                       <strong className="text-rose-300">Alerta de Postura:</strong> {activeLesson.instructions.postureAlert}
@@ -222,7 +246,7 @@ export const KeyboardCourseView: React.FC = () => {
                   </div>
                 )}
 
-                {/* Teclado para Prática Livre da Lição */}
+                {/* Teclado com Rastro Synthesia (100% da Largura, Zero Scroll) */}
                 <div className="pt-2 space-y-3">
                   <MicrophonePitchBar
                     onNoteDetected={(midi) => handleNoteInput(midi)}
@@ -290,7 +314,7 @@ export const KeyboardCourseView: React.FC = () => {
                 onClick={() => handleLessonComplete(activeLesson.id)}
                 className={`px-5 py-2.5 rounded-2xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer ${
                   isCurrentCompleted
-                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                     : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30'
                 }`}
               >
