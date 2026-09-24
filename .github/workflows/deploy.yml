@@ -4,9 +4,10 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -33,7 +34,7 @@ jobs:
       - name: Instalar Dependências
         run: npm ci
 
-      - name: Executar Testes Unitários Críticos (Zero Jitter & Core Musical)
+      - name: Executar Testes Unitários Críticos
         run: npm run test:run
 
       - name: Compilar Artefatos Estáticos
@@ -41,14 +42,32 @@ jobs:
         env:
           VITE_BASE_PATH: '/${{ github.event.repository.name }}/'
 
-      - name: Configurar Páginas
-        uses: actions/configure-pages@v4
+      - name: Garantir compatibilidade com GitHub Pages (.nojekyll)
+        run: touch ./dist/.nojekyll
 
-      - name: Upload do Artefato Compilado
+      # ── Método 1: GitHub Actions Pages Moderno (com auto-ativação) ──
+      - name: Configurar Páginas (com auto-ativação)
+        id: pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+        continue-on-error: true
+
+      - name: Upload do Artefato Compilado (Actions)
         uses: actions/upload-pages-artifact@v3
         with:
           path: './dist'
+        continue-on-error: true
 
-      - name: Publicar no GitHub Pages
+      - name: Publicar via GitHub Actions Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        continue-on-error: true
+
+      # ── Método 2: Deploy Garantido na branch gh-pages (Fallback Universal) ──
+      - name: Publicar para branch gh-pages (Fallback Universal)
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          force_orphan: true
