@@ -13,6 +13,9 @@ interface Props {
   onNoteHit?: (note: ScoreNote, diffMs: number) => void;
   onLessonComplete?: () => void;
   currentMidiPressed?: MidiInputNote;
+  isPlaying?: boolean;
+  onPlayPauseToggle?: (playing: boolean) => void;
+  onTempoChange?: (tempo: number) => void;
 }
 
 export const ScrollingScoreCanvas: React.FC<Props> = ({
@@ -22,12 +25,32 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
   onNoteHit,
   onLessonComplete,
   currentMidiPressed,
+  isPlaying: controlledIsPlaying,
+  onPlayPauseToggle,
+  onTempoChange,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const lastProcessedKeyRef = useRef<string>('');
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [internalIsPlaying, setInternalIsPlaying] = useState<boolean>(false);
+  const isPlaying = controlledIsPlaying !== undefined ? controlledIsPlaying : internalIsPlaying;
+
   const [mode, setMode] = useState<'wait' | 'flow'>(initialMode);
   const [tempo, setTempo] = useState<number>(bpm);
+
+  useEffect(() => {
+    setTempo(bpm);
+  }, [bpm]);
+
+  const setIsPlaying = (playing: boolean) => {
+    setInternalIsPlaying(playing);
+    if (onPlayPauseToggle) onPlayPauseToggle(playing);
+  };
+
+  const handleTempoChange = (newBpm: number) => {
+    const clamped = Math.max(30, Math.min(220, newBpm));
+    setTempo(clamped);
+    if (onTempoChange) onTempoChange(clamped);
+  };
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [score, setScore] = useState<number>(0);
   const [streak, setStreak] = useState<number>(0);
@@ -298,7 +321,7 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
   }, [isPlaying, mode, tempo, currentIndex, notes]);
 
   const handlePlayPause = () => {
-    setIsPlaying(p => !p);
+    setIsPlaying(!isPlaying);
   };
 
   const handleReset = () => {
@@ -370,11 +393,11 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* Canvas da Partitura Deslizante */}
-      <div className="relative w-full max-w-4xl h-64 rounded-3xl overflow-hidden border border-white/15 shadow-2xl glass-panel">
+      {/* Canvas da Partitura Deslizante (Widescreen 100% com Bordas Sutis) */}
+      <div className="relative w-full h-64 rounded-3xl overflow-hidden border border-white/5 shadow-2xl glass-panel">
         <canvas
           ref={canvasRef}
-          width={800}
+          width={1200}
           height={256}
           className="w-full h-full block cursor-pointer"
           onClick={handleTapCurrent}
@@ -396,7 +419,7 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
 
       {/* Rótulo da Próxima Tecla & Dedo */}
       {isPlaying && currentTargetNote && (
-        <div className="w-full max-w-4xl px-4 py-2.5 rounded-2xl bg-indigo-950/40 border border-indigo-500/30 flex items-center justify-between text-xs text-slate-200">
+        <div className="w-full px-4 py-2.5 rounded-2xl bg-indigo-950/30 border border-indigo-500/20 flex items-center justify-between text-xs text-slate-200">
           <div className="flex items-center gap-2">
             <span className="text-slate-400 font-mono">Próxima Nota:</span>
             <span className="text-base font-black text-white font-display px-2 py-0.5 rounded-lg bg-indigo-600">
@@ -416,12 +439,12 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
         </div>
       )}
 
-      {/* Controles de Reprodução */}
-      <div className="w-full max-w-4xl flex items-center justify-between gap-4 pt-1">
-        <div className="flex items-center gap-3">
+      {/* Controles de Reprodução e Andamento */}
+      <div className="w-full flex flex-wrap items-center justify-between gap-3 pt-1">
+        <div className="flex items-center gap-2.5">
           <button
             onClick={handlePlayPause}
-            className={`px-5 py-3 rounded-2xl font-black font-display text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg transition-all cursor-pointer active:scale-95 ${
+            className={`px-5 py-2.5 rounded-2xl font-black font-display text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg transition-all cursor-pointer active:scale-95 ${
               isPlaying
                 ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/25'
                 : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/30'
@@ -430,7 +453,7 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
             {isPlaying ? (
               <>
                 <Pause className="w-4 h-4 fill-current" />
-                <span>Pausar</span>
+                <span>Pausar Partitura</span>
               </>
             ) : (
               <>
@@ -442,24 +465,38 @@ export const ScrollingScoreCanvas: React.FC<Props> = ({
 
           <button
             onClick={handleReset}
-            className="p-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white cursor-pointer transition-colors"
+            className="p-2.5 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/5 text-slate-300 hover:text-white cursor-pointer transition-colors"
             title="Reiniciar do Início"
           >
             <RotateCcw className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Andamento (BPM) */}
-        <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-2xl border border-white/10">
-          <span className="text-xs text-slate-400 font-mono">Andamento:</span>
-          <span className="text-xs font-bold font-mono text-white">{tempo} BPM</span>
+        {/* Andamento (BPM) com Steppers [- 5] e [+ 5] */}
+        <div className="flex items-center gap-2 bg-white/[0.03] px-3.5 py-1.5 rounded-2xl border border-white/5">
+          <span className="text-[11px] text-slate-400 font-mono">BPM:</span>
+          <button
+            onClick={() => handleTempoChange(tempo - 5)}
+            className="w-6 h-6 rounded-lg bg-white/5 hover:bg-white/10 text-white font-mono font-bold text-xs flex items-center justify-center cursor-pointer transition-colors"
+            title="-5 BPM"
+          >
+            -
+          </button>
+          <span className="text-xs font-bold font-mono text-white w-14 text-center">{tempo} BPM</span>
+          <button
+            onClick={() => handleTempoChange(tempo + 5)}
+            className="w-6 h-6 rounded-lg bg-white/5 hover:bg-white/10 text-white font-mono font-bold text-xs flex items-center justify-center cursor-pointer transition-colors"
+            title="+5 BPM"
+          >
+            +
+          </button>
           <input
             type="range"
             min="40"
-            max="160"
+            max="180"
             value={tempo}
-            onChange={(e) => setTempo(parseInt(e.target.value))}
-            className="w-24 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+            onChange={(e) => handleTempoChange(parseInt(e.target.value))}
+            className="w-24 sm:w-32 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-500"
           />
         </div>
       </div>
