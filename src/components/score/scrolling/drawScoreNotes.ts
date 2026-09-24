@@ -8,6 +8,8 @@ import type { ScoreNote } from '../../../core/coursesData';
 import { getNoteInfo } from '../../../core/musicTheory';
 import type { DisplayOptions, ScoreTheme, ScoreErrorEvent } from './types';
 import { SCORE_GEOMETRY, drawRoundedPill, getNoteY, getScoreNoteFingering } from './scoreGeometry';
+import { buildBeamGroups, renderBeamGroup } from '../scoreBeaming';
+import type { BeamCandidate } from '../scoreBeaming';
 
 interface DrawNotesParams {
   ctx: CanvasRenderingContext2D;
@@ -41,7 +43,8 @@ export function drawScoreNotes({
   lastError,
 }: DrawNotesParams): void {
   const isTrad = theme === 'traditional';
-  const { middleCY, trebleBaseY, trebleLineStep, trebleNoteNameY, trebleFingerY, bassNoteNameY, bassFingerY } = SCORE_GEOMETRY;
+  const { middleCY, trebleBaseY, trebleLineStep, trebleNoteNameY, trebleFingerY, bassTopY, bassLineStep, bassNoteNameY, bassFingerY } = SCORE_GEOMETRY;
+  const beamCandidates: BeamCandidate[] = [];
 
   notes.forEach((note, idx) => {
     const noteOffset = noteOffsets[idx] ?? 0;
@@ -147,8 +150,19 @@ export function drawScoreNotes({
       ctx.fill();
     }
 
-    // Haste (Stem)
-    if (!isWhole) {
+    // Coleta para agrupamento ou desenha haste simples
+    if (dur <= 0.75) {
+      beamCandidates.push({
+        id: `${idx}`,
+        x: rx,
+        y: ry,
+        duration: dur,
+        beat: note.beat ?? noteOffset,
+        clef: note.clef || (note.midi < 60 ? 'bass' : 'treble'),
+        color: noteColor,
+        alpha: noteAlpha,
+      });
+    } else if (!isWhole) {
       const isUpStem = ry > (trebleBaseY - 2 * trebleLineStep);
       const stemX = isUpStem ? rx + 10 : rx - 10;
       const stemYEnd = isUpStem ? ry - 38 : ry + 38;
@@ -157,13 +171,6 @@ export function drawScoreNotes({
       ctx.moveTo(stemX, ry);
       ctx.lineTo(stemX, stemYEnd);
       ctx.stroke();
-
-      if (dur <= 0.75) {
-        ctx.beginPath();
-        ctx.moveTo(stemX, stemYEnd);
-        ctx.quadraticCurveTo(stemX + 12, stemYEnd + 14, stemX + 2, stemYEnd + 24);
-        ctx.stroke();
-      }
     }
 
     // Nome da Nota e Dedilhado
@@ -194,6 +201,24 @@ export function drawScoreNotes({
 
     ctx.restore();
   });
+
+  // Agrupamento de Figuras Rítmicas (Beaming de Colcheias e Semicolcheias)
+  if (beamCandidates.length > 0) {
+    const defaultColor = isTrad ? '#09090b' : '#e2e8f0';
+    const beamGroups = buildBeamGroups(beamCandidates, {
+      getMiddleLineY: (clef) => clef === 'treble'
+        ? trebleBaseY - 2 * trebleLineStep
+        : bassTopY + 2 * bassLineStep,
+      stemOffset: 10,
+      minStemLength: 36,
+      beamThickness: 4.2,
+      beatsPerMeasure: 4,
+    });
+
+    beamGroups.forEach(group => {
+      renderBeamGroup(ctx, group, defaultColor, 2.0);
+    });
+  }
 
   // Projeta a nota tocada incorretamente em vermelho na linha de ataque para o aluno ver o erro
   if (lastError && (performance.now() - lastError.timestamp < 1400)) {

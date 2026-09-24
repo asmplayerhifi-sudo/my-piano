@@ -5,6 +5,8 @@
  */
 
 import type { FormalScoreNote, ScoreSheetRenderOptions } from './scoreSheetTypes';
+import { buildBeamGroups, renderBeamGroup } from '../scoreBeaming';
+import type { BeamCandidate } from '../scoreBeaming';
 
 interface DrawSheetParams {
   ctx: CanvasRenderingContext2D;
@@ -221,8 +223,8 @@ export function drawFormalScoreSheet({
       ctx.fill();
     }
 
-    // Haste (Stem) se não for semibreve
-    if (!isWhole) {
+    // Haste (Stem) apenas para Mínimas e Semínimas (não agrupáveis)
+    if (!isWhole && dur > 0.75) {
       const middleLineY = note.clef === 'treble' ? 84 : 208;
       const isUp = noteY >= middleLineY;
       const stemX = isUp ? noteX + 7 : noteX - 7;
@@ -232,14 +234,6 @@ export function drawFormalScoreSheet({
       ctx.moveTo(stemX, noteY);
       ctx.lineTo(stemX, stemY);
       ctx.stroke();
-
-      // Bandeirola para colcheias / semicolcheias
-      if (dur <= 0.5) {
-        ctx.beginPath();
-        ctx.moveTo(stemX, stemY);
-        ctx.quadraticCurveTo(stemX + 8, stemY + 10, stemX + 2, stemY + 18);
-        ctx.stroke();
-      }
     }
 
     // Rótulo da Nota (opcional)
@@ -255,6 +249,42 @@ export function drawFormalScoreSheet({
 
     ctx.restore();
   });
+
+  // 4.2 Agrupamento Formal de Figuras (Beaming de Colcheias e Semicolcheias)
+  const beamCandidates: BeamCandidate[] = [];
+  notes.forEach(note => {
+    const noteX = START_X + note.beat * pixelsPerBeat - scrollLeft;
+    if (noteX < -30 || noteX > width + 40) return;
+    const dur = note.duration;
+    if (dur <= 0.75) {
+      const noteY = getDiatonicY(note.noteName, note.clef);
+      const isSelected = note.id === selectedNoteId;
+      beamCandidates.push({
+        id: note.id,
+        x: noteX,
+        y: noteY,
+        duration: dur,
+        beat: note.beat,
+        clef: note.clef,
+        color: isSelected ? '#6366f1' : (isPaper ? '#09090b' : '#e2e8f0'),
+      });
+    }
+  });
+
+  if (beamCandidates.length > 0) {
+    const defaultColor = isPaper ? '#09090b' : '#e2e8f0';
+    const beamGroups = buildBeamGroups(beamCandidates, {
+      getMiddleLineY: (clef) => clef === 'treble' ? 84 : 208,
+      stemOffset: 7,
+      minStemLength: 30,
+      beamThickness: 3.8,
+      beatsPerMeasure: beatsPerMeasure || timeSignature[0] || 4,
+    });
+
+    beamGroups.forEach(group => {
+      renderBeamGroup(ctx, group, defaultColor, 1.6);
+    });
+  }
 
   // 5. Cursor de Reprodução (Playhead)
   if (playheadBeat !== null) {
