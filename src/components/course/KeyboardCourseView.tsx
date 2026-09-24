@@ -16,13 +16,14 @@ import {
   Minimize2,
   Expand,
   Shrink,
+  Music,
 } from 'lucide-react';
 
 export const KeyboardCourseView: React.FC = () => {
   const [selectedModule, setSelectedModule] = useState<CourseModule>(KEYBOARD_COURSE_MODULES[0]);
   const [activeLesson, setActiveLesson] = useState<CourseLesson>(KEYBOARD_COURSE_MODULES[0].lessons[0]);
   const [completedLessonIds, setCompletedLessonIds] = useState<string[]>([]);
-  const [practiceTab, setPracticeTab] = useState<'theory' | 'score' | 'chords'>('theory');
+  const [practiceTab, setPracticeTab] = useState<'all' | 'theory' | 'score' | 'chords'>('all');
   const [lastMidiEvent, setLastMidiEvent] = useState<{ midi: number; timestamp: number } | null>(null);
   const [micHearingMidi, setMicHearingMidi] = useState<number | null>(null);
   const [isWidescreenStage, setIsWidescreenStage] = useState<boolean>(false);
@@ -92,13 +93,7 @@ export const KeyboardCourseView: React.FC = () => {
   const handleSelectLesson = (lesson: CourseLesson, mod: CourseModule) => {
     setSelectedModule(mod);
     setActiveLesson(lesson);
-    if (lesson.scoreTrack) {
-      setPracticeTab('score');
-    } else if (lesson.targetChords) {
-      setPracticeTab('chords');
-    } else {
-      setPracticeTab('theory');
-    }
+    setPracticeTab('all');
   };
 
   const handleLessonComplete = (lessonId: string) => {
@@ -289,6 +284,18 @@ export const KeyboardCourseView: React.FC = () => {
                 {/* Seletor de Modo da Lição */}
                 <div className="flex bg-black/40 p-1 rounded-2xl border border-white/5 text-xs font-bold">
                   <button
+                    onClick={() => setPracticeTab('all')}
+                    className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+                      practiceTab === 'all'
+                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Aula Completa (Tudo)</span>
+                  </button>
+
+                  <button
                     onClick={() => setPracticeTab('theory')}
                     className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
                       practiceTab === 'theory' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
@@ -349,8 +356,8 @@ export const KeyboardCourseView: React.FC = () => {
               </div>
             </div>
 
-            {/* Conteúdo 1: Teoria & Biomecânica da Mão */}
-            {practiceTab === 'theory' && (
+            {/* Bloco 1: Teoria Didática, Biomecânica & Postura */}
+            {(practiceTab === 'all' || practiceTab === 'theory') && (
               <div className="space-y-4 pt-2 border-t border-white/5 animate-fade-in">
                 <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-2">
                   <h4 className="text-sm font-bold text-white flex items-center gap-2">
@@ -370,51 +377,39 @@ export const KeyboardCourseView: React.FC = () => {
                   </ul>
                 </div>
 
-                {activeLesson.instructions.fingeringTip && (
-                  <div className="p-3.5 rounded-2xl bg-cyan-950/20 border border-cyan-500/20 text-xs text-cyan-200">
-                    <strong className="text-cyan-300">Dica de Digitação:</strong> {activeLesson.instructions.fingeringTip}
+                {(activeLesson.instructions.fingeringTip || activeLesson.instructions.postureAlert) && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {activeLesson.instructions.fingeringTip && (
+                      <div className="p-3.5 rounded-2xl bg-cyan-950/20 border border-cyan-500/20 text-xs text-cyan-200">
+                        <strong className="text-cyan-300">Dica de Digitação:</strong> {activeLesson.instructions.fingeringTip}
+                      </div>
+                    )}
+
+                    {activeLesson.instructions.postureAlert && (
+                      <div className="p-3.5 rounded-2xl bg-rose-950/20 border border-rose-500/20 text-xs text-rose-200 flex items-start gap-2">
+                        <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                        <div>
+                          <strong className="text-rose-300">Alerta de Postura:</strong> {activeLesson.instructions.postureAlert}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
-
-                {activeLesson.instructions.postureAlert && (
-                  <div className="p-3.5 rounded-2xl bg-rose-950/20 border border-rose-500/20 text-xs text-rose-200 flex items-start gap-2">
-                    <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                    <div>
-                      <strong className="text-rose-300">Alerta de Postura:</strong> {activeLesson.instructions.postureAlert}
-                    </div>
-                  </div>
-                )}
-
-                {/* Teclado com Rastro Synthesia (100% da Largura, Zero Scroll) */}
-                <div className="pt-2 space-y-3">
-                  <MicrophonePitchBar
-                    onNoteDetected={(midi) => handleNoteInput(midi)}
-                    onNoteHold={(midi) => setMicHearingMidi(midi)}
-                  />
-
-                  <div>
-                    <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block mb-2 font-bold">
-                      Pratique as Teclas e Dedilhado no Teclado Virtual ou no seu Piano Real:
-                    </span>
-                    <PianoKeyboard
-                      startOctave={2}
-                      octaveCount={3}
-                      allowOctaveControls={true}
-                      activeExternalNotes={micHearingMidi !== null ? [micHearingMidi] : (lastMidiEvent ? [lastMidiEvent.midi] : [])}
-                      onKeyPlay={(midi) => handleNoteInput(midi)}
-                    />
-                  </div>
-                </div>
               </div>
             )}
 
-            {/* Conteúdo 2: Motor de Partitura Deslizante */}
-            {practiceTab === 'score' && activeLesson.scoreTrack && (
-              <div className="space-y-4 pt-2 border-t border-white/5 animate-fade-in">
-                <MicrophonePitchBar
-                  onNoteDetected={(midi) => handleNoteInput(midi)}
-                  onNoteHold={(midi) => setMicHearingMidi(midi)}
-                />
+            {/* Bloco 2: Partitura Deslizante Interativa (se a lição possuir scoreTrack) */}
+            {(practiceTab === 'all' || practiceTab === 'score') && activeLesson.scoreTrack && (
+              <div className="space-y-3 pt-3 border-t border-white/5 animate-fade-in">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono font-bold uppercase text-cyan-400 flex items-center gap-1.5">
+                    <Music className="w-3.5 h-3.5" />
+                    <span>Partitura Deslizante Interativa (Grand Staff)</span>
+                  </span>
+                  <span className="text-[11px] text-slate-400 font-mono">
+                    {activeLesson.scoreTrack.length} notas no compasso
+                  </span>
+                </div>
 
                 <ScrollingScoreCanvas
                   notes={activeLesson.scoreTrack}
@@ -423,10 +418,22 @@ export const KeyboardCourseView: React.FC = () => {
                   currentMidiPressed={lastMidiEvent}
                   onLessonComplete={() => handleLessonComplete(activeLesson.id)}
                 />
+              </div>
+            )}
 
-                <div className="pt-2">
+            {/* Bloco 3: Palco de Execução no Teclado Virtual / Real com Escuta Acústica */}
+            {(practiceTab === 'all' || practiceTab === 'theory' || practiceTab === 'score') && (
+              <div className="pt-3 space-y-3 border-t border-white/5 animate-fade-in">
+                <MicrophonePitchBar
+                  onNoteDetected={(midi) => handleNoteInput(midi)}
+                  onNoteHold={(midi) => setMicHearingMidi(midi)}
+                />
+
+                <div>
                   <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block mb-2 font-bold">
-                    Toque no Teclado Virtual, via USB-MIDI ou no seu Piano Real (Microfone Ativo):
+                    {activeLesson.scoreTrack
+                      ? 'Toque na Partitura acima via Teclado Virtual, USB-MIDI ou no seu Piano Real (Microfone Ativo):'
+                      : 'Pratique as Teclas e Dedilhado no Teclado Virtual ou no seu Piano Real:'}
                   </span>
                   <PianoKeyboard
                     startOctave={2}
@@ -439,9 +446,9 @@ export const KeyboardCourseView: React.FC = () => {
               </div>
             )}
 
-            {/* Conteúdo 3: Acelerador de Acordes & Inversões */}
-            {practiceTab === 'chords' && (
-              <div className="pt-2 border-t border-white/5 animate-fade-in">
+            {/* Bloco 4: Acelerador de Acordes & Inversões */}
+            {(practiceTab === 'all' || practiceTab === 'chords') && activeLesson.targetChords && (
+              <div className="pt-3 border-t border-white/5 animate-fade-in">
                 <FastChordTrainer />
               </div>
             )}

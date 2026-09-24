@@ -128,7 +128,7 @@ export const GuitarCourseView: React.FC = () => {
   const [selectedModule, setSelectedModule] = useState<CourseModule>(GUITAR_COURSE_MODULES[0]);
   const [activeLesson, setActiveLesson] = useState<CourseLesson>(GUITAR_COURSE_MODULES[0].lessons[0]);
   const [completedLessonIds, setCompletedLessonIds] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<'theory' | 'score' | 'fretboard' | 'transitions'>('theory');
+  const [activeTab, setActiveTab] = useState<'all' | 'theory' | 'score' | 'fretboard' | 'transitions'>('all');
   const [selectedChordKey, setSelectedChordKey] = useState<string>('C');
   const [selectedCagedLetter, setSelectedCagedLetter] = useState<'C' | 'A' | 'G' | 'E' | 'D'>('C');
   const [isWidescreenStage, setIsWidescreenStage] = useState<boolean>(false);
@@ -199,13 +199,7 @@ export const GuitarCourseView: React.FC = () => {
   const handleSelectLesson = (lesson: CourseLesson, mod: CourseModule) => {
     setSelectedModule(mod);
     setActiveLesson(lesson);
-    if (lesson.scoreTrack) {
-      setActiveTab('score');
-    } else if (mod.code === 'V4' || mod.code === 'V5') {
-      setActiveTab('fretboard');
-    } else {
-      setActiveTab('theory');
-    }
+    setActiveTab('all');
   };
 
   const handleLessonComplete = (lessonId: string) => {
@@ -401,6 +395,18 @@ export const GuitarCourseView: React.FC = () => {
                 {/* Botões de Alternância de Abas */}
                 <div className="flex bg-black/40 p-1 rounded-2xl border border-white/5 text-xs font-bold">
                   <button
+                    onClick={() => setActiveTab('all')}
+                    className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+                      activeTab === 'all'
+                        ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-md'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Aula Completa (Tudo)</span>
+                  </button>
+
+                  <button
                     onClick={() => setActiveTab('theory')}
                     className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
                       activeTab === 'theory' ? 'bg-amber-600 text-slate-950 font-black shadow-md' : 'text-slate-400 hover:text-white'
@@ -467,8 +473,8 @@ export const GuitarCourseView: React.FC = () => {
               </div>
             </div>
 
-            {/* Conteúdo 1: Teoria Didática da Lição */}
-            {activeTab === 'theory' && (
+            {/* Bloco 1: Teoria Didática da Lição */}
+            {(activeTab === 'all' || activeTab === 'theory') && (
               <div className="space-y-4 pt-2 border-t border-white/5 animate-fade-in">
                 <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-2">
                   <h4 className="text-sm font-bold text-white flex items-center gap-2">
@@ -488,38 +494,30 @@ export const GuitarCourseView: React.FC = () => {
                   </ul>
                 </div>
 
-                {activeLesson.instructions.fingeringTip && (
-                  <div className="p-3.5 rounded-2xl bg-amber-950/20 border border-amber-500/20 text-xs text-amber-200">
-                    <strong className="text-amber-300">Dica de Digitação:</strong> {activeLesson.instructions.fingeringTip}
+                {(activeLesson.instructions.fingeringTip || activeLesson.instructions.postureAlert) && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {activeLesson.instructions.fingeringTip && (
+                      <div className="p-3.5 rounded-2xl bg-amber-950/20 border border-amber-500/20 text-xs text-amber-200">
+                        <strong className="text-amber-300">Dica de Digitação:</strong> {activeLesson.instructions.fingeringTip}
+                      </div>
+                    )}
+
+                    {activeLesson.instructions.postureAlert && (
+                      <div className="p-3.5 rounded-2xl bg-rose-950/20 border border-rose-500/20 text-xs text-rose-200 flex items-start gap-2">
+                        <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                        <div>
+                          <strong className="text-rose-300">Alerta de Postura:</strong> {activeLesson.instructions.postureAlert}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
-
-                {activeLesson.instructions.postureAlert && (
-                  <div className="p-3.5 rounded-2xl bg-rose-950/20 border border-rose-500/20 text-xs text-rose-200 flex items-start gap-2">
-                    <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                    <div>
-                      <strong className="text-rose-300">Alerta de Postura:</strong> {activeLesson.instructions.postureAlert}
-                    </div>
-                  </div>
-                )}
-
-                {/* Braço interativo demonstrativo */}
-                <div className="pt-2">
-                  <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block mb-2 font-bold">
-                    Visualização no Braço do Violão:
-                  </span>
-                  <FretboardView
-                    chordShape={activeChordShape}
-                    fretCount={14}
-                    showNoteNames={true}
-                  />
-                </div>
               </div>
             )}
 
-            {/* Conteúdo 2: Motor de Partitura & Tablatura com Detecção por Microfone */}
-            {activeTab === 'score' && activeLesson.scoreTrack && (
-              <div className="space-y-4 pt-2 border-t border-white/5 animate-fade-in">
+            {/* Bloco 2: Motor de Partitura & Tablatura com Detecção por Microfone */}
+            {(activeTab === 'all' || activeTab === 'score') && activeLesson.scoreTrack && (
+              <div className="space-y-4 pt-3 border-t border-white/5 animate-fade-in">
                 <MicrophonePitchBar
                   onNoteDetected={(midi) => handleNoteInput(midi)}
                 />
@@ -532,23 +530,12 @@ export const GuitarCourseView: React.FC = () => {
                   currentMidiPressed={lastMidiEvent}
                   onLessonComplete={() => handleLessonComplete(activeLesson.id)}
                 />
-
-                <div className="pt-2">
-                  <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block mb-2 font-bold">
-                    Posição das Notas e Acordes no Braço:
-                  </span>
-                  <FretboardView
-                    chordShape={activeChordShape}
-                    fretCount={14}
-                    showNoteNames={true}
-                  />
-                </div>
               </div>
             )}
 
-            {/* Conteúdo 3: Braço & Mapeamento de Shapes */}
-            {activeTab === 'fretboard' && (
-              <div className="space-y-4 pt-2 border-t border-white/5 animate-fade-in">
+            {/* Bloco 3: Braço do Violão & Mapeamento de Shapes */}
+            {(activeTab === 'all' || activeTab === 'fretboard' || activeTab === 'theory') && (
+              <div className="space-y-4 pt-3 border-t border-white/5 animate-fade-in">
                 {/* Seletor de Shapes / CAGED */}
                 <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-black/40 border border-white/5">
                   <span className="text-xs font-mono text-amber-400 font-bold flex items-center gap-2">
@@ -602,9 +589,9 @@ export const GuitarCourseView: React.FC = () => {
               </div>
             )}
 
-            {/* Conteúdo 4: Treino de Trocas com Dedo Âncora */}
-            {activeTab === 'transitions' && (
-              <div className="space-y-4 pt-2 border-t border-white/5 animate-fade-in">
+            {/* Bloco 4: Treino de Trocas com Dedo Âncora */}
+            {(activeTab === 'transitions' || (activeTab === 'all' && (selectedModule.code === 'V4' || activeLesson.id.includes('v4')))) && (
+              <div className="space-y-4 pt-3 border-t border-white/5 animate-fade-in">
                 <div className="p-4 rounded-2xl bg-cyan-950/20 border border-cyan-500/20 space-y-2">
                   <h4 className="text-sm font-bold text-white flex items-center gap-2">
                     <Zap className="w-4 h-4 text-cyan-400" />
@@ -627,14 +614,6 @@ export const GuitarCourseView: React.FC = () => {
                       </p>
                     </div>
                   </div>
-                </div>
-
-                <div className="pt-2">
-                  <FretboardView
-                    chordShape={COMMON_OPEN_CHORDS['C']}
-                    fretCount={14}
-                    showNoteNames={true}
-                  />
                 </div>
               </div>
             )}
