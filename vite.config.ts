@@ -3,8 +3,8 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
-export default defineConfig({
-  base: process.env.VITE_BASE_PATH || './',
+export default defineConfig(({ command }) => ({
+  base: command === 'build' ? (process.env.VITE_BASE_PATH || './') : '/',
   plugins: [
     react(),
     tailwindcss(),
@@ -14,4 +14,4 @@ export default defineConfig({
       ignored: ['**/arquivos/**', '**/android/**', '**/release-apk/**', '**/*.md'],
     },
   },
-})
+}))
