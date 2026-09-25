@@ -251,6 +251,7 @@ export const IntervalLaboratory: React.FC<Props> = ({
       window.removeEventListener('resize', updateSize);
       if (resizeObserver) resizeObserver.disconnect();
       if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
+      soundEngine.stopAllNotes(0.01);
     };
   }, []);
 
@@ -273,13 +274,14 @@ export const IntervalLaboratory: React.FC<Props> = ({
     return getNoteInfo(targetMidi, false, octaveStandard);
   }, [targetMidi, octaveStandard]);
 
-  // Reprodução sonora acústica
+  // Reprodução sonora acústica com controle estrito de sustain (REQ-BUG-AUDIO-REPLAY-REPERTOIRE-01.3)
   const playInterval = async (mode: 'melodic' | 'harmonic') => {
     await soundEngine.ensureAudioReady();
 
     if (timeoutRef.current) {
       window.clearTimeout(timeoutRef.current);
     }
+    soundEngine.stopAllNotes(0.01);
 
     if (mode === 'melodic') {
       // 1. Toca nota fundamental
@@ -299,9 +301,10 @@ export const IntervalLaboratory: React.FC<Props> = ({
           soundEngine.playPianoNote(targetMidi, 1.1);
         }
 
-        // Limpa iluminação após 1.1s
+        // Limpa iluminação e cessa sustain/pedal após a nota final
         timeoutRef.current = window.setTimeout(() => {
           setActiveSoundingMidis([]);
+          soundEngine.stopAllNotes(0.05);
         }, 1100);
       }, 450);
     } else {
@@ -317,6 +320,7 @@ export const IntervalLaboratory: React.FC<Props> = ({
 
       timeoutRef.current = window.setTimeout(() => {
         setActiveSoundingMidis([]);
+        soundEngine.stopAllNotes(0.05);
       }, 1300);
     }
   };

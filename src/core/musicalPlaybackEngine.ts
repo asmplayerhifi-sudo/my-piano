@@ -32,6 +32,7 @@ export type PositionTickListener = (pos: MusicalTimePosition) => void;
 export type BeatTickListener = (measure: number, beat: number, isDownbeat: boolean) => void;
 export type ActiveNotesListener = (midiNotes: number[]) => void;
 export type PlaybackStateListener = (isPlaying: boolean) => void;
+export type TrackEndedListener = () => void;
 
 export class MusicalPlaybackEngine {
   private notes: ScoreNote[] = [];
@@ -43,6 +44,7 @@ export class MusicalPlaybackEngine {
 
   private startBeat = 0;
   private startTimeMs = 0;
+  private startAudioContextTime = 0;
   private lastEvaluatedBeat = -1;
   private playedNotes = new Set<number>();
   private playedChords = new Set<number>();
@@ -60,6 +62,7 @@ export class MusicalPlaybackEngine {
   private beatTickListeners = new Set<BeatTickListener>();
   private activeNotesListeners = new Set<ActiveNotesListener>();
   private stateListeners = new Set<PlaybackStateListener>();
+  private trackEndedListeners = new Set<TrackEndedListener>();
 
   constructor() {
     this.updateTimeSignature(this.timeSignature);
@@ -75,7 +78,12 @@ export class MusicalPlaybackEngine {
   }
 
   public setSustainMode(mode: ScoreSustainMode) {
-    this.sustainMode = mode;
+    if (this.sustainMode !== mode) {
+      this.sustainMode = mode;
+      if (mode === 'off') {
+        soundEngine.cancelSustainedNotes(0.010);
+      }
+    }
   }
 
   public setInstrument(inst: 'piano' | 'guitar') {
@@ -172,6 +180,8 @@ export class MusicalPlaybackEngine {
       const currentBeat = this.getCurrentBeat();
       this.startBeat = currentBeat;
       this.startTimeMs = typeof performance !== 'undefined' ? performance.now() : Date.now();
+      const ctx = soundEngine.getAudioContext();
+      this.startAudioContextTime = ctx ? ctx.currentTime : 0;
     }
     this.bpm = clamped;
     this.notifyPosition();
@@ -182,6 +192,8 @@ export class MusicalPlaybackEngine {
       this.startBeat = Math.max(0, fromBeat);
     }
     this.startTimeMs = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const ctx = soundEngine.getAudioContext();
+    this.startAudioContextTime = ctx ? ctx.currentTime : 0;
     this.isPlaying = true;
     this.lastEvaluatedBeat = this.startBeat - 0.001;
     this.lastTickedIntegerBeat = Math.floor(this.startBeat) - 1;
@@ -239,6 +251,8 @@ export class MusicalPlaybackEngine {
     const clamped = Math.max(0, targetBeat);
     this.startBeat = clamped;
     this.startTimeMs = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const ctx = soundEngine.getAudioContext();
+    this.startAudioContextTime = ctx ? ctx.currentTime : 0;
     this.lastEvaluatedBeat = clamped - 0.001;
     this.lastTickedIntegerBeat = Math.floor(clamped) - 1;
 
@@ -350,9 +364,10 @@ export class MusicalPlaybackEngine {
     const prevBeat = this.lastEvaluatedBeat;
     this.lastEvaluatedBeat = currentBeat;
 
-    // 1. Ticks do Metrônomo (travado em fase no compasso)
+    // 1. Ticks do Metrônomo (travado em fase no compasso e sincronizado com precisão de hardware WebAudio)
     const currentIntBeat = Math.floor(currentBeat);
     if (currentIntBeat > this.lastTickedIntegerBeat) {
+      const ctx = soundEngine.getAudioContext();
       for (let b = this.lastTickedIntegerBeat + 1; b <= currentIntBeat; b++) {
         const m = Math.floor(b / this.beatsPerMeasure) + 1;
         const beatNum = (b % this.beatsPerMeasure) + 1;
@@ -361,11 +376,18 @@ export class MusicalPlaybackEngine {
         if (this.metronomeEnabled) {
           const soundType = metronomeEngine.getSnapshot().soundType || 'cowbell';
           const volume = (metronomeEngine.getSnapshot().volume / 100) * 0.95;
+          const targetAudioTime = this.startAudioContextTime > 0
+            ? this.startAudioContextTime + (b - this.startBeat) * (60 / this.bpm)
+            : undefined;
+          const playTime = ctx && targetAudioTime !== undefined
+            ? Math.max(ctx.currentTime, targetAudioTime)
+            : undefined;
+
           accompanimentSynthesizer.playMetronomeSound(
             soundType,
             isDownbeat,
             false,
-            undefined,
+            playTime,
             isDownbeat ? volume : volume * 0.8
           );
         }
@@ -417,18 +439,19 @@ export class MusicalPlaybackEngine {
       this.activeNotesListeners.forEach(fn => fn(activeMidisInThisTick));
     }
 
-    // 3. Verifica Fim da Obra
+    // 3. Verifica Fim da Obra (REQ-BUG-AUDIO-REPLAY-REPERTOIRE-01.2)
     const totalScoreBeats = this.notes.reduce((max, n, i) => {
       const off = this.noteOffsets[i] ?? 0;
       return Math.max(max, off + (n.duration || 1));
     }, 0);
 
-    if (totalScoreBeats > 0 && currentBeat >= totalScoreBeats + 0.5) {
+    if (totalScoreBeats > 0 && currentBeat >= totalScoreBeats + 0.3) {
       if (this.loopMode === 'repeat') {
         this.play(0);
       } else {
-        this.pause();
-        this.resetPlaybackPosition();
+        this.stop();
+        this.notifyTrackEnded();
+        return;
       }
     }
 
@@ -456,6 +479,11 @@ export class MusicalPlaybackEngine {
     return () => this.stateListeners.delete(listener);
   }
 
+  public onTrackEnded(listener: TrackEndedListener): () => void {
+    this.trackEndedListeners.add(listener);
+    return () => this.trackEndedListeners.delete(listener);
+  }
+
   private notifyPosition() {
     const pos = this.getPosition();
     this.positionListeners.forEach(fn => fn(pos));
@@ -463,6 +491,16 @@ export class MusicalPlaybackEngine {
 
   private notifyState() {
     this.stateListeners.forEach(fn => fn(this.isPlaying));
+  }
+
+  private notifyTrackEnded() {
+    this.trackEndedListeners.forEach(fn => {
+      try {
+        fn();
+      } catch (err) {
+        console.error('Erro em trackEndedListener:', err);
+      }
+    });
   }
 }
 

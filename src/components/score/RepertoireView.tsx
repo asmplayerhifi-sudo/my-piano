@@ -64,6 +64,8 @@ export const RepertoireView: React.FC = () => {
   const octaveStandard = useOctaveStandard();
 
 
+  const [showCompletionBanner, setShowCompletionBanner] = useState<boolean>(false);
+
   // Sincroniza sustain com o motor musical unificado
   const handleSustainOptionChange = (mode: ScoreSustainMode) => {
     setSustainOption(mode);
@@ -72,6 +74,7 @@ export const RepertoireView: React.FC = () => {
 
   // Atualiza tempo recomendado ao trocar de música
   const handleSelectSong = (song: RepertoireSong) => {
+    setShowCompletionBanner(false);
     soundEngine.stopAllNotes();
     musicalPlaybackEngine.stop();
     setIsPlaying(false);
@@ -157,10 +160,12 @@ export const RepertoireView: React.FC = () => {
       setIsPlaying(false);
       setActiveDemoMidi([]);
     } else {
+      setShowCompletionBanner(false);
       musicalPlaybackEngine.loadScore(sortedScoreTrack, activeSong.timeSignature, tempo);
       musicalPlaybackEngine.setSustainMode(sustainOption);
       musicalPlaybackEngine.setMetronomeEnabled(metronome.isPlaying);
       musicalPlaybackEngine.setLoopMode(playbackEndMode);
+      // Se a música atingiu o final, reinicia do primeiro compasso (Compasso 1, time 0.0s) com 1 clique (REQ-BUG-AUDIO-REPLAY-REPERTOIRE-01.2)
       const startIdx = currentNoteIdx >= sortedScoreTrack.length ? 0 : currentNoteIdx;
       const startBeat = noteOffsets[startIdx] ?? 0;
       musicalPlaybackEngine.play(startBeat);
@@ -169,6 +174,7 @@ export const RepertoireView: React.FC = () => {
   };
 
   const handleResetPlayback = () => {
+    setShowCompletionBanner(false);
     musicalPlaybackEngine.stop();
     setIsPlaying(false);
     setActiveDemoMidi([]);
@@ -202,9 +208,25 @@ export const RepertoireView: React.FC = () => {
     }
   };
 
-  // Limpeza de timers e metrônomo ao desmontar
+  // Sincronização estrita de ciclo de vida do player e evento de conclusão da obra (REQ-BUG-AUDIO-REPLAY-REPERTOIRE-01.2)
   useEffect(() => {
+    const unsubState = musicalPlaybackEngine.onStateChange((playing) => {
+      setIsPlaying(playing);
+      if (!playing) {
+        setActiveDemoMidi([]);
+      }
+    });
+
+    const unsubEnded = musicalPlaybackEngine.onTrackEnded(() => {
+      setIsPlaying(false);
+      setCurrentNoteIdx(0);
+      setActiveDemoMidi([]);
+      setShowCompletionBanner(true);
+    });
+
     return () => {
+      unsubState();
+      unsubEnded();
       musicalPlaybackEngine.stop();
       metronomeEngine.stop();
     };
@@ -279,7 +301,7 @@ export const RepertoireView: React.FC = () => {
               ) : (
                 <>
                   <Play className="w-4 h-4 fill-current" />
-                  <span>Tocar Música</span>
+                  <span>Reproduzir</span>
                 </>
               )}
             </button>
@@ -462,6 +484,45 @@ export const RepertoireView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Notificação Visual de Fim da Música (REQ-BUG-AUDIO-REPLAY-REPERTOIRE-01.2) */}
+      {showCompletionBanner && (
+        <div className="p-3.5 px-4 sm:px-5 rounded-2xl bg-gradient-to-r from-emerald-950/90 via-[#0a2318]/95 to-[#06150e]/90 border border-emerald-500/40 shadow-2xl backdrop-blur-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex items-center gap-3">
+            <span className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0">
+              <Sparkles className="w-4 h-4 text-emerald-400 animate-pulse" />
+            </span>
+            <div className="text-xs">
+              <span className="font-bold text-emerald-200">
+                Música concluída! Precisão: 100%
+              </span>
+              <span className="text-emerald-400/80 ml-1.5 hidden md:inline">
+                | Clique em <strong className="text-white font-bold">[▶ Reproduzir]</strong> para ouvir novamente.
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+            <button
+              onClick={() => {
+                setShowCompletionBanner(false);
+                handleTogglePlayPause();
+              }}
+              className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-500/20 transition-all cursor-pointer active:scale-95"
+            >
+              <Play className="w-3.5 h-3.5 fill-current" />
+              <span>Reproduzir Novamente</span>
+            </button>
+            <button
+              onClick={() => setShowCompletionBanner(false)}
+              className="p-1.5 rounded-xl text-emerald-400/70 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+              title="Fechar notificação"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 2. Informações de Contexto & Acordes (Layout Adaptativo: Abas no Mobile, 3 Colunas no Tablet/Desktop) */}
       {/* Visualização para Telas Maiores (Tablet / Computador >= 768px) */}

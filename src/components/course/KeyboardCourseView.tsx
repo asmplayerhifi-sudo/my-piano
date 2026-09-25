@@ -289,6 +289,7 @@ export const KeyboardCourseView: React.FC = () => {
       pedagogicalTip,
     });
 
+    soundEngine.stopAllNotes(0.01);
     if (accompanimentStore.getSnapshot().isPlaying) {
       accompanimentStore.stop();
       setIsAccompanimentPlaying(false);

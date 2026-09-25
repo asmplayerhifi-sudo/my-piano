@@ -243,6 +243,16 @@ class MetronomeEngine {
     const clamped = Math.max(30, Math.min(280, Math.round(newBpm)));
     if (this.state.bpm !== clamped) {
       this.updateState({ bpm: clamped });
+      // Se estiver tocando de forma autônoma, recalcula nextNoteTime para evitar drift e cliques acumulados
+      if (this.state.isPlaying && !this.isPlaybackDriven) {
+        const ctx = soundEngine.getAudioContext();
+        if (ctx) {
+          const now = ctx.currentTime;
+          if (this.nextNoteTime > now + (60.0 / clamped)) {
+            this.nextNoteTime = now + 0.01;
+          }
+        }
+      }
     }
   }
 
@@ -299,6 +309,12 @@ class MetronomeEngine {
     if (this.isPlaybackDriven) return;
     const ctx = soundEngine.getAudioContext();
     if (!ctx) return;
+
+    // Proteção anti-burst: se o próximo tempo estiver defasado (abaixo do tempo atual do contexto),
+    // alinha instantaneamente ao tempo atual para evitar disparo em rajada de cliques acumulados
+    if (this.nextNoteTime < ctx.currentTime - 0.05) {
+      this.nextNoteTime = ctx.currentTime;
+    }
 
     while (this.nextNoteTime < ctx.currentTime + this.scheduleAheadSec) {
       this.scheduleBeat(this.scheduledBeat, this.nextNoteTime);

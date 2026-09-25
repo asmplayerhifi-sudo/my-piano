@@ -102,6 +102,17 @@ export const TIMBRES: TimbreDefinition[] = [
 // Engine de Áudio Multi-Timbre de Alta Fidelidade
 // ────────────────────────────────────────────────────────────────────────────
 
+export interface ActiveVoice {
+  id: number;
+  midi: number;
+  nodes: AudioNode[];
+  gainNode: GainNode;
+  stopTimeout?: number;
+  startTime: number;
+  isSustained: boolean;
+  released?: boolean;
+}
+
 class SoundEngine {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
@@ -112,17 +123,11 @@ class SoundEngine {
   private isMuted = false;
   private currentTimbre: TimbreId = 'grand_piano';
 
-  private activeVoices: Map<number, {
-    nodes: AudioNode[];
-    gainNode: GainNode;
-    stopTimeout?: number;
-  }> = new Map();
-
-  private scheduledVoices: Set<{
-    nodes: AudioNode[];
-    gainNode: GainNode;
-    stopTimeout?: number;
-  }> = new Set();
+  public static readonly MAX_VOICES = 32;
+  private voiceCounter = 0;
+  private activeVoiceList: ActiveVoice[] = [];
+  private activeVoices: Map<number, ActiveVoice> = new Map();
+  private scheduledVoices: Set<ActiveVoice> = new Set();
 
   // ── Inicialização do contexto com cadeia de efeitos ──────────────────────
 
@@ -840,6 +845,146 @@ class SoundEngine {
     return buf;
   }
 
+  private disconnectVoiceNodes(nodes: AudioNode[]) {
+    for (const node of nodes) {
+      try {
+        if (node instanceof OscillatorNode || node instanceof AudioBufferSourceNode) {
+          try { node.stop(); } catch {}
+        }
+        node.disconnect();
+      } catch {}
+    }
+  }
+
+  /**
+   * Executa voice stealing com rampa suave de 10ms (linearRampToValueAtTime).
+   * Prioriza o roubo de notas antigas sustentadas pelo pedal (isSustained = true)
+   * mantendo a polifonia estritamente dentro do limite de 32 vozes (REQ-BUG-AUDIO-REPLAY-REPERTOIRE-01.1).
+   */
+  private stealExcessVoices() {
+    while (this.activeVoiceList.length >= SoundEngine.MAX_VOICES) {
+      // Prioridade 1: Voz sustentada mais antiga não liberada
+      let victimIdx = this.activeVoiceList.findIndex(v => v.isSustained && !v.released);
+      if (victimIdx === -1) {
+        victimIdx = this.activeVoiceList.findIndex(v => v.isSustained);
+      }
+      // Prioridade 2: Voz mais antiga de todas
+      if (victimIdx === -1) {
+        victimIdx = 0;
+      }
+
+      const [victim] = this.activeVoiceList.splice(victimIdx, 1);
+      if (!victim) break;
+
+      victim.released = true;
+      if (victim.stopTimeout) {
+        clearTimeout(victim.stopTimeout);
+        victim.stopTimeout = undefined;
+      }
+      this.scheduledVoices.delete(victim);
+      if (this.activeVoices.get(victim.midi) === victim) {
+        this.activeVoices.delete(victim.midi);
+      }
+
+      if (this.ctx) {
+        try {
+          const now = this.ctx.currentTime;
+          const curGain = Math.max(0.0001, victim.gainNode.gain.value);
+          victim.gainNode.gain.cancelScheduledValues(now);
+          victim.gainNode.gain.setValueAtTime(curGain, now);
+          victim.gainNode.gain.linearRampToValueAtTime(0.00001, now + 0.010);
+        } catch {}
+      }
+
+      setTimeout(() => {
+        this.disconnectVoiceNodes(victim.nodes);
+      }, 15);
+    }
+  }
+
+  private registerVoice(
+    midi: number,
+    nodes: AudioNode[],
+    gainNode: GainNode,
+    isSustained: boolean,
+    durationSec: number,
+    startTime: number
+  ): ActiveVoice {
+    this.stealExcessVoices();
+
+    const voice: ActiveVoice = {
+      id: ++this.voiceCounter,
+      midi,
+      nodes,
+      gainNode,
+      startTime,
+      isSustained,
+      released: false,
+    };
+
+    const cleanupMs = Math.max(500, Math.round((durationSec + (isSustained ? 4.5 : 0.6)) * 1000));
+    voice.stopTimeout = (typeof window !== 'undefined' ? window.setTimeout : setTimeout)(() => {
+      this.removeAndDisconnectVoice(voice);
+    }, cleanupMs) as unknown as number;
+
+    this.activeVoiceList.push(voice);
+    this.scheduledVoices.add(voice);
+    return voice;
+  }
+
+  private removeAndDisconnectVoice(voice: ActiveVoice) {
+    const idx = this.activeVoiceList.indexOf(voice);
+    if (idx !== -1) {
+      this.activeVoiceList.splice(idx, 1);
+    }
+    this.scheduledVoices.delete(voice);
+    if (this.activeVoices.get(voice.midi) === voice) {
+      this.activeVoices.delete(voice.midi);
+    }
+    this.disconnectVoiceNodes(voice.nodes);
+  }
+
+  /**
+   * Cancela todas as notas atualmente sustentadas pelo pedal com fade-out suave de 10ms
+   * e desconexão de nós WebAudio. Previne acúmulo e sobreposição ao desativar o sustain.
+   */
+  public cancelSustainedNotes(fadeDuration = 0.010) {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const sustained = this.activeVoiceList.filter(v => v.isSustained && !v.released);
+
+    sustained.forEach(voice => {
+      voice.released = true;
+      if (voice.stopTimeout) {
+        clearTimeout(voice.stopTimeout);
+        voice.stopTimeout = undefined;
+      }
+      const idx = this.activeVoiceList.indexOf(voice);
+      if (idx !== -1) {
+        this.activeVoiceList.splice(idx, 1);
+      }
+      this.scheduledVoices.delete(voice);
+      if (this.activeVoices.get(voice.midi) === voice) {
+        this.activeVoices.delete(voice.midi);
+      }
+
+      try {
+        const curGain = Math.max(0.0001, voice.gainNode.gain.value);
+        voice.gainNode.gain.cancelScheduledValues(now);
+        voice.gainNode.gain.setValueAtTime(curGain, now);
+        voice.gainNode.gain.linearRampToValueAtTime(0.00001, now + fadeDuration);
+      } catch {}
+
+      setTimeout(() => {
+        this.disconnectVoiceNodes(voice.nodes);
+      }, Math.round(fadeDuration * 1000 + 10));
+    });
+  }
+
+  public getActiveVoiceCount(): number {
+    return this.activeVoiceList.length;
+  }
+
   private stopAllNodes(nodes: AudioNode[], gainNode: GainNode, releaseDuration = 0.14) {
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
@@ -851,14 +996,7 @@ class SoundEngine {
     } catch { /* ignora */ }
 
     setTimeout(() => {
-      for (const node of nodes) {
-        try {
-          if (node instanceof OscillatorNode || node instanceof AudioBufferSourceNode) {
-            node.stop();
-          }
-          node.disconnect();
-        } catch { /* ignora */ }
-      }
+      this.disconnectVoiceNodes(nodes);
     }, Math.round(releaseDuration * 1000 + 50));
   }
 
@@ -875,12 +1013,8 @@ class SoundEngine {
       }
 
       const { nodes, gainNode } = this.synthNote(midi, this.ctx.currentTime, 0, velocity, true);
-
-      const stopTimeout = window.setTimeout(() => {
-        this.stopPianoNote(midi, 0.2);
-      }, 12000);
-
-      this.activeVoices.set(midi, { nodes, gainNode, stopTimeout });
+      const voice = this.registerVoice(midi, nodes, gainNode, true, 12.0, this.ctx.currentTime);
+      this.activeVoices.set(midi, voice);
     } catch (err) {
       console.warn('Erro ao iniciar nota:', err);
     }
@@ -893,10 +1027,16 @@ class SoundEngine {
 
     if (voice.stopTimeout) {
       window.clearTimeout(voice.stopTimeout);
+      voice.stopTimeout = undefined;
     }
 
     this.stopAllNodes(voice.nodes, voice.gainNode, releaseDuration);
     this.activeVoices.delete(midi);
+    const idx = this.activeVoiceList.indexOf(voice);
+    if (idx !== -1) {
+      this.activeVoiceList.splice(idx, 1);
+    }
+    this.scheduledVoices.delete(voice);
   }
 
   /**
@@ -907,10 +1047,13 @@ class SoundEngine {
     if (this.ctx) {
       const now = this.ctx.currentTime;
 
-      // 1. Limpa todas as vozes registradas em activeVoices
-      this.activeVoices.forEach((voice) => {
+      // Limpa todas as vozes registradas em activeVoiceList
+      const allVoices = [...this.activeVoiceList];
+      allVoices.forEach((voice) => {
+        voice.released = true;
         if (voice.stopTimeout) {
           window.clearTimeout(voice.stopTimeout);
+          voice.stopTimeout = undefined;
         }
         try {
           const curGain = Math.max(0.0001, voice.gainNode.gain.value);
@@ -920,46 +1063,16 @@ class SoundEngine {
         } catch { /* ignora */ }
 
         setTimeout(() => {
-          for (const node of voice.nodes) {
-            try {
-              if (node instanceof OscillatorNode || node instanceof AudioBufferSourceNode) {
-                node.stop();
-              }
-              node.disconnect();
-            } catch { /* ignora */ }
-          }
-        }, Math.round(releaseDuration * 1000 + 20));
-      });
-
-      // 2. Limpa todas as vozes agendadas / em reprodução (scheduledVoices)
-      this.scheduledVoices.forEach((voice) => {
-        if (voice.stopTimeout) {
-          window.clearTimeout(voice.stopTimeout);
-        }
-        try {
-          const curGain = Math.max(0.0001, voice.gainNode.gain.value);
-          voice.gainNode.gain.cancelScheduledValues(now);
-          voice.gainNode.gain.setValueAtTime(curGain, now);
-          voice.gainNode.gain.linearRampToValueAtTime(0.00001, now + releaseDuration);
-        } catch { /* ignora */ }
-
-        setTimeout(() => {
-          for (const node of voice.nodes) {
-            try {
-              if (node instanceof OscillatorNode || node instanceof AudioBufferSourceNode) {
-                node.stop();
-              }
-              node.disconnect();
-            } catch { /* ignora */ }
-          }
-        }, Math.round(releaseDuration * 1000 + 20));
+          this.disconnectVoiceNodes(voice.nodes);
+        }, Math.round(releaseDuration * 1000 + 15));
       });
     }
 
     this.activeVoices.clear();
     this.scheduledVoices.clear();
+    this.activeVoiceList = [];
 
-    // 3. Limpa teclado visual global
+    // Limpa teclado visual global
     activeMidiStore.clearAll();
   }
 
@@ -998,15 +1111,8 @@ class SoundEngine {
 
       const synthRes = this.synthNote(midi, startTime, duration, velocity, sustained);
 
-      if (typeof window !== 'undefined' && synthRes) {
-        const voiceEntry = {
-          nodes: synthRes.nodes,
-          gainNode: synthRes.gainNode,
-          stopTimeout: window.setTimeout(() => {
-            this.scheduledVoices.delete(voiceEntry);
-          }, Math.max(500, (duration + 2.0) * 1000)),
-        };
-        this.scheduledVoices.add(voiceEntry);
+      if (synthRes) {
+        this.registerVoice(midi, synthRes.nodes, synthRes.gainNode, sustained, duration, startTime);
       }
 
       // Reflete no teclado global: acende a tecla pela duração sonora da nota
@@ -1072,31 +1178,41 @@ class SoundEngine {
       const osc = this.ctx.createOscillator();
       const gainNode = this.ctx.createGain();
 
+      let stopDuration = 0.05;
       if (isDownbeat) {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(1400, startTime);
         osc.frequency.exponentialRampToValueAtTime(600, startTime + 0.035);
         gainNode.gain.setValueAtTime(0.5, startTime);
         gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.045);
-        osc.stop(startTime + 0.05);
+        stopDuration = 0.05;
       } else if (isSubdivision) {
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(600, startTime);
         gainNode.gain.setValueAtTime(0.2, startTime);
         gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.025);
-        osc.stop(startTime + 0.03);
+        stopDuration = 0.03;
       } else {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(950, startTime);
         osc.frequency.exponentialRampToValueAtTime(450, startTime + 0.03);
         gainNode.gain.setValueAtTime(0.35, startTime);
         gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.035);
-        osc.stop(startTime + 0.04);
+        stopDuration = 0.04;
       }
 
       osc.connect(gainNode);
       gainNode.connect(this.masterGain);
       osc.start(startTime);
+      osc.stop(startTime + stopDuration);
+
+      // Desconecta e libera recursos WebAudio imediatamente após o clique (Garbage Collection)
+      osc.onended = () => {
+        try {
+          osc.disconnect();
+          gainNode.disconnect();
+        } catch {}
+      };
     } catch (err) {
       console.warn('Erro no metrônomo:', err);
     }

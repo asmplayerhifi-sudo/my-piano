@@ -46,13 +46,18 @@ class AccompanimentSynthesizer {
     const now = ctx.currentTime;
     try {
       this.metronomeBusGain.gain.cancelScheduledValues(now);
-      this.metronomeBusGain.gain.setValueAtTime(this.metronomeBusGain.gain.value, now);
+      this.metronomeBusGain.gain.setValueAtTime(Math.max(0.0001, this.metronomeBusGain.gain.value), now);
       this.metronomeBusGain.gain.linearRampToValueAtTime(0.00001, now + 0.005);
-      setTimeout(() => {
-        if (this.metronomeBusGain && ctx) {
-          this.metronomeBusGain.gain.setValueAtTime(1.0, ctx.currentTime);
-        }
-      }, 25);
+    } catch { /* ignora */ }
+  }
+
+  public armMetronome() {
+    const ctx = soundEngine.getAudioContext();
+    if (!ctx || !this.metronomeBusGain) return;
+    const now = ctx.currentTime;
+    try {
+      this.metronomeBusGain.gain.cancelScheduledValues(now);
+      this.metronomeBusGain.gain.setValueAtTime(1.0, now);
     } catch { /* ignora */ }
   }
 
@@ -77,6 +82,13 @@ class AccompanimentSynthesizer {
     }
 
     const t = Math.max(ctx.currentTime, time ?? ctx.currentTime);
+
+    // Garante que o barramento do metrônomo esteja ativo no momento do clique
+    if (!destinationNode && this.metronomeBusGain) {
+      try {
+        this.metronomeBusGain.gain.setValueAtTime(1.0, t);
+      } catch {}
+    }
 
     switch (soundType) {
       case 'cowbell': {
@@ -118,6 +130,16 @@ class AccompanimentSynthesizer {
         osc2.start(t);
         osc1.stop(t + decayTime + 0.01);
         osc2.stop(t + decayTime + 0.01);
+
+        // Limpeza de nós de áudio após execução (Garbage Collection)
+        osc1.onended = () => {
+          try {
+            osc1.disconnect();
+            osc2.disconnect();
+            filter.disconnect();
+            gain.disconnect();
+          } catch {}
+        };
         break;
       }
 
@@ -160,6 +182,15 @@ class AccompanimentSynthesizer {
         osc2.start(t);
         osc1.stop(t + decayTime + 0.01);
         osc2.stop(t + decayTime + 0.01);
+
+        osc1.onended = () => {
+          try {
+            osc1.disconnect();
+            osc2.disconnect();
+            filter.disconnect();
+            gain.disconnect();
+          } catch {}
+        };
         break;
       }
 
@@ -202,6 +233,15 @@ class AccompanimentSynthesizer {
         bodyOsc.start(t);
         snapOsc.stop(t + decayTime + 0.01);
         bodyOsc.stop(t + decayTime + 0.01);
+
+        snapOsc.onended = () => {
+          try {
+            snapOsc.disconnect();
+            bodyOsc.disconnect();
+            snapFilter.disconnect();
+            gain.disconnect();
+          } catch {}
+        };
         break;
       }
 
@@ -236,6 +276,14 @@ class AccompanimentSynthesizer {
 
         osc.start(t);
         osc.stop(t + decayTime + 0.01);
+
+        osc.onended = () => {
+          try {
+            osc.disconnect();
+            filter.disconnect();
+            gain.disconnect();
+          } catch {}
+        };
         break;
       }
 
@@ -264,6 +312,13 @@ class AccompanimentSynthesizer {
 
         osc.start(t);
         osc.stop(t + decayTime + 0.01);
+
+        osc.onended = () => {
+          try {
+            osc.disconnect();
+            gain.disconnect();
+          } catch {}
+        };
         break;
       }
     }
@@ -322,6 +377,15 @@ class AccompanimentSynthesizer {
     sawOsc.start(t);
     subOsc.stop(t + duration + 0.02);
     sawOsc.stop(t + duration + 0.02);
+
+    subOsc.onended = () => {
+      try {
+        subOsc.disconnect();
+        sawOsc.disconnect();
+        filter.disconnect();
+        gain.disconnect();
+      } catch {}
+    };
   }
 
   /**

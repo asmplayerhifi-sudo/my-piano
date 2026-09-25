@@ -135,4 +135,30 @@ describe('MusicalPlaybackEngine - Single Source of Time & Sync', () => {
     engine.pause();
     expect(metronomeEngine.getIsPlaybackDriven()).toBe(false);
   });
+
+  it('notifica onTrackEnded e reseta estado ao atingir o fim da partitura no modo end (REQ-BUG-AUDIO-REPLAY-REPERTOIRE-01.2)', () => {
+    const trackEndedSpy = vi.fn();
+    const stateSpy = vi.fn();
+    engine.onTrackEnded(trackEndedSpy);
+    engine.onStateChange(stateSpy);
+    engine.setLoopMode('end');
+
+    engine.play(0);
+    expect(engine.getIsPlaying()).toBe(true);
+
+    // mockNotes: 5 notas com durações de 1 beat em 4/4 => totalScoreBeats = 5 beats
+    // A 60 BPM, 1 beat = 1000ms. 5.5 beats = 5500ms
+    vi.advanceTimersByTime(5600);
+
+    expect(trackEndedSpy).toHaveBeenCalled();
+    expect(engine.getIsPlaying()).toBe(false);
+    expect(engine.getPosition().currentBeat).toBe(0);
+    expect(engine.getPosition().currentMeasure).toBe(1);
+    expect(engine.getPosition().beatInMeasure).toBe(1);
+
+    // Valida Cenário 3 (BDD): Replay Consecutivo com 1 Clique do Início
+    engine.play(0);
+    expect(engine.getIsPlaying()).toBe(true);
+    expect(engine.getPosition().currentBeat).toBe(0);
+  });
 });

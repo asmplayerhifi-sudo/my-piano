@@ -75,4 +75,22 @@ describe('Áudio Engine: Panic, StopAllNotes, Metrônomo Silencioso & Sustain OF
     musicalPlaybackEngine.setInstrument('piano');
     expect(stopSpy).toHaveBeenCalledTimes(2);
   });
+
+  it('deve respeitar o limite máximo de 32 vozes com voice stealing suave (REQ-BUG-AUDIO-REPLAY-REPERTOIRE-01.1)', () => {
+    soundEngine.stopAllNotes();
+    // Dispara 40 notas simulando polifonia densa com sustain
+    for (let i = 0; i < 40; i++) {
+      soundEngine.playPianoNote(60 + (i % 12), 3.0, undefined, 0.8, true);
+    }
+    // O número de vozes ativas não deve ultrapassar 32
+    expect(soundEngine.getActiveVoiceCount()).toBeLessThanOrEqual(32);
+  });
+
+  it('deve cancelar todas as notas sustentadas com cancelSustainedNotes', () => {
+    soundEngine.stopAllNotes();
+    soundEngine.playPianoNote(60, 2.0, undefined, 0.8, true);
+    soundEngine.playPianoNote(64, 2.0, undefined, 0.8, true);
+    soundEngine.cancelSustainedNotes(0.010);
+    expect(soundEngine.getActiveVoiceCount()).toBe(0);
+  });
 });
