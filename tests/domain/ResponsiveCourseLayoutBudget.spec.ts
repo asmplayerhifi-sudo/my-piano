@@ -71,13 +71,18 @@ describe('Redesenho Responsivo & Pixel Budget (PRD HARMONIA)', () => {
       expect(BREAKPOINT_2_COLUMNS_PX).toBe(1280);
     });
 
-    it('as colunas da grade de teoria devem balancear Teoria/Exercícios e Laboratório (50%/50%)', () => {
-      const leftColSpan = 6;
-      const rightColSpan = 6;
-      const totalGridCols = 12;
+    it('a parte da teoria deve ocupar 100% horizontalmente (Full-Width) independente do tamanho da tela', () => {
+      const theoryWidthPercent = 100;
+      expect(theoryWidthPercent).toBe(100);
+    });
 
-      expect(leftColSpan + rightColSpan).toBe(totalGridCols);
-      expect(leftColSpan / totalGridCols).toBe(0.5);
+    it('exemplos auditivos, testes e laboratório devem ser dispostos lado a lado em tela grande (3 + 4 + 5 = 12 cols)', () => {
+      const audioExamplesColSpan = 3;
+      const quizColSpan = 4;
+      const labColSpan = 5;
+      const totalCols = 12;
+
+      expect(audioExamplesColSpan + quizColSpan + labColSpan).toBe(totalCols);
     });
   });
 

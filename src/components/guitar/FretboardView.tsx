@@ -1,14 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { soundEngine } from '../../core/soundEngine';
-import { GUITAR_TUNING_MIDI, getGuitarFretNote } from '../../core/musicTheory';
+import { GUITAR_TUNING_MIDI, getGuitarFretNote, CHROMATIC_NOTES_SHARP } from '../../core/musicTheory';
+import { calculateHarmonicDegree, type GeneratedChordShape } from '../../core/guitarChordGenerator';
 import type { GuitarChordShape } from '../../core/types';
-import { Play, Music } from 'lucide-react';
+import { Music, Volume2, Sparkles } from 'lucide-react';
+
+export type FretboardMarkerMode = 'fingers' | 'notes' | 'degrees';
 
 interface Props {
-  chordShape?: GuitarChordShape;
-  fretCount?: number;        // Padrão: 12 a 15 casas
+  chordShape?: GuitarChordShape | GeneratedChordShape;
+  fretCount?: number; // Padrão: 15 casas
+  markerMode?: FretboardMarkerMode;
+  onMarkerModeChange?: (mode: FretboardMarkerMode) => void;
+  showAudioControls?: boolean;
   showNoteNames?: boolean;
-  showFingerPointer?: boolean;
 }
 
 export const GUITAR_FINGER_INFO: Record<number, { name: string; short: string; color: string; bg: string }> = {
@@ -20,17 +25,26 @@ export const GUITAR_FINGER_INFO: Record<number, { name: string; short: string; c
 
 export const FretboardView: React.FC<Props> = ({
   chordShape,
-  fretCount = 14,
-  showNoteNames = true,
-  showFingerPointer = true,
+  fretCount = 15,
+  markerMode: externalMarkerMode,
+  onMarkerModeChange,
+  showAudioControls = true,
+  showNoteNames,
 }) => {
-  const [showFingerGuide, setShowFingerGuide] = React.useState<boolean>(showFingerPointer);
-  const [displayNoteNames, setDisplayNoteNames] = React.useState<boolean>(showNoteNames);
-  // Trastes onde ficam os marcadores de posição (inlays de madrepérola)
+  const initialMode: FretboardMarkerMode = externalMarkerMode ?? (showNoteNames ? 'notes' : 'fingers');
+  const [internalMode, setInternalMode] = useState<FretboardMarkerMode>(initialMode);
+  const activeMode = externalMarkerMode ?? (showNoteNames !== undefined ? (showNoteNames ? 'notes' : 'fingers') : internalMode);
+
+  const handleModeChange = (mode: FretboardMarkerMode) => {
+    setInternalMode(mode);
+    onMarkerModeChange?.(mode);
+  };
+
+  // Trastes onde ficam os inlays de madrepérola
   const singleDotFrets = [3, 5, 7, 9, 15];
   const doubleDotFrets = [12];
 
-  // Afinação das 6 cordas (1 = E aguda até 6 = E grave)
+  // Afinação das 6 cordas (1 = e aguda até 6 = E grave)
   const strings = [1, 2, 3, 4, 5, 6];
 
   const handlePluckString = (stringNum: number) => {
@@ -69,384 +83,431 @@ export const FretboardView: React.FC<Props> = ({
     soundEngine.playArpeggio(midiList, 'guitar', 55);
   };
 
-  // Dimensões do Braço SVG
-  const nutWidth = 14;
-  const fretWidth = 48;
-  const stringSpacing = 24;
+  // Dimensões do Braço SVG Widescreen (15 Trastes)
+  const nutWidth = 18;
+  const fretWidth = 62;
+  const stringSpacing = 28;
   const boardHeight = (strings.length - 1) * stringSpacing + 36;
   const totalSvgWidth = nutWidth + fretCount * fretWidth + 30;
 
+  // Root pitch class for harmonic degree calculation
+  const rootIndex = chordShape
+    ? CHROMATIC_NOTES_SHARP.indexOf(chordShape.rootNote.replace(/b|#/, ''))
+    : 0;
+
   return (
-    <div className="w-full flex flex-col items-center select-none no-select">
-      {/* Botões de Ação Sonora & Alternador de Apontamento de Dedos */}
-      <div className="w-full flex flex-wrap items-center justify-between gap-3 mb-3">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handlePlayChord}
-            className="px-4 py-2 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-amber-500/20 cursor-pointer active:scale-95 transition-all"
-          >
-            <Play className="w-4 h-4 fill-current" />
-            <span>Palhetar Acorde</span>
-          </button>
-
-          <button
-            onClick={handlePlayArpeggio}
-            className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 text-slate-200 font-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer active:scale-95 transition-all"
-          >
-            <Music className="w-4 h-4 text-amber-400" />
-            <span>Dedilhado Lento</span>
-          </button>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setDisplayNoteNames(v => !v)}
-            className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              displayNoteNames
-                ? 'bg-white/15 text-white border border-white/20'
-                : 'bg-white/5 text-slate-400 hover:text-white'
-            }`}
-          >
-            {displayNoteNames ? 'Notas: ON' : 'Notas: OFF'}
-          </button>
-
-          <button
-            onClick={() => setShowFingerGuide(v => !v)}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-              showFingerGuide
-                ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30'
-                : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
-            }`}
-          >
-            <span>🖐️</span>
-            <span>{showFingerGuide ? 'Dedos nos Trastes: ON' : 'Dedos: OFF'}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Banner Didático de Dedos da Mão Esquerda (Trastes) e Mão Direita */}
-      <div className="w-full mb-3 px-4 py-2.5 rounded-2xl bg-black/50 border border-white/10 shadow-xl flex flex-wrap items-center justify-between gap-3 text-xs">
+    <div className="w-full flex flex-col select-none no-select">
+      {/* Barra de Controles Superiores: Modo de Exibição dos Marcadores + Áudio */}
+      <div className="w-full flex flex-wrap items-center justify-between gap-3 mb-4 p-3 rounded-2xl bg-black/40 border border-white/10">
+        {/* Seletor de Modo de Exibição */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-amber-400 font-black uppercase tracking-wider text-[11px] flex items-center gap-1">
-            <span>🖐️</span>
-            <span>Mão Esquerda (Trastes):</span>
+          <span className="text-[11px] font-mono font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5 mr-1">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Exibição no Braço:</span>
           </span>
-          <div className="flex flex-wrap items-center gap-1.5 font-mono text-[11px]">
-            <span className="px-2 py-0.5 rounded-lg bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30">
-              D1: Indicador
-            </span>
-            <span className="px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
-              D2: Médio
-            </span>
-            <span className="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
-              D3: Anelar
-            </span>
-            <span className="px-2 py-0.5 rounded-lg bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30">
-              D4: Mínimo
-            </span>
+
+          <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/10">
+            <button
+              onClick={() => handleModeChange('fingers')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeMode === 'fingers'
+                  ? 'bg-amber-500 text-slate-950 shadow-md font-black'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <span>🖐️</span>
+              <span>Dedos (1 a 4)</span>
+            </button>
+
+            <button
+              onClick={() => handleModeChange('notes')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeMode === 'notes'
+                  ? 'bg-amber-500 text-slate-950 shadow-md font-black'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <span>🎵</span>
+              <span>Nomes das Notas</span>
+            </button>
+
+            <button
+              onClick={() => handleModeChange('degrees')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeMode === 'degrees'
+                  ? 'bg-amber-500 text-slate-950 shadow-md font-black'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <span>📐</span>
+              <span>Graus Harmônicos</span>
+            </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-[11px] text-slate-400 border-t sm:border-t-0 sm:border-l border-white/10 pt-1.5 sm:pt-0 sm:pl-3">
-          <span className="text-slate-300 font-bold">Mão Direita:</span>
-          <span className="font-mono text-amber-300">P (Polegar) • I (Indicador) • M (Médio) • A (Anelar)</span>
+        {/* Botões de Ação de Áudio Compactos */}
+        {showAudioControls && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handlePlayChord}
+              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md shadow-amber-500/20 cursor-pointer active:scale-95 transition-all"
+            >
+              <Volume2 className="w-3.5 h-3.5 fill-current" />
+              <span>Ouvir Bloco</span>
+            </button>
+
+            <button
+              onClick={handlePlayArpeggio}
+              className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-slate-200 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
+            >
+              <Music className="w-3.5 h-3.5 text-amber-400" />
+              <span>Dedilhado</span>
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Legenda Didática Compacta */}
+      <div className="w-full mb-3 px-3.5 py-2 rounded-xl bg-[#0f0b08]/80 border border-white/5 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-slate-400 font-bold">Mão Esquerda:</span>
+          <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono font-bold">D1 Indicador</span>
+          <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono font-bold">D2 Médio</span>
+          <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono font-bold">D3 Anelar</span>
+          <span className="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 font-mono font-bold">D4 Mínimo</span>
+        </div>
+
+        <div className="flex items-center gap-2 text-slate-400">
+          <span className="flex items-center gap-1 text-rose-400 font-bold">
+            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span>
+            Fundamental (Tônica)
+          </span>
+          <span className="text-slate-600">|</span>
+          <span className="text-slate-400">Clique nas cordas para dedilhar</span>
         </div>
       </div>
 
-      {/* Braço de Violão SVG Responsivo com Scroll Horizontal (Inicia na Pestana sem corte lateral em telas móveis) */}
-      <div className="w-full overflow-x-auto pb-4 no-scrollbar flex justify-start md:justify-center">
-        <div className="p-4 rounded-3xl glass-panel border border-white/10 shadow-2xl bg-[#140e0b]/90 inline-block">
-          <svg
-            width={totalSvgWidth}
-            height={boardHeight + 35}
-            viewBox={`0 0 ${totalSvgWidth} ${boardHeight + 35}`}
-            className="block overflow-visible"
-          >
-            {/* Madeira do Braço (Rosewood / Pau-Ferro) */}
-            <rect
-              x={nutWidth}
-              y={18}
-              width={fretCount * fretWidth}
-              height={boardHeight - 20}
-              rx={6}
-              fill="#261710"
-              stroke="#3d261b"
-              strokeWidth={2}
-            />
+      {/* Braço de Violão SVG Expandido e Responsivo (Widescreen 15 Trastes) */}
+      <div className="w-full overflow-x-auto pb-2 no-scrollbar rounded-2xl bg-[#140e0b] border border-white/10 shadow-2xl p-4">
+        <svg
+          viewBox={`0 0 ${totalSvgWidth} ${boardHeight + 35}`}
+          className="w-full h-auto min-w-[800px] block overflow-visible"
+        >
+          {/* Madeira do Braço (Rosewood / Ébano Profundo) */}
+          <rect
+            x={nutWidth}
+            y={18}
+            width={fretCount * fretWidth}
+            height={boardHeight - 20}
+            rx={8}
+            fill="#23150e"
+            stroke="#3a2216"
+            strokeWidth={2}
+          />
 
-            {/* Pestana de Osso (Nut / Traste 0) */}
-            <rect
-              x={nutWidth - 8}
-              y={16}
-              width={8}
-              height={boardHeight - 16}
-              rx={3}
-              fill="#f1efe7"
-              stroke="#c7c3b2"
-              strokeWidth={1}
-            />
+          {/* Pestana de Osso (Nut / Traste 0) */}
+          <rect
+            x={nutWidth - 10}
+            y={16}
+            width={10}
+            height={boardHeight - 16}
+            rx={3}
+            fill="#f5f2e9"
+            stroke="#cfcbbe"
+            strokeWidth={1.5}
+          />
 
-            {/* Inlays de Posição (Bolinhas no braço) */}
-            {Array.from({ length: fretCount }).map((_, fIdx) => {
-              const fretNum = fIdx + 1;
-              const xCenter = nutWidth + (fretNum - 0.5) * fretWidth;
-              const yCenter = 18 + (boardHeight - 20) / 2;
+          {/* Inlays de Posição (Bolinhas de madrepérola nas casas 3, 5, 7, 9, 12, 15) */}
+          {Array.from({ length: fretCount }).map((_, fIdx) => {
+            const fretNum = fIdx + 1;
+            const xCenter = nutWidth + (fretNum - 0.5) * fretWidth;
+            const yCenter = 18 + (boardHeight - 20) / 2;
 
-              if (singleDotFrets.includes(fretNum)) {
-                return (
-                  <circle
-                    key={`dot-${fretNum}`}
-                    cx={xCenter}
-                    cy={yCenter}
-                    r={5}
-                    fill="#e2dfd2"
-                    opacity={0.65}
-                  />
-                );
-              }
-              if (doubleDotFrets.includes(fretNum)) {
-                return (
-                  <g key={`double-dot-${fretNum}`}>
-                    <circle cx={xCenter} cy={yCenter - 22} r={4.5} fill="#e2dfd2" opacity={0.7} />
-                    <circle cx={xCenter} cy={yCenter + 22} r={4.5} fill="#e2dfd2" opacity={0.7} />
-                  </g>
-                );
-              }
-              return null;
-            })}
-
-            {/* Trastes Metálicos (Frets) */}
-            {Array.from({ length: fretCount }).map((_, fIdx) => {
-              const fretNum = fIdx + 1;
-              const xPos = nutWidth + fretNum * fretWidth;
+            if (singleDotFrets.includes(fretNum)) {
               return (
-                <g key={`fret-${fretNum}`}>
-                  <line
-                    x1={xPos}
-                    y1={18}
-                    x2={xPos}
-                    y2={boardHeight - 2}
-                    stroke="#c0c0c0"
-                    strokeWidth={2.5}
+                <circle
+                  key={`dot-${fretNum}`}
+                  cx={xCenter}
+                  cy={yCenter}
+                  r={5.5}
+                  fill="#e8e5d8"
+                  opacity={0.7}
+                />
+              );
+            }
+            if (doubleDotFrets.includes(fretNum)) {
+              return (
+                <g key={`double-dot-${fretNum}`}>
+                  <circle cx={xCenter} cy={yCenter - 26} r={5} fill="#e8e5d8" opacity={0.75} />
+                  <circle cx={xCenter} cy={yCenter + 26} r={5} fill="#e8e5d8" opacity={0.75} />
+                </g>
+              );
+            }
+            return null;
+          })}
+
+          {/* Trastes Metálicos Níquel-Prata (Frets 1 a 15) */}
+          {Array.from({ length: fretCount }).map((_, fIdx) => {
+            const fretNum = fIdx + 1;
+            const xPos = nutWidth + fretNum * fretWidth;
+            return (
+              <g key={`fret-${fretNum}`}>
+                <line
+                  x1={xPos}
+                  y1={18}
+                  x2={xPos}
+                  y2={boardHeight - 2}
+                  stroke="#c5c5c5"
+                  strokeWidth={2.8}
+                />
+                {/* Número do traste abaixo da escala */}
+                <text
+                  x={xPos - fretWidth / 2}
+                  y={boardHeight + 20}
+                  textAnchor="middle"
+                  fill="#8c827a"
+                  fontSize={11}
+                  fontWeight="bold"
+                  fontFamily="JetBrains Mono, monospace"
+                >
+                  {fretNum}
+                </text>
+              </g>
+            );
+          })}
+
+          {/* Pestana / Barra de Acorde (Se houver) */}
+          {chordShape && chordShape.barreFret && chordShape.barreStrings && (
+            <g>
+              <rect
+                x={nutWidth + (chordShape.barreFret - 0.6) * fretWidth}
+                y={18 + (chordShape.barreStrings[0] - 1) * stringSpacing}
+                width={14}
+                height={(chordShape.barreStrings[1] - chordShape.barreStrings[0]) * stringSpacing}
+                rx={7}
+                fill="#06b6d4"
+                opacity={0.88}
+              />
+              {activeMode === 'fingers' && (
+                <g>
+                  <polygon
+                    points={`${nutWidth + (chordShape.barreFret - 0.5) * fretWidth - 3},15 ${nutWidth + (chordShape.barreFret - 0.5) * fretWidth + 3},15 ${nutWidth + (chordShape.barreFret - 0.5) * fretWidth},18`}
+                    fill="#06b6d4"
                   />
-                  {/* Número do traste abaixo do braço */}
+                  <rect
+                    x={nutWidth + (chordShape.barreFret - 0.5) * fretWidth - 32}
+                    y={0}
+                    width={64}
+                    height={15}
+                    rx={3.5}
+                    fill="#06b6d4"
+                    stroke="#0c0a09"
+                    strokeWidth={0.8}
+                  />
                   <text
-                    x={xPos - fretWidth / 2}
-                    y={boardHeight + 20}
+                    x={nutWidth + (chordShape.barreFret - 0.5) * fretWidth}
+                    y={10.5}
                     textAnchor="middle"
-                    fill="#78716c"
-                    fontSize={11}
-                    fontWeight="bold"
+                    fill="#0c0a09"
+                    fontSize={8.5}
+                    fontWeight="900"
                     fontFamily="JetBrains Mono, monospace"
                   >
-                    {fretNum}
+                    👆 D1 Pestana
+                  </text>
+                </g>
+              )}
+            </g>
+          )}
+
+          {/* 6 Cordas do Violão (Espessuras graduadas) */}
+          {strings.map((strNum, idx) => {
+            const yPos = 24 + idx * stringSpacing;
+            const thickness = 1.3 + (5 - idx) * 0.5;
+            const stringColor = idx < 3 ? '#e0dedb' : '#f59e0b';
+
+            return (
+              <g key={`string-${strNum}`} className="group cursor-pointer" onClick={() => handlePluckString(strNum)}>
+                {/* Linha da corda */}
+                <line
+                  x1={nutWidth - 10}
+                  y1={yPos}
+                  x2={nutWidth + fretCount * fretWidth}
+                  y2={yPos}
+                  stroke={stringColor}
+                  strokeWidth={thickness}
+                  className="group-hover:stroke-amber-300 transition-colors"
+                />
+
+                {/* Nome da corda solta à esquerda da pestana */}
+                <text
+                  x={nutWidth - 20}
+                  y={yPos + 4}
+                  textAnchor="end"
+                  fill="#a8a29e"
+                  fontSize={11.5}
+                  fontWeight="bold"
+                  fontFamily="JetBrains Mono, monospace"
+                >
+                  {GUITAR_TUNING_MIDI.find(s => s.string === strNum)?.name[0]}
+                </text>
+              </g>
+            );
+          })}
+
+          {/* Marcadores de Dedos / Notas / Graus Pressionados no Acorde */}
+          {chordShape && strings.map((strNum) => {
+            // frets do shape: [E6, A5, D4, G3, B2, e1]
+            const fret = chordShape.frets[6 - strNum];
+            const finger = chordShape.fingers ? chordShape.fingers[6 - strNum] : 0;
+            const yPos = 24 + (strNum - 1) * stringSpacing;
+
+            // Corda abafada (X)
+            if (fret === -1) {
+              return (
+                <g key={`muted-${strNum}`}>
+                  <text
+                    x={nutWidth - 5}
+                    y={yPos + 4.5}
+                    textAnchor="middle"
+                    fill="#f43f5e"
+                    fontSize={13}
+                    fontWeight="black"
+                  >
+                    ✕
                   </text>
                 </g>
               );
-            })}
+            }
 
-            {/* Pestana / Barra de Acorde (Se houver) */}
-            {chordShape && chordShape.barreFret && chordShape.barreStrings && (
-              <g>
-                <rect
-                  x={nutWidth + (chordShape.barreFret - 0.6) * fretWidth}
-                  y={18 + (chordShape.barreStrings[0] - 1) * stringSpacing}
-                  width={12}
-                  height={(chordShape.barreStrings[1] - chordShape.barreStrings[0]) * stringSpacing}
-                  rx={6}
-                  fill="#06b6d4"
-                  opacity={0.85}
+            // Corda Solta (O)
+            if (fret === 0) {
+              const noteInfo = getGuitarFretNote(strNum, 0);
+              const isRoot = noteInfo.name === chordShape.rootNote;
+              const degreeText = calculateHarmonicDegree(noteInfo.midi % 12, rootIndex, 'major');
+
+              let openText = 'O';
+              if (activeMode === 'notes') openText = noteInfo.name;
+              else if (activeMode === 'degrees') openText = degreeText;
+
+              return (
+                <g key={`open-${strNum}`} onClick={() => handlePluckString(strNum)} className="cursor-pointer">
+                  <circle
+                    cx={nutWidth - 5}
+                    cy={yPos}
+                    r={6}
+                    fill={isRoot ? '#f43f5e' : 'none'}
+                    stroke={isRoot ? '#f43f5e' : '#10b981'}
+                    strokeWidth={2}
+                  />
+                  {activeMode !== 'fingers' && (
+                    <text
+                      x={nutWidth - 5}
+                      y={yPos + 3}
+                      textAnchor="middle"
+                      fill={isRoot ? '#0c0a09' : '#10b981'}
+                      fontSize={8}
+                      fontWeight="bold"
+                    >
+                      {openText}
+                    </text>
+                  )}
+                </g>
+              );
+            }
+
+            // Casa premida (bolinha com conteúdo dinâmico)
+            const xPos = nutWidth + (fret - 0.5) * fretWidth;
+            const noteInfo = getGuitarFretNote(strNum, fret);
+            const isRoot = noteInfo.name === chordShape.rootNote;
+            const fingerInfo = GUITAR_FINGER_INFO[finger] || { name: 'Dedo', short: `D${finger}`, color: '#fbbf24' };
+
+            // Determine marker text based on activeMode
+            let markerText = '';
+            if (activeMode === 'fingers') {
+              markerText = finger > 0 ? `D${finger}` : '';
+            } else if (activeMode === 'notes') {
+              markerText = noteInfo.name;
+            } else if (activeMode === 'degrees') {
+              // Check if chordShape has precalculated degrees
+              if ('degrees' in chordShape && Array.isArray((chordShape as GeneratedChordShape).degrees)) {
+                markerText = (chordShape as GeneratedChordShape).degrees[6 - strNum];
+              } else {
+                markerText = calculateHarmonicDegree(noteInfo.midi % 12, rootIndex, 'major');
+              }
+            }
+
+            return (
+              <g key={`fret-pressed-${strNum}`} onClick={() => handlePluckString(strNum)} className="cursor-pointer">
+                {/* Aura luminosa na fundamental */}
+                {isRoot && (
+                  <circle
+                    cx={xPos}
+                    cy={yPos}
+                    r={15}
+                    fill="#f43f5e"
+                    opacity={0.35}
+                    className="animate-ping"
+                  />
+                )}
+
+                {/* Círculo principal da nota no traste */}
+                <circle
+                  cx={xPos}
+                  cy={yPos}
+                  r={12}
+                  fill={isRoot ? '#f43f5e' : fingerInfo.color}
+                  stroke="#0c0a09"
+                  strokeWidth={2}
                 />
-                {showFingerGuide && (
-                  <g>
+
+                {/* Texto do marcador (Dedo / Nota / Grau) */}
+                <text
+                  x={xPos}
+                  y={yPos + 4}
+                  textAnchor="middle"
+                  fill="#0c0a09"
+                  fontSize={10}
+                  fontWeight="black"
+                  fontFamily="Outfit, sans-serif"
+                >
+                  {markerText}
+                </text>
+
+                {/* Apontador Superior de Dedo quando em modo 'fingers' */}
+                {activeMode === 'fingers' && finger > 0 && (
+                  <g className="finger-pointer-badge">
                     <polygon
-                      points={`${nutWidth + (chordShape.barreFret - 0.5) * fretWidth - 3},15 ${nutWidth + (chordShape.barreFret - 0.5) * fretWidth + 3},15 ${nutWidth + (chordShape.barreFret - 0.5) * fretWidth},18`}
-                      fill="#06b6d4"
+                      points={`${xPos - 3.5},${yPos - 13} ${xPos + 3.5},${yPos - 13} ${xPos},${yPos - 10}`}
+                      fill={fingerInfo.color}
                     />
                     <rect
-                      x={nutWidth + (chordShape.barreFret - 0.5) * fretWidth - 28}
-                      y={0}
-                      width={56}
+                      x={xPos - 18}
+                      y={yPos - 28}
+                      width={36}
                       height={15}
                       rx={3.5}
-                      fill="#06b6d4"
+                      fill={fingerInfo.color}
                       stroke="#0c0a09"
                       strokeWidth={0.8}
                     />
                     <text
-                      x={nutWidth + (chordShape.barreFret - 0.5) * fretWidth}
-                      y={10.5}
+                      x={xPos}
+                      y={yPos - 17.5}
                       textAnchor="middle"
                       fill="#0c0a09"
-                      fontSize={8}
+                      fontSize={8.5}
                       fontWeight="900"
                       fontFamily="JetBrains Mono, monospace"
                     >
-                      👆 D1 Pestana
+                      👆 {fingerInfo.short}
                     </text>
                   </g>
                 )}
               </g>
-            )}
-
-            {/* 6 Cordas do Violão (Espessuras variadas do bordão às primas) */}
-            {strings.map((strNum, idx) => {
-              const yPos = 24 + idx * stringSpacing;
-              // Corda 6 (E grave) é mais grossa (3.5px), Corda 1 (E aguda) é mais fina (1.2px)
-              const thickness = 1.2 + (5 - idx) * 0.45;
-              const stringColor = idx < 3 ? '#d6d3d1' : '#f59e0b'; // Primas de nylon prata / Bordões bronze
-
-              return (
-                <g key={`string-${strNum}`} className="group cursor-pointer" onClick={() => handlePluckString(strNum)}>
-                  {/* Linha da corda */}
-                  <line
-                    x1={nutWidth - 8}
-                    y1={yPos}
-                    x2={nutWidth + fretCount * fretWidth}
-                    y2={yPos}
-                    stroke={stringColor}
-                    strokeWidth={thickness}
-                    className="group-hover:stroke-amber-300 transition-colors"
-                  />
-
-                  {/* Nome da corda solta à esquerda da pestana */}
-                  <text
-                    x={nutWidth - 18}
-                    y={yPos + 4}
-                    textAnchor="end"
-                    fill="#a8a29e"
-                    fontSize={11}
-                    fontWeight="bold"
-                    fontFamily="JetBrains Mono, monospace"
-                  >
-                    {GUITAR_TUNING_MIDI.find(s => s.string === strNum)?.name[0]}
-                  </text>
-                </g>
-              );
-            })}
-
-            {/* Marcadores de Dedos / Notas Pressionadas no Acorde */}
-            {chordShape && strings.map((strNum) => {
-              // frets do shape: [E6, A5, D4, G3, B2, e1]
-              const fret = chordShape.frets[6 - strNum];
-              const finger = chordShape.fingers[6 - strNum];
-              const yPos = 24 + (strNum - 1) * stringSpacing;
-
-              // Corda abafada (X)
-              if (fret === -1) {
-                return (
-                  <g key={`muted-${strNum}`}>
-                    <text
-                      x={nutWidth - 4}
-                      y={yPos + 4}
-                      textAnchor="middle"
-                      fill="#f43f5e"
-                      fontSize={13}
-                      fontWeight="black"
-                    >
-                      ✕
-                    </text>
-                  </g>
-                );
-              }
-
-              // Corda Solta (O)
-              if (fret === 0) {
-                return (
-                  <g key={`open-${strNum}`}>
-                    <circle
-                      cx={nutWidth - 4}
-                      cy={yPos}
-                      r={4.5}
-                      fill="none"
-                      stroke="#10b981"
-                      strokeWidth={2}
-                    />
-                  </g>
-                );
-              }
-
-              // Casa premida (bolinha de dedo com apontador)
-              const xPos = nutWidth + (fret - 0.5) * fretWidth;
-              const noteInfo = getGuitarFretNote(strNum, fret);
-              const isRoot = noteInfo.name === chordShape.rootNote;
-              const fingerInfo = GUITAR_FINGER_INFO[finger] || { name: 'Dedo', short: `D${finger}`, color: '#fbbf24' };
-
-              return (
-                <g key={`fret-pressed-${strNum}`} onClick={() => handlePluckString(strNum)} className="cursor-pointer">
-                  {/* Aura luminosa na fundamental */}
-                  {isRoot && (
-                    <circle
-                      cx={xPos}
-                      cy={yPos}
-                      r={14}
-                      fill="#f43f5e"
-                      opacity={0.3}
-                      className="animate-ping"
-                    />
-                  )}
-
-                  {/* Círculo da nota no traste */}
-                  <circle
-                    cx={xPos}
-                    cy={yPos}
-                    r={11}
-                    fill={isRoot ? '#f43f5e' : fingerInfo.color}
-                    stroke="#0c0a09"
-                    strokeWidth={2}
-                  />
-
-                  {/* Nome da nota ou número do dedo no centro da casa */}
-                  <text
-                    x={xPos}
-                    y={yPos + 3.5}
-                    textAnchor="middle"
-                    fill="#0c0a09"
-                    fontSize={10}
-                    fontWeight="black"
-                    fontFamily="Outfit, sans-serif"
-                  >
-                    {displayNoteNames ? noteInfo.name : finger > 0 ? `D${finger}` : ''}
-                  </text>
-
-                  {/* Apontamento Visual de Dedo (Pointer Badge) */}
-                  {showFingerGuide && finger > 0 && (
-                    <g className="finger-pointer-badge">
-                      {/* Triângulo indicador apontando diretamente para o centro da casa */}
-                      <polygon
-                        points={`${xPos - 3.5},${yPos - 12} ${xPos + 3.5},${yPos - 12} ${xPos},${yPos - 9}`}
-                        fill={fingerInfo.color}
-                      />
-                      {/* Cápsula com borda de alto contraste */}
-                      <rect
-                        x={xPos - 18}
-                        y={yPos - 27}
-                        width={36}
-                        height={15}
-                        rx={3.5}
-                        fill={fingerInfo.color}
-                        stroke="#0c0a09"
-                        strokeWidth={0.8}
-                      />
-                      {/* Texto do Dedo com indicação explícita */}
-                      <text
-                        x={xPos}
-                        y={yPos - 16.5}
-                        textAnchor="middle"
-                        fill="#0c0a09"
-                        fontSize={8.5}
-                        fontWeight="900"
-                        fontFamily="JetBrains Mono, monospace"
-                      >
-                        👆 {fingerInfo.short}
-                      </text>
-                    </g>
-                  )}
-                </g>
-              );
-            })}
-          </svg>
-        </div>
+            );
+          })}
+        </svg>
       </div>
     </div>
   );

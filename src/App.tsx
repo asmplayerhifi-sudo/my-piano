@@ -10,6 +10,7 @@ import { GuitarModule } from './components/guitar/GuitarModule';
 import { TheoryModule } from './components/theory/TheoryModule';
 import { RepertoireView } from './components/score/RepertoireView';
 import { ScoreEditor } from './components/score/ScoreEditor';
+import { OrientationPromptModal } from './components/layout/OrientationPromptModal';
 import { midiManager } from './core/midiManager';
 
 const VALID_TABS: TabId[] = [
@@ -85,8 +86,12 @@ export const App: React.FC = () => {
         <span className="hidden sm:inline">•</span>
         <span className="text-slate-500">Layout Horizontal Full-Width</span>
       </footer>
+
+      {/* 4. Bloqueio Orientativo de Tela (Landscape Prompt) e Tela Cheia — Mobile & Tablet (REQ-UI-RESPONSIVE-ORIENTATION-01) */}
+      <OrientationPromptModal />
     </div>
   );
 };
 
 export default App;
+
