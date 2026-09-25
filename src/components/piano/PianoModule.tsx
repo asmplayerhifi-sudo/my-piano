@@ -4,7 +4,7 @@ import { ChordSelector } from './ChordSelector';
 import { MicrophonePitchBar } from '../audio/MicrophonePitchBar';
 import { TimbreSelector } from '../audio/TimbreSelector';
 import { MetronomeBar } from '../audio/MetronomeBar';
-import { buildChord, getKeyboardInversions } from '../../core/musicTheory';
+import { buildChord, getKeyboardInversions, CHORD_QUALITIES } from '../../core/musicTheory';
 import { midiManager, type MidiDevice } from '../../core/midiManager';
 import type { ChordQuality } from '../../core/types';
 import { useActiveNotes } from '../../hooks/useActiveNotes';
@@ -13,7 +13,7 @@ import { Music2, Cable, CheckCircle2, ChevronRight, BookOpen, Radio } from 'luci
 export const PianoModule: React.FC = () => {
   const [selectedRoot, setSelectedRoot] = useState<string>('C');
   const [selectedQuality, setSelectedQuality] = useState<ChordQuality>('major');
-  const [selectedInversion, setSelectedInversion] = useState<0 | 1 | 2>(0);
+  const [selectedInversion, setSelectedInversion] = useState<0 | 1 | 2 | 3>(0);
   const [midiDevices, setMidiDevices] = useState<MidiDevice[]>([]);
   const [micActiveMidi, setMicActiveMidi] = useState<number | null>(null);
   const [micAcousticNotes, setMicAcousticNotes] = useState<number[]>([]);
@@ -37,32 +37,34 @@ export const PianoModule: React.FC = () => {
     return buildChord(selectedRoot, selectedQuality);
   }, [selectedRoot, selectedQuality]);
 
-  // Inversões calculadas
+  // Inversões calculadas com suporte completo a tríades e tétrades (incluindo sétimas)
   const inversions = useMemo(() => {
-    const isMinor = selectedQuality.includes('minor') || selectedQuality.includes('min');
-    return getKeyboardInversions(selectedRoot, isMinor);
+    return getKeyboardInversions(selectedRoot, selectedQuality);
   }, [selectedRoot, selectedQuality]);
 
   // Mapeamento de teclas ativas e graus para colorização no teclado
   const activeVoicing = useMemo(() => {
     if (selectedInversion === 1) return inversions.firstInversion;
     if (selectedInversion === 2) return inversions.secondInversion;
+    if (selectedInversion === 3 && inversions.thirdInversion) return inversions.thirdInversion;
     return inversions.fundamental;
   }, [selectedInversion, inversions]);
 
   const highlightedKeys = useMemo(() => {
-    return activeVoicing.midi.map((midi, idx) => {
-      let degree = '1';
-      if (idx === 1) degree = selectedQuality.includes('minor') ? '♭3' : '3';
-      if (idx === 2) degree = '5';
+    return activeVoicing.midi.map((midi, idx) => ({
+      midi,
+      degreeName: activeVoicing.degrees[idx] || '1',
+      finger: activeVoicing.fingeringRH[idx],
+    }));
+  }, [activeVoicing]);
 
-      return {
-        midi,
-        degreeName: degree,
-        finger: activeVoicing.fingeringRH[idx],
-      };
-    });
-  }, [activeVoicing, selectedQuality]);
+  const handleSelectQuality = (quality: ChordQuality) => {
+    setSelectedQuality(quality);
+    if (selectedInversion === 3) {
+      const isTetrad = (CHORD_QUALITIES[quality]?.intervals.length ?? 3) === 4;
+      if (!isTetrad) setSelectedInversion(0);
+    }
+  };
 
   // Verifica se o acorde escutado confere com o acorde selecionado
   const isChordMatching = useMemo(() => {
@@ -198,7 +200,7 @@ export const PianoModule: React.FC = () => {
             selectedQuality={selectedQuality}
             selectedInversion={selectedInversion}
             onSelectRoot={setSelectedRoot}
-            onSelectQuality={setSelectedQuality}
+            onSelectQuality={handleSelectQuality}
             onSelectInversion={setSelectedInversion}
             activeMidiNotes={activeVoicing.midi}
           />

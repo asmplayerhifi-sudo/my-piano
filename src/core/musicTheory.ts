@@ -310,42 +310,113 @@ export function parseChord(chordStr: string): ParsedChord | null {
   };
 }
 
-// Inversões de Tríades para o Teclado
-export function getKeyboardInversions(root: string, isMinor = false): {
-  fundamental: { notes: string[]; midi: number[]; fingeringRH: number[] };
-  firstInversion: { notes: string[]; midi: number[]; fingeringRH: number[] };
-  secondInversion: { notes: string[]; midi: number[]; fingeringRH: number[] };
-} {
+export interface ChordInversionVoicing {
+  notes: string[];
+  midi: number[];
+  degrees: string[];
+  fingeringRH: number[];
+}
+
+export interface KeyboardInversions {
+  fundamental: ChordInversionVoicing;
+  firstInversion: ChordInversionVoicing;
+  secondInversion: ChordInversionVoicing;
+  thirdInversion?: ChordInversionVoicing;
+}
+
+// Inversões de Tríades e Tétrades para o Teclado
+export function getKeyboardInversions(
+  root: string,
+  qualityOrIsMinor: ChordQuality | boolean = 'major'
+): KeyboardInversions {
   const rootIdx = CHROMATIC_NOTES_SHARP.indexOf(root) !== -1 
     ? CHROMATIC_NOTES_SHARP.indexOf(root) 
     : CHROMATIC_NOTES_FLAT.indexOf(root);
-  const baseMidi = 60 + (rootIdx >= 0 ? rootIdx : 0); // Região do Dó Central C3 (MIDI 60)
-  const thirdInterval = isMinor ? 3 : 4;
-  const fifthInterval = 7;
+  const safeRootIndex = rootIdx >= 0 ? rootIdx : 0;
+  // Região do Dó Central C3 (MIDI 60)
+  const baseMidi = 60 + safeRootIndex;
 
-  // Fundamental: 1 - 3 - 5 (Dedos 1 - 3 - 5)
-  const fundMidi = [baseMidi, baseMidi + thirdInterval, baseMidi + fifthInterval];
-  // 1ª Inversão: 3 - 5 - 1 (+1 oitava na raiz) (Dedos 1 - 2 - 5)
-  const inv1Midi = [baseMidi + thirdInterval, baseMidi + fifthInterval, baseMidi + 12];
-  // 2ª Inversão: 5 - 1 - 3 (+1 oitava na raiz e terça) (Dedos 1 - 3 - 5 ou 1 - 2 - 4)
-  const inv2Midi = [baseMidi + fifthInterval, baseMidi + 12, baseMidi + 12 + thirdInterval];
+  const quality: ChordQuality = typeof qualityOrIsMinor === 'boolean'
+    ? (qualityOrIsMinor ? 'minor' : 'major')
+    : qualityOrIsMinor;
+
+  const config = CHORD_QUALITIES[quality] || CHORD_QUALITIES.major;
+  const intervals = config.intervals;
+  const degrees = config.degrees;
+  const noteCount = intervals.length;
+
+  const fundMidi = intervals.map(st => baseMidi + st);
+
+  if (noteCount === 4) {
+    // Tétrades (4 notas: Fundamental, 3ª, 5ª, 7ª)
+    // 1ª Inversão: 3 - 5 - 7 - 1 (+12 na raiz)
+    const inv1Midi = [fundMidi[1], fundMidi[2], fundMidi[3], fundMidi[0] + 12];
+    const inv1Degrees = [degrees[1], degrees[2], degrees[3], degrees[0]];
+
+    // 2ª Inversão: 5 - 7 - 1 - 3 (+12 na raiz e terça)
+    const inv2Midi = [fundMidi[2], fundMidi[3], fundMidi[0] + 12, fundMidi[1] + 12];
+    const inv2Degrees = [degrees[2], degrees[3], degrees[0], degrees[1]];
+
+    // 3ª Inversão: 7 - 1 - 3 - 5 (+12 na raiz, terça e quinta)
+    const inv3Midi = [fundMidi[3], fundMidi[0] + 12, fundMidi[1] + 12, fundMidi[2] + 12];
+    const inv3Degrees = [degrees[3], degrees[0], degrees[1], degrees[2]];
+
+    return {
+      fundamental: {
+        notes: fundMidi.map(m => getNoteInfo(m).name),
+        midi: fundMidi,
+        degrees,
+        fingeringRH: [1, 2, 3, 5],
+      },
+      firstInversion: {
+        notes: inv1Midi.map(m => getNoteInfo(m).name),
+        midi: inv1Midi,
+        degrees: inv1Degrees,
+        fingeringRH: [1, 2, 4, 5],
+      },
+      secondInversion: {
+        notes: inv2Midi.map(m => getNoteInfo(m).name),
+        midi: inv2Midi,
+        degrees: inv2Degrees,
+        fingeringRH: [1, 2, 3, 5],
+      },
+      thirdInversion: {
+        notes: inv3Midi.map(m => getNoteInfo(m).name),
+        midi: inv3Midi,
+        degrees: inv3Degrees,
+        fingeringRH: [1, 2, 3, 5],
+      },
+    };
+  }
+
+  // Tríades (3 notas: Fundamental, 3ª, 5ª)
+  // 1ª Inversão: 3 - 5 - 1 (+12 na raiz)
+  const inv1Midi = [fundMidi[1], fundMidi[2], fundMidi[0] + 12];
+  const inv1Degrees = [degrees[1], degrees[2], degrees[0]];
+
+  // 2ª Inversão: 5 - 1 - 3 (+12 na raiz e terça)
+  const inv2Midi = [fundMidi[2], fundMidi[0] + 12, fundMidi[1] + 12];
+  const inv2Degrees = [degrees[2], degrees[0], degrees[1]];
 
   return {
     fundamental: {
       notes: fundMidi.map(m => getNoteInfo(m).name),
       midi: fundMidi,
+      degrees,
       fingeringRH: [1, 3, 5],
     },
     firstInversion: {
       notes: inv1Midi.map(m => getNoteInfo(m).name),
       midi: inv1Midi,
+      degrees: inv1Degrees,
       fingeringRH: [1, 2, 5],
     },
     secondInversion: {
       notes: inv2Midi.map(m => getNoteInfo(m).name),
       midi: inv2Midi,
+      degrees: inv2Degrees,
       fingeringRH: [1, 3, 5],
-    }
+    },
   };
 }
 

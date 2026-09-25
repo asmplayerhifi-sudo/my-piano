@@ -7,10 +7,10 @@ import { soundEngine } from '../../core/soundEngine';
 interface Props {
   selectedRoot: string;
   selectedQuality: ChordQuality;
-  selectedInversion: 0 | 1 | 2;
+  selectedInversion: 0 | 1 | 2 | 3;
   onSelectRoot: (root: string) => void;
   onSelectQuality: (quality: ChordQuality) => void;
-  onSelectInversion: (inv: 0 | 1 | 2) => void;
+  onSelectInversion: (inv: 0 | 1 | 2 | 3) => void;
   activeMidiNotes: number[];
 }
 
@@ -23,6 +23,21 @@ export const ChordSelector: React.FC<Props> = ({
   onSelectInversion,
   activeMidiNotes,
 }) => {
+  const isTetrad = (CHORD_QUALITIES[selectedQuality]?.intervals.length ?? 3) === 4;
+
+  const inversionOptions: Array<{ id: 0 | 1 | 2 | 3; label: string; desc: string }> = isTetrad
+    ? [
+        { id: 0, label: 'Fundamental', desc: '1 - 3 - 5 - 7' },
+        { id: 1, label: '1ª Inversão', desc: '3 - 5 - 7 - 1' },
+        { id: 2, label: '2ª Inversão', desc: '5 - 7 - 1 - 3' },
+        { id: 3, label: '3ª Inversão', desc: '7 - 1 - 3 - 5' },
+      ]
+    : [
+        { id: 0, label: 'Fundamental', desc: '1 - 3 - 5' },
+        { id: 1, label: '1ª Inversão', desc: '3 - 5 - 1' },
+        { id: 2, label: '2ª Inversão', desc: '5 - 1 - 3' },
+      ];
+
   const handlePlayChord = () => {
     soundEngine.playChord(activeMidiNotes, 'piano', 1.8);
   };
@@ -96,12 +111,8 @@ export const ChordSelector: React.FC<Props> = ({
         <label className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-bold block mb-2">
           3. Inversão do Acorde
         </label>
-        <div className="grid grid-cols-3 gap-2">
-          {[
-            { id: 0 as const, label: 'Fundamental', desc: '1 - 3 - 5' },
-            { id: 1 as const, label: '1ª Inversão', desc: '3 - 5 - 1' },
-            { id: 2 as const, label: '2ª Inversão', desc: '5 - 1 - 3' },
-          ].map((inv) => (
+        <div className={`grid ${isTetrad ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3'} gap-2`}>
+          {inversionOptions.map((inv) => (
             <button
               key={inv.id}
               onClick={() => onSelectInversion(inv.id)}

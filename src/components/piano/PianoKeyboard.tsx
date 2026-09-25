@@ -248,7 +248,7 @@ export const PianoKeyboard: React.FC<Props> = ({
     if (degree === '1' || degree === 'T') return '#f43f5e';           // Tônica: Vermelho/Rosa
     if (/^(3|3M|3m|b3|♭3)$/.test(degree)) return '#06b6d4';         // Terça: Ciano
     if (/^(5|5J|5dim|#5|♯5|b5|♭5)$/.test(degree)) return '#10b981'; // Quinta: Verde
-    if (/^(7|7M|7m|b7|♭7|dim7)$/.test(degree)) return '#a855f7';     // Sétima: Roxo
+    if (/^(7|7M|7m|b7|♭7|dim7|𝄫7|bb7)$/.test(degree)) return '#a855f7';     // Sétima: Roxo
     return '#6366f1';
   };
 
@@ -260,8 +260,9 @@ export const PianoKeyboard: React.FC<Props> = ({
     // Se a tecla é uma nota destacada sem dedo explícito, mapeia pelos graus harmônicos
     if (highlight) {
       if (highlight.degreeName === '1' || highlight.degreeName === 'T') return 1;
-      if (highlight.degreeName && /^(3|3M|3m)/.test(highlight.degreeName)) return 3;
-      if (highlight.degreeName && /^(5|5J)/.test(highlight.degreeName)) return 5;
+      if (highlight.degreeName && /^(3|3M|3m|b3|♭3)/.test(highlight.degreeName)) return 3;
+      if (highlight.degreeName && /^(5|5J|#5|♯5|b5|♭5)/.test(highlight.degreeName)) return 5;
+      if (highlight.degreeName && /^(7|7M|7m|b7|♭7|dim7|𝄫7|bb7)/.test(highlight.degreeName)) return 5;
     }
     return null;
   };
