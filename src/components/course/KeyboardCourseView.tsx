@@ -64,6 +64,7 @@ export const KeyboardCourseView: React.FC = () => {
   const [isTrailExpanded, setIsTrailExpanded] = useState<boolean>(false);
   const [isFullscreenLesson, setIsFullscreenLesson] = useState<boolean>(false);
   const [isFullscreenTrail, setIsFullscreenTrail] = useState<boolean>(false);
+  const [mobileCourseTab, setMobileCourseTab] = useState<'stage' | 'trail'>('stage');
 
   // Parâmetros de Treino: Andamento customizável, metrônomo e acompanhamento
   const [customBpm, setCustomBpm] = useState<number | null>(null);
@@ -257,6 +258,7 @@ export const KeyboardCourseView: React.FC = () => {
       setIsAccompanimentPlaying(false);
     }
     setPracticeTab('all');
+    setMobileCourseTab('stage');
   };
 
   const handleSelectExercise = (idx: number) => {
@@ -446,11 +448,38 @@ export const KeyboardCourseView: React.FC = () => {
         </div>
       </div>
 
+      {/* Seletor Adaptativo para Celulares e Tablets (< 1024px) */}
+      <div className="lg:hidden flex items-center bg-black/40 p-1 rounded-2xl border border-white/5">
+        <button
+          onClick={() => setMobileCourseTab('stage')}
+          className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            mobileCourseTab === 'stage'
+              ? 'bg-indigo-600 text-white shadow-md'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <GraduationCap className="w-3.5 h-3.5" />
+          <span>Lição &amp; Prática</span>
+        </button>
+
+        <button
+          onClick={() => setMobileCourseTab('trail')}
+          className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            mobileCourseTab === 'trail'
+              ? 'bg-purple-600 text-white shadow-md'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <BookOpen className="w-3.5 h-3.5" />
+          <span>Trilha ({completedLessonIds.length}/{KEYBOARD_COURSE_MODULES.reduce((acc, m) => acc + m.lessons.length, 0)})</span>
+        </button>
+      </div>
+
       {/* Grid: Grade de Módulos (Esquerda) e Painel de Aula Interativa (Direita) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
         {/* Coluna 1: Grade de Lições e Módulos */}
         {!isWidescreenStage && (
-          <div className={`${isTrailExpanded ? 'lg:col-span-6 xl:col-span-5' : 'lg:col-span-4 xl:col-span-3 2xl:col-span-3'} h-full flex flex-col`}>
+          <div className={`${isTrailExpanded ? 'lg:col-span-6 xl:col-span-5' : 'lg:col-span-4 xl:col-span-3 2xl:col-span-3'} ${mobileCourseTab === 'trail' ? 'flex' : 'hidden lg:flex'} h-full flex-col`}>
             <div
               className={`glass-card rounded-3xl p-4 border border-white/5 space-y-3 flex flex-col flex-1 h-full transition-all ${
                 isFullscreenTrail
@@ -555,7 +584,7 @@ export const KeyboardCourseView: React.FC = () => {
               : isTrailExpanded
               ? 'lg:col-span-6 xl:col-span-7'
               : 'lg:col-span-8 xl:col-span-9 2xl:col-span-9'
-          } h-full flex flex-col space-y-4`}
+          } ${mobileCourseTab === 'stage' ? 'flex' : 'hidden lg:flex'} h-full flex-col space-y-4`}
         >
           <div
             className={`glass-card rounded-3xl p-4 sm:p-6 border border-white/5 space-y-4 flex-1 flex flex-col transition-all ${

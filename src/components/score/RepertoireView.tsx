@@ -78,6 +78,9 @@ export const RepertoireView: React.FC = () => {
   const [metronomeVolume, setMetronomeVolume] = useState<number>(75);
   const [metronomeSound, setMetronomeSound] = useState<MetronomeSoundType>('keyboard-sidestick');
 
+  // Aba ativa nos cartões de contexto didático em telas mobile
+  const [mobileContextTab, setMobileContextTab] = useState<'context' | 'tips' | 'chords'>('context');
+
   const octaveStandard = useOctaveStandard();
 
   const toggleFullscreenStage = () => {
@@ -603,8 +606,9 @@ export const RepertoireView: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. Informações de Contexto & Acordes (Layout Compacto com Bordas Sutis) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 text-xs">
+      {/* 2. Informações de Contexto & Acordes (Layout Adaptativo: Abas no Mobile, 3 Colunas no Tablet/Desktop) */}
+      {/* Visualização para Telas Maiores (Tablet / Computador >= 768px) */}
+      <div className="hidden md:grid md:grid-cols-3 gap-2.5 text-xs">
         <div className="p-3 rounded-2xl bg-white/[0.02] border border-white/5 space-y-1">
           <span className="font-bold text-slate-300 flex items-center gap-1.5 text-[11px]">
             <Compass className="w-3.5 h-3.5 text-purple-400" />
@@ -640,6 +644,77 @@ export const RepertoireView: React.FC = () => {
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Visualização Adaptativa para Celulares (< 768px) com Abas Compactas */}
+      <div className="md:hidden space-y-2 text-xs">
+        <div className="flex items-center gap-1 bg-black/40 p-1 rounded-2xl border border-white/5">
+          <button
+            onClick={() => setMobileContextTab('context')}
+            className={`flex-1 py-1.5 rounded-xl font-bold text-[11px] flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              mobileContextTab === 'context'
+                ? 'bg-purple-600/40 text-purple-200 border border-purple-500/40'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Compass className="w-3.5 h-3.5 text-purple-400" />
+            <span>Contexto</span>
+          </button>
+
+          <button
+            onClick={() => setMobileContextTab('tips')}
+            className={`flex-1 py-1.5 rounded-xl font-bold text-[11px] flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              mobileContextTab === 'tips'
+                ? 'bg-cyan-600/40 text-cyan-200 border border-cyan-500/40'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Lightbulb className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Dica</span>
+          </button>
+
+          <button
+            onClick={() => setMobileContextTab('chords')}
+            className={`flex-1 py-1.5 rounded-xl font-bold text-[11px] flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              mobileContextTab === 'chords'
+                ? 'bg-amber-600/40 text-amber-200 border border-amber-500/40'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <span>Acordes ({activeSong.chords.length})</span>
+          </button>
+        </div>
+
+        {mobileContextTab === 'context' && (
+          <div className="p-3 rounded-2xl bg-white/[0.02] border border-white/5">
+            <p className="text-slate-400 text-xs leading-relaxed">
+              {octaveConfigStore.formatNoteOctavesInText(activeSong.historicalContext, octaveStandard)}
+            </p>
+          </div>
+        )}
+
+        {mobileContextTab === 'tips' && (
+          <div className="p-3 rounded-2xl bg-cyan-950/20 border border-cyan-500/20">
+            <p className="text-slate-300 text-xs leading-relaxed">
+              {octaveConfigStore.formatNoteOctavesInText(activeSong.biomechanicsTip, octaveStandard)}
+            </p>
+          </div>
+        )}
+
+        {mobileContextTab === 'chords' && (
+          <div className="p-3 rounded-2xl bg-white/[0.02] border border-white/5">
+            <div className="flex flex-wrap gap-1.5">
+              {activeSong.chords.map((chord, i) => (
+                <span
+                  key={i}
+                  className="px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/20 text-xs font-mono font-black"
+                >
+                  {chord}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 3. Palco Total: Partitura Deslizante (Widescreen 100% com Bordas Sutis) */}

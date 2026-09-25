@@ -66,9 +66,9 @@ export const CircleOfFifths: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-        {/* Gráfico Circular SVG Interativo */}
-        <div className="lg:col-span-7 flex justify-center">
-          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="overflow-visible">
+        {/* Gráfico Circular SVG Interativo (Totalmente Escalável em Qualquer Tela) */}
+        <div className="lg:col-span-7 flex justify-center w-full">
+          <svg viewBox={`0 0 ${size} ${size}`} className="w-full max-w-[320px] aspect-square overflow-visible">
             {/* Círculo de Fundo */}
             <circle cx={center} cy={center} r={outerRadius + 16} fill="#0d0c1c" stroke="#252440" strokeWidth={2} />
             <circle cx={center} cy={center} r={innerRadius - 20} fill="#141226" />

@@ -618,22 +618,8 @@ export const RhythmArranger: React.FC = () => {
             <p className="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-3">
               🥁 Drum Pads — Toque ao Vivo
             </p>
-            <div className="grid grid-cols-6 gap-2">
-              {DRUM_PADS.slice(0, 12).map(pad => (
-                <DrumPadButton
-                  key={pad.key}
-                  padKey={pad.key}
-                  label={pad.label}
-                  shortLabel={pad.shortLabel}
-                  emoji={pad.emoji}
-                  color={pad.color}
-                  isActive={activePads.has(pad.key)}
-                  onTrigger={() => triggerPad(pad.key)}
-                />
-              ))}
-            </div>
-            <div className="grid grid-cols-3 gap-2 mt-2">
-              {DRUM_PADS.slice(12).map(pad => (
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+              {DRUM_PADS.map(pad => (
                 <DrumPadButton
                   key={pad.key}
                   padKey={pad.key}

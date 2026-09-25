@@ -153,8 +153,8 @@ export const FretboardView: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* Braço de Violão SVG Responsivo com Scroll Horizontal */}
-      <div className="w-full overflow-x-auto pb-4 no-scrollbar flex justify-center">
+      {/* Braço de Violão SVG Responsivo com Scroll Horizontal (Inicia na Pestana sem corte lateral em telas móveis) */}
+      <div className="w-full overflow-x-auto pb-4 no-scrollbar flex justify-start md:justify-center">
         <div className="p-4 rounded-3xl glass-panel border border-white/10 shadow-2xl bg-[#140e0b]/90 inline-block">
           <svg
             width={totalSvgWidth}

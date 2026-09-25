@@ -75,6 +75,7 @@ export const PianoKeyboard: React.FC<Props> = ({
 
   const [startOctave, setStartOctave] = useState<number>(initialStartOctave);
   const [octaveCount, setOctaveCount] = useState<number>(initialOctaveCount);
+  const userSelectedOctaveCountRef = useRef<boolean>(false);
   const [isWaterfallActive, setIsWaterfallActive] = useState<boolean>(showWaterfall);
   const [showFingerGuide, setShowFingerGuide] = useState<boolean>(showFingerPointer);
   const [trailTheme, setTrailTheme] = useState<TrailColorTheme>('coral');
@@ -92,6 +93,10 @@ export const PianoKeyboard: React.FC<Props> = ({
         const measured = containerRef.current.clientWidth;
         if (measured > 150) {
           setContainerWidth(measured);
+          // Em celulares compactos (< 520px), adapta para 2 oitavas para teclas largas e fáceis de tocar por toque
+          if (measured < 520 && !userSelectedOctaveCountRef.current && initialOctaveCount > 2) {
+            setOctaveCount(2);
+          }
         }
       }
     };
@@ -111,7 +116,7 @@ export const PianoKeyboard: React.FC<Props> = ({
       observer.disconnect();
       window.removeEventListener('resize', updateWidth);
     };
-  }, []);
+  }, [initialOctaveCount]);
 
   // Número total de teclas brancas para a quantidade de oitavas selecionada
   const totalWhiteKeys = octaveCount * 7;
@@ -735,17 +740,21 @@ export const PianoKeyboard: React.FC<Props> = ({
               <span>Oitavas:</span>
             </span>
             <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 font-bold text-[10px]">
-              {[2, 3, 4, 5].map((count) => (
+              {[1, 2, 3, 4, 5].map((count) => (
                 <button
                   key={count}
-                  onClick={() => setOctaveCount(count)}
+                  onClick={() => {
+                    userSelectedOctaveCountRef.current = true;
+                    setOctaveCount(count);
+                  }}
                   className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                     octaveCount === count
                       ? 'bg-indigo-600 text-white shadow-md'
                       : 'text-slate-400 hover:text-white'
                   }`}
+                  title={`${count} oitava${count > 1 ? 's' : ''}`}
                 >
-                  {count} Oitavas
+                  {count} {count === 1 ? 'Oitava' : 'Oitavas'}
                 </button>
               ))}
             </div>

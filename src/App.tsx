@@ -51,11 +51,11 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#080811] text-slate-100 flex flex-col justify-between selection:bg-indigo-500 selection:text-white">
-      {/* 1. Cabeçalho Fixo */}
-      <Header />
-
-      {/* 2. Barra de Navegação dos Módulos e Cursos */}
-      <Navigation activeTab={activeTab} onSelectTab={handleSelectTab} />
+      {/* 1 e 2. Cabeçalho e Barra de Navegação Unificados e Fixos (Sem sobreposição em telas móveis) */}
+      <div className="sticky top-0 z-40 w-full backdrop-blur-md bg-[#080811]/90 border-b border-white/5 shadow-xl">
+        <Header />
+        <Navigation activeTab={activeTab} onSelectTab={handleSelectTab} />
+      </div>
 
       {/* 3. Área Principal do Conteúdo (Totalmente Fluida e Responsiva para Todos os Monitores) */}
       <main className="flex-1 px-2 sm:px-4 md:px-6 2xl:px-8 py-3 sm:py-4 w-full">
