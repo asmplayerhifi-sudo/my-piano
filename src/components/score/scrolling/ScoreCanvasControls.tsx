@@ -23,6 +23,7 @@ interface ScoreControlsProps {
   onToggleMetronome: () => void;
   enableSustain?: boolean;
   onToggleSustain?: () => void;
+  hidePlaybackControls?: boolean;
   displayOptions: DisplayOptions;
   onToggleOption: (key: keyof DisplayOptions) => void;
   score: number;
@@ -44,6 +45,7 @@ export const ScoreCanvasControls: React.FC<ScoreControlsProps> = ({
   onToggleMetronome,
   enableSustain = true,
   onToggleSustain,
+  hidePlaybackControls = false,
   displayOptions,
   onToggleOption,
   score,
@@ -52,46 +54,47 @@ export const ScoreCanvasControls: React.FC<ScoreControlsProps> = ({
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-slate-900/90 border-b border-white/10 text-white select-none">
       {/* 1. Controles Principais de Playback */}
-      <div className="flex items-center gap-2">
-        <button
-          onClick={onTogglePlay}
-          className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shadow-md cursor-pointer ${
-            isPlaying
-              ? 'bg-amber-500 hover:bg-amber-400 text-slate-950'
-              : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950'
-          }`}
-        >
-          {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
-          <span>{isPlaying ? 'Pausar' : 'Tocar'}</span>
-        </button>
-
-        <button
-          onClick={onRestart}
-          title="Reiniciar partitura"
-          className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 border border-white/10 text-slate-300 transition-all cursor-pointer"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-        </button>
-
-        {/* Andamento (BPM) */}
-        <div className="flex items-center gap-1.5 ml-2 px-2.5 py-1 bg-white/5 border border-white/10 rounded-lg text-xs">
-          <span className="text-slate-400 text-[10px] font-mono">BPM:</span>
+      {!hidePlaybackControls && (
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => onTempoChange(tempo - 5)}
-            className="w-5 h-5 flex items-center justify-center rounded hover:bg-white/10 text-slate-300 font-bold"
+            onClick={onTogglePlay}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shadow-md cursor-pointer ${
+              isPlaying
+                ? 'bg-amber-500 hover:bg-amber-400 text-slate-950'
+                : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950'
+            }`}
           >
-            -
+            {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+            <span>{isPlaying ? 'Pausar' : 'Tocar'}</span>
           </button>
-          <span className="font-mono font-bold text-amber-400 w-7 text-center">{tempo}</span>
+
           <button
-            onClick={() => onTempoChange(tempo + 5)}
-            className="w-5 h-5 flex items-center justify-center rounded hover:bg-white/10 text-slate-300 font-bold"
+            onClick={onRestart}
+            title="Reiniciar partitura"
+            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 border border-white/10 text-slate-300 transition-all cursor-pointer"
           >
-            +
+            <RotateCcw className="w-3.5 h-3.5" />
           </button>
+
+          {/* Andamento (BPM) */}
+          <div className="flex items-center gap-1.5 ml-2 px-2.5 py-1 bg-white/5 border border-white/10 rounded-lg text-xs">
+            <span className="text-slate-400 text-[10px] font-mono">BPM:</span>
+            <button
+              onClick={() => onTempoChange(tempo - 5)}
+              className="w-5 h-5 flex items-center justify-center rounded hover:bg-white/10 text-slate-300 font-bold"
+            >
+              -
+            </button>
+            <span className="font-mono font-bold text-amber-400 w-7 text-center">{tempo}</span>
+            <button
+              onClick={() => onTempoChange(tempo + 5)}
+              className="w-5 h-5 flex items-center justify-center rounded hover:bg-white/10 text-slate-300 font-bold"
+            >
+              +
+            </button>
+          </div>
         </div>
-      </div>
-
+      )}
       {/* 2. Feedback Rítmico em Tempo Real */}
       <div className="flex items-center gap-3">
         {feedback && (
@@ -122,25 +125,27 @@ export const ScoreCanvasControls: React.FC<ScoreControlsProps> = ({
           </button>
         )}
 
-        {/* Metrônomo Sonoro com On/Off e Pulso */}
-        <button
-          onClick={onToggleMetronome}
-          title={enableMetronome ? 'Metrônomo ativo com som (Clique para desligar)' : 'Metrônomo desligado (Clique para ativar o som)'}
-          className={`px-2.5 py-1.5 rounded-lg border flex items-center gap-1.5 text-xs transition-all cursor-pointer ${
-            enableMetronome
-              ? 'bg-amber-500/25 border-amber-500/60 text-amber-300 font-bold shadow-[0_0_12px_rgba(245,158,11,0.25)]'
-              : 'bg-white/5 border-white/10 text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <Radio className={`w-3.5 h-3.5 ${enableMetronome ? 'animate-pulse text-amber-400' : ''}`} />
-          <span className="text-[10px] font-bold">Metrônomo: {enableMetronome ? 'ON' : 'OFF'}</span>
-          {enableMetronome && (
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
-          )}
-        </button>
+        {/* Metrônomo Sonoro com On/Off e Pulso (se não ocultado por master externo) */}
+        {!hidePlaybackControls && (
+          <button
+            onClick={onToggleMetronome}
+            title={enableMetronome ? 'Metrônomo ativo com som (Clique para desligar)' : 'Metrônomo desligado (Clique para ativar o som)'}
+            className={`px-2.5 py-1.5 rounded-lg border flex items-center gap-1.5 text-xs transition-all cursor-pointer ${
+              enableMetronome
+                ? 'bg-amber-500/25 border-amber-500/60 text-amber-300 font-bold shadow-[0_0_12px_rgba(245,158,11,0.25)]'
+                : 'bg-white/5 border-white/10 text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Radio className={`w-3.5 h-3.5 ${enableMetronome ? 'animate-pulse text-amber-400' : ''}`} />
+            <span className="text-[10px] font-bold">Metrônomo: {enableMetronome ? 'ON' : 'OFF'}</span>
+            {enableMetronome && (
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+            )}
+          </button>
+        )}
 
         {/* Pedal de Sustain para Acordes e Harmonia */}
-        {onToggleSustain && (
+        {!hidePlaybackControls && onToggleSustain && (
           <button
             onClick={onToggleSustain}
             title={enableSustain ? 'Pedal de Sustain: LIGADO (Acordes ressoam com sustentação natural preenchendo o compasso)' : 'Pedal de Sustain: DESLIGADO (Acordes tocam secos em staccato)'}

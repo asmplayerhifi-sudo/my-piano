@@ -48,10 +48,9 @@ class MetronomeEngine {
     this.updateBeatsPerMeasure();
   }
 
-  private updateBeatsPerMeasure() {
-    const parts = this.state.timeSignature.split('/');
-    const num = parseInt(parts[0], 10) || 4;
-    this.state.beatsPerMeasure = num;
+  private updateBeatsPerMeasure(timeSignature = this.state.timeSignature): number {
+    const parts = timeSignature.split('/');
+    return parseInt(parts[0], 10) || 4;
   }
 
   public getSnapshot = (): MetronomeState => {
@@ -78,26 +77,37 @@ class MetronomeEngine {
     });
   }
 
+  /**
+   * Atualização imutável estrita de estado.
+   * Cria sempre uma nova referência de objeto, essencial para o correto
+   * funcionamento do `useSyncExternalStore` do React 18/19.
+   */
+  private updateState(updater: Partial<MetronomeState>) {
+    this.state = { ...this.state, ...updater };
+    this.notify();
+  }
+
   public async start(initialOptions?: { bpm?: number; timeSignature?: string; soundType?: MetronomeSoundType }) {
     await soundEngine.ensureAudioReady();
 
-    if (initialOptions?.bpm && initialOptions.bpm > 0) {
-      this.state.bpm = Math.max(30, Math.min(280, Math.round(initialOptions.bpm)));
-    }
-    if (initialOptions?.timeSignature) {
-      this.state.timeSignature = initialOptions.timeSignature;
-      this.updateBeatsPerMeasure();
-    }
-    if (initialOptions?.soundType) {
-      this.state.soundType = initialOptions.soundType;
-    }
+    const newBpm = initialOptions?.bpm && initialOptions.bpm > 0
+      ? Math.max(30, Math.min(280, Math.round(initialOptions.bpm)))
+      : this.state.bpm;
+    const newTimeSig = initialOptions?.timeSignature || this.state.timeSignature;
+    const newBeats = this.updateBeatsPerMeasure(newTimeSig);
+    const newSoundType = initialOptions?.soundType || this.state.soundType;
 
-    if (this.state.isPlaying) return;
+    if (this.state.isPlaying) {
+      this.updateState({
+        bpm: newBpm,
+        timeSignature: newTimeSig,
+        beatsPerMeasure: newBeats,
+        soundType: newSoundType,
+      });
+      return;
+    }
 
     this.clearVisualTimeouts();
-    this.state.isPlaying = true;
-    this.state.currentBeat = 1;
-    this.state.isDownbeat = true;
     this.scheduledBeat = 1;
 
     const ctx = soundEngine.getAudioContext();
@@ -108,7 +118,15 @@ class MetronomeEngine {
       this.scheduler();
     }, this.lookaheadMs);
 
-    this.notify();
+    this.updateState({
+      isPlaying: true,
+      bpm: newBpm,
+      timeSignature: newTimeSig,
+      beatsPerMeasure: newBeats,
+      soundType: newSoundType,
+      currentBeat: 1,
+      isDownbeat: true,
+    });
   }
 
   public stop() {
@@ -117,10 +135,11 @@ class MetronomeEngine {
       this.timerId = null;
     }
     this.clearVisualTimeouts();
-    this.state.isPlaying = false;
-    this.state.currentBeat = 1;
-    this.state.isDownbeat = true;
-    this.notify();
+    this.updateState({
+      isPlaying: false,
+      currentBeat: 1,
+      isDownbeat: true,
+    });
   }
 
   public async toggle(initialOptions?: { bpm?: number; timeSignature?: string }) {
@@ -134,34 +153,31 @@ class MetronomeEngine {
   public setBpm(newBpm: number) {
     const clamped = Math.max(30, Math.min(280, Math.round(newBpm)));
     if (this.state.bpm !== clamped) {
-      this.state.bpm = clamped;
-      this.notify();
+      this.updateState({ bpm: clamped });
     }
   }
 
   public setTimeSignature(ts: string) {
     if (this.state.timeSignature !== ts) {
-      this.state.timeSignature = ts;
-      this.updateBeatsPerMeasure();
-      if (this.state.currentBeat > this.state.beatsPerMeasure) {
-        this.state.currentBeat = 1;
-      }
-      this.notify();
+      const beats = this.updateBeatsPerMeasure(ts);
+      this.updateState({
+        timeSignature: ts,
+        beatsPerMeasure: beats,
+        currentBeat: this.state.currentBeat > beats ? 1 : this.state.currentBeat,
+      });
     }
   }
 
   public setSoundType(sound: MetronomeSoundType) {
     if (this.state.soundType !== sound) {
-      this.state.soundType = sound;
-      this.notify();
+      this.updateState({ soundType: sound });
     }
   }
 
   public setVolume(vol: number) {
     const clamped = Math.max(0, Math.min(100, Math.round(vol)));
     if (this.state.volume !== clamped) {
-      this.state.volume = clamped;
-      this.notify();
+      this.updateState({ volume: clamped });
     }
   }
 
@@ -198,9 +214,10 @@ class MetronomeEngine {
 
     const timeout = window.setTimeout(() => {
       if (!this.state.isPlaying) return;
-      this.state.currentBeat = beatNum;
-      this.state.isDownbeat = isDownbeat;
-      this.notify();
+      this.updateState({
+        currentBeat: beatNum,
+        isDownbeat,
+      });
 
       this.beatTickListeners.forEach((fn) => {
         try {

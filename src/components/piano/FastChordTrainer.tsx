@@ -97,7 +97,6 @@ export const FastChordTrainer: React.FC = () => {
 
   // Escuta entradas MIDI de teclado físico externo (USB / OTG / Bluetooth)
   useEffect(() => {
-    midiManager.initialize();
     const unsub = midiManager.subscribe((payload) => {
       if (payload.isDown && isActive && !isSuccess) {
         if (targetVoicing.midi.includes(payload.midi)) {

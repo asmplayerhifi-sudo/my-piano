@@ -6,7 +6,6 @@
  */
 
 import type { RepertoireSong } from './repertoireData';
-import type { ScoreNote } from './coursesData';
 import { parseChord } from './musicTheory';
 
 export type DiagnosticSeverity = 'INFO' | 'WARNING' | 'ERROR';

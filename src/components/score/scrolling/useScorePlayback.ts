@@ -58,6 +58,11 @@ export function useScorePlayback({
   const [internalIsPlaying, setInternalIsPlaying] = useState<boolean>(false);
   const isPlaying = controlledIsPlaying !== undefined ? controlledIsPlaying : internalIsPlaying;
   const [tempo, setTempo] = useState<number>(bpm);
+
+  // Sincroniza andamento quando a prop bpm externa mudar (ex: troca de exercício)
+  useEffect(() => {
+    setTempo(bpm);
+  }, [bpm]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [score, setScore] = useState<number>(0);
   const [feedback, setFeedback] = useState<{ text: string; color: string } | null>(null);

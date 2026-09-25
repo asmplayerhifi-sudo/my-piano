@@ -7,8 +7,6 @@ import {
   Minus,
   Plus,
   Volume2,
-  VolumeX,
-  Gauge,
   Radio,
   SlidersHorizontal,
 } from 'lucide-react';

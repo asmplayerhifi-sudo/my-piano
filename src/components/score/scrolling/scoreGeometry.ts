@@ -1,7 +1,7 @@
 /**
  * scrolling/scoreGeometry.ts
- * Geometria vetorial, mapeamento de coordenadas Y e auxiliares Canvas.
- * Regra: Métodos determinísticos (< 120 linhas).
+ * Geometria vetorial, mapeamento de coordenadas Y, cálculo de offsets de beat e auxiliares Canvas.
+ * Regra: Métodos determinísticos, sem efeitos colaterais.
  */
 
 import type { ScoreNote } from '../../../core/coursesData';
@@ -121,3 +121,30 @@ export function getScoreNoteFingering(
 
   return null;
 }
+
+/**
+ * Converte as notas de uma partitura em offsets de beat (desde o início da obra).
+ * Centralizado aqui para evitar duplicação em consumidores como RepertoireView.
+ *
+ * @param notes       Lista de notas da partitura.
+ * @param timeSignature Fórmula de compasso no formato "numerador/denominador".
+ * @returns Array de offsets em beats, indexado 1:1 com `notes`.
+ */
+export function computeNoteOffsets(notes: ScoreNote[], timeSignature = '4/4'): number[] {
+  const parts = timeSignature.split('/');
+  const num = parseInt(parts[0], 10) || 4;
+  const den = parseInt(parts[1], 10) || 4;
+  let beatsPerMeasure = num;
+  if (den === 8 && num >= 6) {
+    beatsPerMeasure = num / 3;
+  }
+
+  if (!notes || notes.length === 0) return [];
+
+  return notes.map((note) => {
+    const m = Math.max(1, note.measure || 1);
+    const b = note.beat !== undefined ? Math.max(0, note.beat - 1) : 0;
+    return (m - 1) * beatsPerMeasure + b;
+  });
+}
+

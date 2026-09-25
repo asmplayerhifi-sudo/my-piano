@@ -1,16 +1,17 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef, useSyncExternalStore } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { KEYBOARD_COURSE_MODULES } from '../../core/coursesData';
 import type { CourseLesson, CourseModule, ScoreNote, CourseExercise } from '../../core/coursesData';
-import { getNoteInfo, identifyChordFromMidi } from '../../core/musicTheory';
-import { octaveConfigStore, useOctaveStandard } from '../../core/octaveConfigStore';
+import { getNoteInfo } from '../../core/musicTheory';
 import { midiManager } from '../../core/midiManager';
-import { activeMidiStore } from '../../core/activeMidiStore';
+import { octaveConfigStore, useOctaveStandard } from '../../core/octaveConfigStore';
 import { ScrollingScoreCanvas } from '../score/ScrollingScoreCanvas';
 import { FastChordTrainer } from '../piano/FastChordTrainer';
 import { PianoKeyboard } from '../piano/PianoKeyboard';
 import { MicrophonePitchBar } from '../audio/MicrophonePitchBar';
 import { LessonIllustration } from './illustrations/LessonIllustration';
 import { accompanimentStore } from '../../core/accompanimentStore';
+import { useFullscreen } from '../../hooks/useFullscreen';
+import { useActiveNotes } from '../../hooks/useActiveNotes';
 import {
   GraduationCap,
   BookOpen,
@@ -24,9 +25,6 @@ import {
   Shrink,
   Target,
   Award,
-  RotateCcw,
-  Volume2,
-  VolumeX,
   Play,
   Pause,
   AlertCircle,
@@ -62,13 +60,12 @@ export const KeyboardCourseView: React.FC = () => {
   const [correctMidiNotes, setCorrectMidiNotes] = useState<number[]>([]);
   const [isWidescreenStage, setIsWidescreenStage] = useState<boolean>(false);
   const [isTrailExpanded, setIsTrailExpanded] = useState<boolean>(false);
-  const [isFullscreenLesson, setIsFullscreenLesson] = useState<boolean>(false);
-  const [isFullscreenTrail, setIsFullscreenTrail] = useState<boolean>(false);
+  const { isFullscreen: isFullscreenLesson, toggleFullscreen: toggleFullscreenLesson } = useFullscreen();
+  const { isFullscreen: isFullscreenTrail, toggleFullscreen: toggleFullscreenTrail } = useFullscreen();
   const [mobileCourseTab, setMobileCourseTab] = useState<'stage' | 'trail'>('stage');
 
-  // Parâmetros de Treino: Andamento customizável, metrônomo e acompanhamento
+  // Parâmetros de Treino: Andamento customizável e acompanhamento musical
   const [customBpm, setCustomBpm] = useState<number | null>(null);
-  const [enableMetronomeSound, setEnableMetronomeSound] = useState<boolean>(true);
   const [isAccompanimentPlaying, setIsAccompanimentPlaying] = useState<boolean>(false);
   const [scoreResetKey, setScoreResetKey] = useState<number>(0);
 
@@ -107,60 +104,6 @@ export const KeyboardCourseView: React.FC = () => {
   const activeBpm = customBpm ?? currentExercise.bpm;
   const activeScoreTrack = currentExercise.scoreTrack || activeLesson.scoreTrack;
 
-  const toggleFullscreenLesson = () => {
-    if (!isFullscreenLesson) {
-      setIsFullscreenLesson(true);
-      try {
-        if (document.documentElement.requestFullscreen) {
-          document.documentElement.requestFullscreen().catch(() => {});
-        }
-      } catch {
-        // Fallback
-      }
-    } else {
-      setIsFullscreenLesson(false);
-      try {
-        if (document.fullscreenElement) {
-          document.exitFullscreen().catch(() => {});
-        }
-      } catch {
-        // Fallback
-      }
-    }
-  };
-
-  const toggleFullscreenTrail = () => {
-    if (!isFullscreenTrail) {
-      setIsFullscreenTrail(true);
-      try {
-        if (document.documentElement.requestFullscreen) {
-          document.documentElement.requestFullscreen().catch(() => {});
-        }
-      } catch {
-        // Fallback
-      }
-    } else {
-      setIsFullscreenTrail(false);
-      try {
-        if (document.fullscreenElement) {
-          document.exitFullscreen().catch(() => {});
-        }
-      } catch {
-        // Fallback
-      }
-    }
-  };
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (isFullscreenLesson) setIsFullscreenLesson(false);
-        if (isFullscreenTrail) setIsFullscreenTrail(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isFullscreenLesson, isFullscreenTrail]);
 
   // Para acompanhamento ao desmontar componente
   useEffect(() => {
@@ -173,9 +116,17 @@ export const KeyboardCourseView: React.FC = () => {
     setLastMidiEvent({ midi, timestamp: performance.now() });
   }, []);
 
+  // Notas ouvidas via microfone acumuladas para identificação de acordes acústicos
+  const [micAcousticNotes, setMicAcousticNotes] = useState<number[]>([]);
+
+  // Fusão de todas as fontes ativas e identificação do acorde em tempo real
+  const { activeNotes: activeExternalNotes, liveChord: liveIdentifiedChord } = useActiveNotes({
+    micHearingMidi,
+    micAcousticNotes,
+  });
+
   // Escuta entradas MIDI de teclado físico externo (USB / OTG / Bluetooth)
   useEffect(() => {
-    midiManager.initialize();
     const unsub = midiManager.subscribe((payload) => {
       if (payload.isDown) {
         handleNoteInput(payload.midi);
@@ -183,29 +134,6 @@ export const KeyboardCourseView: React.FC = () => {
     });
     return unsub;
   }, [handleNoteInput]);
-
-  // Subscreve ao store global de notas MIDI ativas
-  const globalActiveMidi = useSyncExternalStore(
-    activeMidiStore.subscribe,
-    activeMidiStore.getSnapshot,
-  );
-
-  // Notas ouvidas via microfone acumuladas para identificação de acordes acústicos
-  const [micAcousticNotes, setMicAcousticNotes] = useState<number[]>([]);
-
-  // Combina todas as notas externas ativas (microfone + teclado MIDI)
-  const activeExternalNotes = useMemo(() => {
-    const set = new Set<number>();
-    globalActiveMidi.forEach(m => set.add(m));
-    micAcousticNotes.forEach(m => set.add(m));
-    if (micHearingMidi !== null) set.add(micHearingMidi);
-    return Array.from(set);
-  }, [globalActiveMidi, micAcousticNotes, micHearingMidi]);
-
-  // Identificação em tempo real do acorde ou nota externa executada
-  const liveIdentifiedChord = useMemo(() => {
-    return identifyChordFromMidi(activeExternalNotes, octaveStandard);
-  }, [activeExternalNotes, octaveStandard]);
 
   const handleTargetNoteChange = useCallback((note: ScoreNote | null) => {
     setTargetScoreNote(prev => {
@@ -788,43 +716,9 @@ export const KeyboardCourseView: React.FC = () => {
                     </p>
                   </div>
 
-                  {/* Controles de Metrônomo & Acompanhamento */}
-                  <div className="flex flex-wrap items-center gap-2 self-start md:self-auto shrink-0">
-                    {/* Controle de BPM */}
-                    <div className="flex items-center bg-black/40 rounded-xl border border-white/5 p-1 font-mono text-xs">
-                      <button
-                        onClick={() => setCustomBpm(Math.max(40, activeBpm - 5))}
-                        className="px-2 py-1 text-slate-400 hover:text-white hover:bg-white/10 rounded cursor-pointer font-bold"
-                        title="Diminuir andamento (-5 BPM)"
-                      >
-                        -
-                      </button>
-                      <span className="px-2 text-white font-bold">{activeBpm} BPM</span>
-                      <button
-                        onClick={() => setCustomBpm(Math.min(180, activeBpm + 5))}
-                        className="px-2 py-1 text-slate-400 hover:text-white hover:bg-white/10 rounded cursor-pointer font-bold"
-                        title="Aumentar andamento (+5 BPM)"
-                      >
-                        +
-                      </button>
-                    </div>
-
-                    {/* Metrônomo Sonoro */}
-                    <button
-                      onClick={() => setEnableMetronomeSound(!enableMetronomeSound)}
-                      className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                        enableMetronomeSound
-                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                          : 'bg-white/5 text-slate-400 hover:text-white border-white/5'
-                      }`}
-                      title={enableMetronomeSound ? 'Metrônomo Sonoro Ativo' : 'Metrônomo Sonoro Desativado'}
-                    >
-                      {enableMetronomeSound ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
-                      <span>Metrônomo</span>
-                    </button>
-
-                    {/* Acompanhamento Estilo Musical */}
-                    {currentExercise.accompanimentStyleId && (
+                  {/* Acompanhamento Estilo Musical (quando o exercício dispõe de arranjo rítmico de apoio) */}
+                  {currentExercise.accompanimentStyleId && (
+                    <div className="flex items-center gap-2 self-start md:self-auto shrink-0">
                       <button
                         onClick={toggleAccompaniment}
                         className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
@@ -837,17 +731,8 @@ export const KeyboardCourseView: React.FC = () => {
                         {isAccompanimentPlaying ? <Pause className="w-3.5 h-3.5 text-emerald-400" /> : <Play className="w-3.5 h-3.5 text-indigo-400" />}
                         <span>Acompanhamento</span>
                       </button>
-                    )}
-
-                    {/* Reiniciar Exercício */}
-                    <button
-                      onClick={resetSessionStats}
-                      className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5 cursor-pointer"
-                      title="Reiniciar estatísticas e partitura"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Card de Avaliação / Relatório de Desempenho Real (sem simulação) */}
@@ -944,8 +829,8 @@ export const KeyboardCourseView: React.FC = () => {
                   notes={activeScoreTrack}
                   timeSignature={currentExercise.timeSignature}
                   bpm={activeBpm}
+                  onTempoChange={(newBpm) => setCustomBpm(newBpm)}
                   autoPlayAudio={true}
-                  enableMetronomeSound={enableMetronomeSound}
                   currentMidiPressed={lastMidiEvent}
                   onTargetNoteChange={handleTargetNoteChange}
                   onNoteHit={handleNoteHit}

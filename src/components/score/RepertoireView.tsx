@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { REPERTOIRE_SONGS } from '../../core/repertoireData';
 import type { RepertoireSong } from '../../core/repertoireData';
-import type { ScoreNote } from '../../core/coursesData';
 import { ScrollingScoreCanvas } from './ScrollingScoreCanvas';
 import { PianoKeyboard } from '../piano/PianoKeyboard';
 import { MicrophonePitchBar } from '../audio/MicrophonePitchBar';
@@ -9,9 +8,11 @@ import { RepertoireCatalogModal } from './RepertoireCatalogModal';
 import { RepertoireAccuracyModal } from './RepertoireAccuracyModal';
 import { TimbreSelector } from '../audio/TimbreSelector';
 import { soundEngine } from '../../core/soundEngine';
-import { accompanimentSynthesizer, type MetronomeSoundType } from '../../core/accompanimentSynthesizer';
+import type { MetronomeSoundType } from '../../core/accompanimentSynthesizer';
 import { metronomeEngine, useMetronome } from '../../core/metronomeEngine';
 import { useOctaveStandard, octaveConfigStore } from '../../core/octaveConfigStore';
+import { computeNoteOffsets } from './scrolling/scoreGeometry';
+import { useFullscreen } from '../../hooks/useFullscreen';
 import {
   Music,
   Play,
@@ -21,7 +22,6 @@ import {
   Lightbulb,
   Gauge,
   ChevronDown,
-  Headphones,
   Expand,
   Shrink,
   ShieldCheck,
@@ -31,27 +31,6 @@ import {
   VolumeX,
 } from 'lucide-react';
 
-function computeNoteOffsets(notes: ScoreNote[], timeSignature = '4/4'): number[] {
-  const parts = timeSignature.split('/');
-  const num = parseInt(parts[0], 10) || 4;
-  const den = parseInt(parts[1], 10) || 4;
-  let beatsPerMeasure = num;
-  if (den === 8 && num >= 6) {
-    beatsPerMeasure = num / 3;
-  }
-
-  const noteOffsets: number[] = [];
-  if (!notes || notes.length === 0) return noteOffsets;
-
-  for (let i = 0; i < notes.length; i++) {
-    const note = notes[i];
-    const m = Math.max(1, note.measure || 1);
-    const b = (note.beat !== undefined ? Math.max(0, note.beat - 1) : 0);
-    noteOffsets.push((m - 1) * beatsPerMeasure + b);
-  }
-
-  return noteOffsets;
-}
 
 export const RepertoireView: React.FC = () => {
   const [activeSong, setActiveSong] = useState<RepertoireSong>(REPERTOIRE_SONGS[0]);
@@ -63,7 +42,7 @@ export const RepertoireView: React.FC = () => {
   const [lastMidiEvent, setLastMidiEvent] = useState<{ midi: number; timestamp: number } | null>(null);
   const [activeDemoMidi, setActiveDemoMidi] = useState<number[]>([]);
   const [micHearingMidi, setMicHearingMidi] = useState<number | null>(null);
-  const [isFullscreenStage, setIsFullscreenStage] = useState<boolean>(false);
+  const { isFullscreen: isFullscreenStage, toggleFullscreen: toggleFullscreenStage } = useFullscreen();
 
   // Modos de Finalização da Reprodução: 'end' (cessa no final real da música) ou 'repeat' (loop contínuo)
   const [playbackEndMode, setPlaybackEndMode] = useState<'end' | 'repeat'>('end');
@@ -80,37 +59,6 @@ export const RepertoireView: React.FC = () => {
 
   const octaveStandard = useOctaveStandard();
 
-  const toggleFullscreenStage = () => {
-    if (!isFullscreenStage) {
-      setIsFullscreenStage(true);
-      try {
-        if (document.documentElement.requestFullscreen) {
-          document.documentElement.requestFullscreen().catch(() => {});
-        }
-      } catch {
-        // Fallback
-      }
-    } else {
-      setIsFullscreenStage(false);
-      try {
-        if (document.fullscreenElement) {
-          document.exitFullscreen().catch(() => {});
-        }
-      } catch {
-        // Fallback
-      }
-    }
-  };
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isFullscreenStage) {
-        setIsFullscreenStage(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isFullscreenStage]);
 
   const playbackTimeoutRef = useRef<number | null>(null);
   const isPlayingRef = useRef<boolean>(false);
@@ -791,6 +739,7 @@ export const RepertoireView: React.FC = () => {
           isDemoMode={true}
           autoPlayAudio={false}
           enableMetronomeSound={metronome.isPlaying}
+          hidePlaybackControls={true}
           currentNoteIndex={currentNoteIdx}
           onPlayPauseToggle={(playing) => {
             if (playing && !isPlaying) {

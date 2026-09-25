@@ -5,12 +5,9 @@ import {
   CheckCircle2,
   X,
   FileCheck,
-  Compass,
-  Music,
-  Gauge,
   Sparkles,
 } from 'lucide-react';
-import { RepertoireAccuracyValidator, type SongAccuracyReport } from '../../core/repertoireAccuracyValidator';
+import { RepertoireAccuracyValidator } from '../../core/repertoireAccuracyValidator';
 import { REPERTOIRE_SONGS, type RepertoireSong } from '../../core/repertoireData';
 
 interface Props {

@@ -61,4 +61,6 @@ export interface ScrollingScoreProps {
   autoPlayAudio?: boolean;
   enableMetronomeSound?: boolean;
   enableSustain?: boolean;
+  /** Oculta controles de playback/metrônomo internos caso a tela pai já os forneça (ex: RepertoireView). */
+  hidePlaybackControls?: boolean;
 }

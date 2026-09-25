@@ -38,8 +38,9 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
   isDemoMode = false,
   currentNoteIndex,
   autoPlayAudio = true,
-  enableMetronomeSound: initialMetronome = false,
+  enableMetronomeSound,
   enableSustain: initialSustain = true,
+  hidePlaybackControls = false,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -99,20 +100,29 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
   const handleTempoChange = (newTempo: number) => {
     playback.handleTempoChange(newTempo);
     metronomeEngine.setBpm(newTempo);
+    onTempoChange?.(newTempo);
   };
 
+  // Sincroniza metronomeEngine se a prop enableMetronomeSound for explicitamente fornecida
   useEffect(() => {
-    if (initialMetronome && !metronomeEngine.getSnapshot().isPlaying) {
-      soundEngine.ensureAudioReady().then(() => {
-        metronomeEngine.start({ bpm: playback.tempo, timeSignature });
-      });
+    if (enableMetronomeSound !== undefined) {
+      if (enableMetronomeSound && !metronomeEngine.getSnapshot().isPlaying) {
+        soundEngine.ensureAudioReady().then(() => {
+          metronomeEngine.start({ bpm: playback.tempo, timeSignature });
+        });
+      } else if (!enableMetronomeSound && metronomeEngine.getSnapshot().isPlaying) {
+        metronomeEngine.stop();
+      }
     }
+  }, [enableMetronomeSound, playback.tempo, timeSignature]);
+
+  // Limpeza ao desmontar
+  useEffect(() => {
     return () => {
       if (metronomeEngine.getSnapshot().isPlaying) {
         metronomeEngine.stop();
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -222,6 +232,7 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
         onToggleOption={k => setDisplayOptions(o => ({ ...o, [k]: !o[k] }))}
         score={playback.score}
         feedback={playback.feedback}
+        hidePlaybackControls={hidePlaybackControls}
       />
       <div className="relative w-full overflow-hidden">
         <canvas ref={canvasRef} width={containerWidth} height={410} className="w-full h-[410px] block" />

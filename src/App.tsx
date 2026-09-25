@@ -11,15 +11,16 @@ import { GuitarModule } from './components/guitar/GuitarModule';
 import { TheoryModule } from './components/theory/TheoryModule';
 import { RepertoireView } from './components/score/RepertoireView';
 import { ScoreEditor } from './components/score/ScoreEditor';
+import { midiManager } from './core/midiManager';
 
 const VALID_TABS: TabId[] = [
   'course-keyboard',
   'course-guitar',
+  'theory',
   'repertoire',
   'rhythm',
   'piano',
   'guitar',
-  'theory',
   'score-editor',
   'arranger',
 ];
@@ -32,6 +33,12 @@ function getInitialTab(): TabId {
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabId>(getInitialTab);
+
+  // Inicialização única e centralizada do gerenciador MIDI ao montar a aplicação.
+  // Evita múltiplas chamadas de requestMIDIAccess() que foram removidas dos módulos individuais.
+  useEffect(() => {
+    midiManager.initialize();
+  }, []);
 
   useEffect(() => {
     const handleHashChange = () => {

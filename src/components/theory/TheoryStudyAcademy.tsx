@@ -8,6 +8,7 @@ import {
 import { soundEngine } from '../../core/soundEngine';
 import { octaveConfigStore, useOctaveStandard } from '../../core/octaveConfigStore';
 import { LessonIllustration } from '../course/illustrations/LessonIllustration';
+import { useFullscreen } from '../../hooks/useFullscreen';
 import {
   CheckCircle2,
   Sparkles,
@@ -52,7 +53,7 @@ export const TheoryStudyAcademy: React.FC = () => {
 
   // Estado do Reprodutor de Áudio da Lição
   const [playingAudioIndex, setPlayingAudioIndex] = useState<number | null>(null);
-  const audioTimeoutsRef = useRef<NodeJS.Timeout[]>([]);
+  const audioTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const clearAudioTimeouts = () => {
     audioTimeoutsRef.current.forEach((t) => clearTimeout(t));
@@ -68,8 +69,8 @@ export const TheoryStudyAcademy: React.FC = () => {
   // Estados de Expansão e Tela Cheia dos Cards
   const [isCurriculumExpanded, setIsCurriculumExpanded] = useState<boolean>(false);
   const [isLessonExpanded, setIsLessonExpanded] = useState<boolean>(false);
-  const [isFullscreenCurriculum, setIsFullscreenCurriculum] = useState<boolean>(false);
-  const [isFullscreenLesson, setIsFullscreenLesson] = useState<boolean>(false);
+  const { isFullscreen: isFullscreenCurriculum, toggleFullscreen: toggleFullscreenCurriculum } = useFullscreen();
+  const { isFullscreen: isFullscreenLesson, toggleFullscreen: toggleFullscreenLesson } = useFullscreen();
 
   const toggleCurriculumExpand = () => {
     setIsCurriculumExpanded((prev) => !prev);
@@ -80,61 +81,6 @@ export const TheoryStudyAcademy: React.FC = () => {
     setIsLessonExpanded((prev) => !prev);
     if (!isLessonExpanded) setIsCurriculumExpanded(false);
   };
-
-  const toggleFullscreenLesson = () => {
-    if (!isFullscreenLesson) {
-      setIsFullscreenLesson(true);
-      try {
-        if (document.documentElement.requestFullscreen) {
-          document.documentElement.requestFullscreen().catch(() => {});
-        }
-      } catch {
-        // Fallback
-      }
-    } else {
-      setIsFullscreenLesson(false);
-      try {
-        if (document.fullscreenElement) {
-          document.exitFullscreen().catch(() => {});
-        }
-      } catch {
-        // Fallback
-      }
-    }
-  };
-
-  const toggleFullscreenCurriculum = () => {
-    if (!isFullscreenCurriculum) {
-      setIsFullscreenCurriculum(true);
-      try {
-        if (document.documentElement.requestFullscreen) {
-          document.documentElement.requestFullscreen().catch(() => {});
-        }
-      } catch {
-        // Fallback
-      }
-    } else {
-      setIsFullscreenCurriculum(false);
-      try {
-        if (document.fullscreenElement) {
-          document.exitFullscreen().catch(() => {});
-        }
-      } catch {
-        // Fallback
-      }
-    }
-  };
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (isFullscreenLesson) setIsFullscreenLesson(false);
-        if (isFullscreenCurriculum) setIsFullscreenCurriculum(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isFullscreenLesson, isFullscreenCurriculum]);
 
   // =========================================================================
   // LABORATÓRIO DE INTERVALOS INTERATIVO

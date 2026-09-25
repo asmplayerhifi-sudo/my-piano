@@ -43,7 +43,7 @@ interface Props {
 export const MetronomeAccompanimentStudio: React.FC<Props> = ({
   initialTab = 'metronome',
   onNavigateToRadar,
-  onNavigateToScore,
+  onNavigateToScore: _onNavigateToScore,
   className = '',
 }) => {
   const [activeTab, setActiveTab] = useState<StudioTabType>(initialTab);

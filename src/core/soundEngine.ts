@@ -175,8 +175,13 @@ class SoundEngine {
     this.initContext();
     if (this.ctx && this.ctx.state === 'suspended') {
       try {
-        await this.ctx.resume();
-        return true;
+        // Dispara o resume com timeout limite de 150ms para prevenir travamento eterno
+        // da cadeia assíncrona caso o navegador ainda restrinja a retomada do contexto de áudio
+        await Promise.race([
+          this.ctx.resume(),
+          new Promise((resolve) => setTimeout(resolve, 150)),
+        ]);
+        return (this.ctx.state as AudioContextState) === 'running';
       } catch (err) {
         console.warn('AudioContext resume failed:', err);
         return false;

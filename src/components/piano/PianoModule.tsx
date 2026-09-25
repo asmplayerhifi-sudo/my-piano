@@ -1,14 +1,13 @@
-import React, { useState, useMemo, useSyncExternalStore } from 'react';
+import React, { useState, useMemo } from 'react';
 import { PianoKeyboard } from './PianoKeyboard';
 import { ChordSelector } from './ChordSelector';
 import { MicrophonePitchBar } from '../audio/MicrophonePitchBar';
 import { TimbreSelector } from '../audio/TimbreSelector';
 import { MetronomeBar } from '../audio/MetronomeBar';
-import { buildChord, getKeyboardInversions, identifyChordFromMidi } from '../../core/musicTheory';
+import { buildChord, getKeyboardInversions } from '../../core/musicTheory';
 import { midiManager, type MidiDevice } from '../../core/midiManager';
-import { activeMidiStore } from '../../core/activeMidiStore';
-import { useOctaveStandard } from '../../core/octaveConfigStore';
 import type { ChordQuality } from '../../core/types';
+import { useActiveNotes } from '../../hooks/useActiveNotes';
 import { Music2, Cable, CheckCircle2, ChevronRight, BookOpen, Radio } from 'lucide-react';
 
 export const PianoModule: React.FC = () => {
@@ -18,15 +17,13 @@ export const PianoModule: React.FC = () => {
   const [midiDevices, setMidiDevices] = useState<MidiDevice[]>([]);
   const [micActiveMidi, setMicActiveMidi] = useState<number | null>(null);
 
-  // Subscreve ao store global de notas ativas (partitura, repertório, acordes, qualquer módulo ou teclado USB físico)
-  const globalActiveMidi = useSyncExternalStore(
-    activeMidiStore.subscribe,
-    activeMidiStore.getSnapshot,
-  );
+  // Fusão de todas as fontes ativas e identificação do acorde em tempo real
+  const { activeNotes: activeExternalNotes, liveChord: liveIdentifiedChord } = useActiveNotes({
+    micHearingMidi: micActiveMidi,
+  });
 
-  // Inicializa gerenciador de entrada física MIDI (USB / Cabo OTG / Bluetooth)
+  // Subscreve a dispositivos MIDI físicos conectados (USB / OTG / Bluetooth)
   React.useEffect(() => {
-    midiManager.initialize();
     const unsubscribe = midiManager.subscribeDevices((devices) => {
       setMidiDevices(devices);
     });
@@ -53,7 +50,6 @@ export const PianoModule: React.FC = () => {
 
   const highlightedKeys = useMemo(() => {
     return activeVoicing.midi.map((midi, idx) => {
-      // Determina grau harmônico relativo
       let degree = '1';
       if (idx === 1) degree = selectedQuality.includes('minor') ? '♭3' : '3';
       if (idx === 2) degree = '5';
@@ -65,19 +61,6 @@ export const PianoModule: React.FC = () => {
       };
     });
   }, [activeVoicing, selectedQuality]);
-
-  const octaveStandard = useOctaveStandard();
-
-  const activeExternalNotes = useMemo(() => {
-    return micActiveMidi !== null
-      ? [...globalActiveMidi, micActiveMidi]
-      : (globalActiveMidi as number[]);
-  }, [globalActiveMidi, micActiveMidi]);
-
-  // Identificação em tempo real do acorde ou nota escutada via microfone/MIDI
-  const liveIdentifiedChord = useMemo(() => {
-    return identifyChordFromMidi(activeExternalNotes, octaveStandard);
-  }, [activeExternalNotes, octaveStandard]);
 
   // Verifica se o acorde escutado confere com o acorde selecionado
   const isChordMatching = useMemo(() => {

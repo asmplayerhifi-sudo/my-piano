@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { GUITAR_COURSE_MODULES } from '../../core/coursesData';
 import type { CourseLesson, CourseModule } from '../../core/coursesData';
 import { FretboardView } from '../guitar/FretboardView';
@@ -7,6 +7,7 @@ import { ScrollingScoreCanvas } from '../score/ScrollingScoreCanvas';
 import { MicrophonePitchBar } from '../audio/MicrophonePitchBar';
 import { LessonIllustration } from './illustrations/LessonIllustration';
 import type { GuitarChordShape } from '../../core/types';
+import { useFullscreen } from '../../hooks/useFullscreen';
 import {
   Guitar,
   BookOpen,
@@ -134,65 +135,11 @@ export const GuitarCourseView: React.FC = () => {
   const [selectedCagedLetter, setSelectedCagedLetter] = useState<'C' | 'A' | 'G' | 'E' | 'D'>('C');
   const [isWidescreenStage, setIsWidescreenStage] = useState<boolean>(false);
   const [isTrailExpanded, setIsTrailExpanded] = useState<boolean>(false);
-  const [isFullscreenLesson, setIsFullscreenLesson] = useState<boolean>(false);
-  const [isFullscreenTrail, setIsFullscreenTrail] = useState<boolean>(false);
+  const { isFullscreen: isFullscreenLesson, toggleFullscreen: toggleFullscreenLesson } = useFullscreen();
+  const { isFullscreen: isFullscreenTrail, toggleFullscreen: toggleFullscreenTrail } = useFullscreen();
   const [mobileCourseTab, setMobileCourseTab] = useState<'stage' | 'trail'>('stage');
   const [lastMidiEvent, setLastMidiEvent] = useState<{ midi: number; timestamp: number } | null>(null);
 
-  const toggleFullscreenLesson = () => {
-    if (!isFullscreenLesson) {
-      setIsFullscreenLesson(true);
-      try {
-        if (document.documentElement.requestFullscreen) {
-          document.documentElement.requestFullscreen().catch(() => {});
-        }
-      } catch {
-        // Fallback
-      }
-    } else {
-      setIsFullscreenLesson(false);
-      try {
-        if (document.fullscreenElement) {
-          document.exitFullscreen().catch(() => {});
-        }
-      } catch {
-        // Fallback
-      }
-    }
-  };
-
-  const toggleFullscreenTrail = () => {
-    if (!isFullscreenTrail) {
-      setIsFullscreenTrail(true);
-      try {
-        if (document.documentElement.requestFullscreen) {
-          document.documentElement.requestFullscreen().catch(() => {});
-        }
-      } catch {
-        // Fallback
-      }
-    } else {
-      setIsFullscreenTrail(false);
-      try {
-        if (document.fullscreenElement) {
-          document.exitFullscreen().catch(() => {});
-        }
-      } catch {
-        // Fallback
-      }
-    }
-  };
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (isFullscreenLesson) setIsFullscreenLesson(false);
-        if (isFullscreenTrail) setIsFullscreenTrail(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isFullscreenLesson, isFullscreenTrail]);
 
   const handleNoteInput = (midi: number) => {
     setLastMidiEvent({ midi, timestamp: performance.now() });

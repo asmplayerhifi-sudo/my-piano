@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   SCALES_CATALOG,
   ROOT_KEYS,
@@ -8,6 +8,7 @@ import {
 import { soundEngine } from '../../core/soundEngine';
 import { ScalePerformanceEvaluator } from './ScalePerformanceEvaluator';
 import { Play, Sparkles, Music, Volume2, Info, Compass, Flame, Mic, Expand, Shrink } from 'lucide-react';
+import { useFullscreen } from '../../hooks/useFullscreen';
 
 export const ScaleBuilder: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<ScaleCategory>('pentatonic');
@@ -16,39 +17,7 @@ export const ScaleBuilder: React.FC = () => {
   const [isPlayingScale, setIsPlayingScale] = useState<boolean>(false);
   const [activeNoteIndex, setActiveNoteIndex] = useState<number | null>(null);
   const [showEvaluator, setShowEvaluator] = useState<boolean>(true);
-  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
-
-  const toggleFullscreen = () => {
-    if (!isFullscreen) {
-      setIsFullscreen(true);
-      try {
-        if (document.documentElement.requestFullscreen) {
-          document.documentElement.requestFullscreen().catch(() => {});
-        }
-      } catch {
-        // Fallback
-      }
-    } else {
-      setIsFullscreen(false);
-      try {
-        if (document.fullscreenElement) {
-          document.exitFullscreen().catch(() => {});
-        }
-      } catch {
-        // Fallback
-      }
-    }
-  };
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isFullscreen) {
-        setIsFullscreen(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isFullscreen]);
+  const { isFullscreen, toggleFullscreen } = useFullscreen();
 
   // Escalas da categoria selecionada
   const categoryScales = useMemo(() => {
