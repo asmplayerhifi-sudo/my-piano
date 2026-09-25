@@ -246,7 +246,7 @@ export const Navigation: React.FC<Props> = ({ activeTab, onSelectTab }) => {
         {/* Badge Opcional */}
         {tab.badge && (
           <span
-            className={`hidden 2xl:inline-block text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+            className={`hidden md:inline-block text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
               isActive
                 ? 'bg-white/20 text-white'
                 : 'bg-white/5 text-slate-400 border border-white/5'
@@ -268,7 +268,7 @@ export const Navigation: React.FC<Props> = ({ activeTab, onSelectTab }) => {
             
             {/* 1. GRUPO: CURSOS (Destaque Principal na Frente) */}
             <div className="flex items-center flex-wrap gap-1 p-1 bg-indigo-950/30 border border-indigo-500/25 rounded-2xl shadow-inner">
-              <span className="text-[10px] font-black uppercase tracking-wider text-indigo-300 px-2 py-0.5 hidden sm:inline-flex items-center gap-1">
+              <span className="text-[10px] font-black uppercase tracking-wider text-indigo-300 px-2 py-0.5 inline-flex items-center gap-1">
                 <GraduationCap className="w-3 h-3 text-indigo-400" />
                 <span>Cursos:</span>
               </span>
@@ -276,11 +276,11 @@ export const Navigation: React.FC<Props> = ({ activeTab, onSelectTab }) => {
             </div>
 
             {/* Separador Visual em Telas Médias e Grandes */}
-            <div className="hidden lg:block w-px h-6 bg-white/10" />
+            <div className="hidden sm:block w-px h-6 bg-white/10" />
 
             {/* 2. GRUPO: PRÁTICA & INSTRUMENTOS */}
             <div className="flex items-center flex-wrap gap-1 p-1 bg-white/[0.02] border border-white/5 rounded-2xl">
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-2 py-0.5 hidden xl:inline-flex items-center gap-1">
+              <span className="text-[10px] font-black uppercase tracking-wider text-cyan-300 px-2 py-0.5 inline-flex items-center gap-1">
                 <Music2 className="w-3 h-3 text-cyan-400" />
                 <span>Prática:</span>
               </span>
@@ -288,11 +288,11 @@ export const Navigation: React.FC<Props> = ({ activeTab, onSelectTab }) => {
             </div>
 
             {/* Separador Visual */}
-            <div className="hidden xl:block w-px h-6 bg-white/10" />
+            <div className="hidden sm:block w-px h-6 bg-white/10" />
 
             {/* 3. GRUPO: ESTÚDIO & CRIAÇÃO */}
             <div className="flex items-center flex-wrap gap-1 p-1 bg-white/[0.02] border border-white/5 rounded-2xl">
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-2 py-0.5 hidden 2xl:inline-flex items-center gap-1">
+              <span className="text-[10px] font-black uppercase tracking-wider text-violet-300 px-2 py-0.5 inline-flex items-center gap-1">
                 <Sparkles className="w-3 h-3 text-violet-400" />
                 <span>Estúdio:</span>
               </span>

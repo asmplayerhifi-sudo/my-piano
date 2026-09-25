@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { GlobalHeader } from './components/layout/GlobalHeader';
+import { Header } from './components/layout/Header';
+import { Navigation } from './components/layout/Navigation';
 import type { TabId } from './components/layout/Navigation';
 import { KeyboardCourseView } from './components/course/KeyboardCourseView';
 import { GuitarCourseView } from './components/course/GuitarCourseView';
@@ -56,9 +57,10 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#080811] text-slate-100 flex flex-col selection:bg-indigo-500 selection:text-white">
-      {/* 1. Header Global Unificado e Compacto (<= 38px) */}
-      <div className="sticky top-0 z-40 w-full backdrop-blur-md bg-[#080811]/95 border-b border-white/5 shadow-md">
-        <GlobalHeader activeTab={activeTab} onSelectTab={handleSelectTab} />
+      {/* 1 e 2. Cabeçalho e Barra de Navegação Unificados e Fixos */}
+      <div className="sticky top-0 z-40 w-full backdrop-blur-md bg-[#080811]/90 border-b border-white/5 shadow-xl">
+        <Header />
+        <Navigation activeTab={activeTab} onSelectTab={handleSelectTab} />
       </div>
 
       {/* 2. Área Principal do Conteúdo — Canvas Full-Width (100% Largura Útil) */}

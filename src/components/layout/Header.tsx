@@ -60,14 +60,14 @@ export const Header: React.FC = () => {
             className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-slate-200 hover:text-white transition-all cursor-pointer group"
             title="Escolha entre o padrão C3 (Brasil / Roland / Yamaha) ou C4 (Internacional / SPN) para o Dó Central"
           >
-            <span className="text-sm">{octaveStandard === 'C3' ? '🇧🇷' : '🌐'}</span>
+            <span className="text-sm">🎹</span>
             <span className="hidden sm:inline text-slate-300">Dó Central:</span>
             <span className={`font-mono font-bold px-1.5 py-0.2 rounded-md ${
               octaveStandard === 'C3'
                 ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
                 : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
             }`}>
-              {octaveStandard === 'C3' ? 'C3 (Brasil)' : 'C4 (Intl)'}
+              {octaveStandard === 'C3' ? 'C3 (Brasil)' : 'C4 (Internacional)'}
             </span>
           </button>
 
