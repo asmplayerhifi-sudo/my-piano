@@ -13,6 +13,7 @@ import { metronomeEngine, useMetronome } from '../../core/metronomeEngine';
 import { useOctaveStandard, octaveConfigStore } from '../../core/octaveConfigStore';
 import { computeNoteOffsets } from './scrolling/scoreGeometry';
 import { useFullscreen } from '../../hooks/useFullscreen';
+import type { ScoreSustainMode } from './scrolling/types';
 import {
   Music,
   Play,
@@ -29,6 +30,7 @@ import {
   Square,
   Volume2,
   VolumeX,
+  Sparkles,
 } from 'lucide-react';
 
 
@@ -48,10 +50,11 @@ export const RepertoireView: React.FC = () => {
   const [playbackEndMode, setPlaybackEndMode] = useState<'end' | 'repeat'>('end');
 
   // Sustain Musical Real Exclusivo no Modo Reprodução:
-  // 'chord' = sustenta notas do acorde até a troca do próximo acorde
-  // 'note'  = sustenta notas individuais melódicas com legato de pedal
-  // 'off'   = staccato puro sem sustain
-  const [sustainOption, setSustainOption] = useState<'note' | 'chord' | 'off'>('chord');
+  // 'all'    = sustenta notas melódicas e acordes simultaneamente (pedal pleno)
+  // 'notes'  = sustenta apenas notas individuais melódicas com legato de pedal
+  // 'chords' = sustenta apenas notas da harmonia/acordes até a troca de acorde
+  // 'off'    = staccato puro sem sustain
+  const [sustainOption, setSustainOption] = useState<ScoreSustainMode>('all');
 
   // Metrônomo Musical Conectado ao Engine Global
   const metronome = useMetronome();
@@ -66,7 +69,7 @@ export const RepertoireView: React.FC = () => {
   const tempoRef = useRef<number>(tempo);
   const currentNoteIdxRef = useRef<number>(0);
   const playbackEndModeRef = useRef<'end' | 'repeat'>(playbackEndMode);
-  const sustainOptionRef = useRef<'note' | 'chord' | 'off'>(sustainOption);
+  const sustainOptionRef = useRef<ScoreSustainMode>(sustainOption);
 
   isPlayingRef.current = isPlaying;
   tempoRef.current = tempo;
@@ -208,33 +211,49 @@ export const RepertoireView: React.FC = () => {
       }
     }
 
+    const isNotesSustain = sustainOptionRef.current === 'notes' || sustainOptionRef.current === 'all';
+    const isChordsSustain = sustainOptionRef.current === 'chords' || sustainOptionRef.current === 'all';
+
     while (nextIndex < track.length && Math.abs((offsets[nextIndex] ?? 0) - currentOffset) < 0.05) {
       const noteToPlay = track[nextIndex];
       const beatSec = 60 / tempoRef.current;
       const noteDurSec = (noteToPlay.duration || 1) * beatSec;
+      const isChordTone = noteToPlay.clef === 'bass' || Boolean(noteToPlay.chordName);
 
       let durSec: number;
-      if (sustainOptionRef.current === 'chord') {
+      let noteSustained: boolean;
+
+      if (isChordTone && isChordsSustain) {
         // Sustain Acorde: mantém a harmonia sustentada até a entrada do novo acorde
         if (nextChordChangeOffset !== null) {
-          durSec = Math.max(noteDurSec, (nextChordChangeOffset - currentOffset) * beatSec + 0.08);
+          durSec = Math.max(noteDurSec, (nextChordChangeOffset - currentOffset) * beatSec + 0.15);
         } else if (nextEventOffset !== null) {
-          durSec = Math.max(noteDurSec * 1.4, (nextEventOffset - currentOffset) * beatSec + 0.4);
+          durSec = Math.max(noteDurSec * 1.5, (nextEventOffset - currentOffset) * beatSec + 0.5);
         } else {
-          durSec = Math.max(noteDurSec * 1.5, 2.5);
+          durSec = Math.max(noteDurSec * 1.8, 3.0);
         }
-      } else if (sustainOptionRef.current === 'note') {
+        noteSustained = true;
+      } else if (!isChordTone && isNotesSustain) {
         // Sustain Nota: mantém cada nota melódica soando com legato natural de pedal
         const intervalSec = nextEventOffset !== null
-          ? Math.max(0.1, (nextEventOffset - currentOffset) * beatSec + 0.08)
-          : noteDurSec * 1.35;
-        durSec = Math.max(noteDurSec * 1.1, intervalSec);
+          ? Math.max(0.1, (nextEventOffset - currentOffset) * beatSec + 0.15)
+          : noteDurSec * 1.4;
+        durSec = Math.max(noteDurSec * 1.3, intervalSec);
+        noteSustained = true;
+      } else if (isChordTone && !isChordsSustain) {
+        // Acorde sem sustain: staccato articulado
+        durSec = Math.max(0.14, noteDurSec * 0.45);
+        noteSustained = false;
+      } else if (!isChordTone && !isNotesSustain) {
+        // Nota melódica sem sustain: staccato articulado
+        durSec = Math.max(0.14, noteDurSec * 0.55);
+        noteSustained = false;
       } else {
-        // Sem Sustain: staccato articulado (~45% da duração rítmica)
-        durSec = Math.max(0.12, noteDurSec * 0.45);
+        durSec = Math.max(0.14, noteDurSec * 0.8);
+        noteSustained = false;
       }
 
-      soundEngine.playPianoNote(noteToPlay.midi, durSec);
+      soundEngine.playPianoNote(noteToPlay.midi, durSec, undefined, 0.8, noteSustained);
       currentNotesMidi.push(noteToPlay.midi);
       nextIndex++;
     }
@@ -481,32 +500,45 @@ export const RepertoireView: React.FC = () => {
           {/* Controle Real de Sustain (Exclusivo na Tela de Repertório / Modo Reprodução) */}
           <div className="flex items-center bg-black/50 p-1 rounded-2xl border border-white/10 text-xs">
             <button
-              onClick={() => setSustainOption('note')}
+              onClick={() => setSustainOption('all')}
               className={`px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                sustainOption === 'note'
-                  ? 'bg-indigo-600 text-white shadow-md'
+                sustainOption === 'all'
+                  ? 'bg-amber-500 text-slate-950 font-black shadow-[0_0_12px_rgba(245,158,11,0.5)] ring-1 ring-amber-300'
                   : 'text-slate-400 hover:text-white'
               }`}
-              title="Sustain Nota: sustenta as notas melódicas com legato natural de pedal"
+              title="Sustain Pleno (Ambos): sustenta tanto as notas melódicas quanto os acordes da harmonia"
             >
-              <span>🎹 Nota</span>
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <span>✨ Ambos</span>
             </button>
 
             <button
-              onClick={() => setSustainOption('chord')}
+              onClick={() => setSustainOption('notes')}
               className={`px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                sustainOption === 'chord'
+                sustainOption === 'notes'
+                  ? 'bg-indigo-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Sustain Notas: sustenta as notas melódicas com legato natural de pedal"
+            >
+              <span>🎹 Notas</span>
+            </button>
+
+            <button
+              onClick={() => setSustainOption('chords')}
+              className={`px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                sustainOption === 'chords'
                   ? 'bg-purple-600 text-white shadow-md'
                   : 'text-slate-400 hover:text-white'
               }`}
-              title="Sustain Acorde: sustenta todas as notas da harmonia até a troca para o próximo acorde"
+              title="Sustain Acordes: sustenta todas as notas da harmonia até a troca para o próximo acorde"
             >
-              <span>🎼 Acorde</span>
+              <span>🎼 Acordes</span>
             </button>
 
             <button
               onClick={() => setSustainOption('off')}
-              className={`px-2 py-1 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1 ${
+              className={`px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1 ${
                 sustainOption === 'off'
                   ? 'bg-slate-700 text-white shadow-md'
                   : 'text-slate-400 hover:text-white'
@@ -760,6 +792,8 @@ export const RepertoireView: React.FC = () => {
           enableMetronomeSound={metronome.isPlaying}
           hidePlaybackControls={true}
           currentNoteIndex={currentNoteIdx}
+          sustainMode={sustainOption}
+          onSustainModeChange={setSustainOption}
           onPlayPauseToggle={(playing) => {
             if (playing && !isPlaying) {
               handleTogglePlayPause();

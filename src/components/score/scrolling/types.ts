@@ -40,6 +40,8 @@ export interface ScoreErrorEvent {
   timestamp: number;
 }
 
+export type ScoreSustainMode = 'off' | 'notes' | 'chords' | 'all';
+
 export interface ScrollingScoreProps {
   notes: ScoreNote[];
   bpm?: number;
@@ -60,7 +62,12 @@ export interface ScrollingScoreProps {
   currentNoteIndex?: number;
   autoPlayAudio?: boolean;
   enableMetronomeSound?: boolean;
+  /** Modo de sustain: 'off' (desligado), 'notes' (apenas notas), 'chords' (apenas acordes), 'all' (ambos) */
+  sustainMode?: ScoreSustainMode;
+  onSustainModeChange?: (mode: ScoreSustainMode) => void;
+  /** @deprecated Mantido para compatibilidade com implementações existentes */
   enableSustain?: boolean;
   /** Oculta controles de playback/metrônomo internos caso a tela pai já os forneça (ex: RepertoireView). */
   hidePlaybackControls?: boolean;
 }
+

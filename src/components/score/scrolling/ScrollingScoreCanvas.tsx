@@ -8,7 +8,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { soundEngine } from '../../../core/soundEngine';
 import { parseChord } from '../../../core/musicTheory';
 import { metronomeEngine, useMetronome } from '../../../core/metronomeEngine';
-import type { ScrollingScoreProps, DisplayOptions, ScoreTheme } from './types';
+import type { ScrollingScoreProps, DisplayOptions, ScoreTheme, ScoreSustainMode } from './types';
 import { SCORE_GEOMETRY } from './scoreGeometry';
 import { useScoreTimeline } from './useScoreTimeline';
 import { useScorePlayback } from './useScorePlayback';
@@ -39,6 +39,8 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
   currentNoteIndex,
   autoPlayAudio = true,
   enableMetronomeSound,
+  sustainMode: propSustainMode,
+  onSustainModeChange,
   enableSustain: initialSustain = true,
   hidePlaybackControls = false,
 }) => {
@@ -48,7 +50,19 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
   const [scoreTheme, setScoreTheme] = useState<ScoreTheme>(initialTheme);
   const [enableAudio, setEnableAudio] = useState<boolean>(autoPlayAudio);
   const metronome = useMetronome();
-  const [enableSustain, setEnableSustain] = useState<boolean>(initialSustain);
+
+  const [internalSustainMode, setInternalSustainMode] = useState<ScoreSustainMode>(
+    propSustainMode ?? (initialSustain ? 'all' : 'off')
+  );
+  const activeSustainMode = propSustainMode ?? internalSustainMode;
+
+  const handleSustainModeChange = (mode: ScoreSustainMode) => {
+    setInternalSustainMode(mode);
+    onSustainModeChange?.(mode);
+  };
+
+  const isNotesSustain = activeSustainMode === 'notes' || activeSustainMode === 'all';
+  const isChordsSustain = activeSustainMode === 'chords' || activeSustainMode === 'all';
 
   useEffect(() => {
     setEnableAudio(autoPlayAudio);
@@ -85,6 +99,7 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
     timeline,
     pixelsPerBeat,
     instrument,
+    sustainMode: activeSustainMode,
   });
 
   const handleTogglePlay = async () => {
@@ -161,8 +176,17 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
               playback.playedNotesRef.current.add(i);
               const n = notes[i];
               if (n) {
-                if (instrument === 'guitar') soundEngine.playGuitarPluck(n.midi, 1.2);
-                else soundEngine.playPianoNote(n.midi, 1.2);
+                const beatSec = 60 / playback.tempo;
+                const noteDurSec = (n.duration || 1) * beatSec;
+                const soundDuration = isNotesSustain
+                  ? Math.max(noteDurSec * 1.6, 2.5)
+                  : Math.max(0.18, noteDurSec * 0.85);
+
+                if (instrument === 'guitar') {
+                  soundEngine.playGuitarPluck(n.midi, soundDuration, undefined, 0.8, isNotesSustain);
+                } else {
+                  soundEngine.playPianoNote(n.midi, soundDuration, undefined, 0.8, isNotesSustain);
+                }
                 playback.setCurrentIndex(i);
               }
             }
@@ -178,10 +202,10 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
                   const beatSec = 60 / playback.tempo;
                   const chordDurationSec = chord.duration * beatSec;
                   // Com sustain: notas ressoam de forma contínua preenchendo o compasso; Sem sustain: staccato curto e seco
-                  const soundDuration = enableSustain
-                    ? Math.max(1.8, chordDurationSec * 0.95)
-                    : Math.min(0.40, beatSec * 0.45);
-                  soundEngine.playChord(parsed.midiNotes, instrument, soundDuration);
+                  const soundDuration = isChordsSustain
+                    ? Math.max(2.4, chordDurationSec * 1.1)
+                    : Math.min(0.35, beatSec * 0.45);
+                  soundEngine.playChord(parsed.midiNotes, instrument, soundDuration, isChordsSustain);
                 }
               }
             });
@@ -193,7 +217,7 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
       drawScoreBackground(ctx, containerWidth, h, scoreTheme, attackLineX, pixelsPerBeat);
       drawScoreStaves({ ctx, width: containerWidth, theme: scoreTheme, displayOptions, measureStartBeats: timeline.measureStartBeats, maxMeasure: timeline.maxMeasure, totalBeats: timeline.totalBeats, beatsPerMeasure, attackLineX, scrollOffset: playback.scrollOffsetRef.current, pixelsPerBeat });
       if (displayOptions.showChords) {
-        drawScoreChords({ ctx, width: containerWidth, theme: scoreTheme, chordSpans: timeline.chordSpans, attackLineX, scrollOffset: playback.scrollOffsetRef.current, pixelsPerBeat, enableSustain });
+        drawScoreChords({ ctx, width: containerWidth, theme: scoreTheme, chordSpans: timeline.chordSpans, attackLineX, scrollOffset: playback.scrollOffsetRef.current, pixelsPerBeat, enableSustain: isChordsSustain, sustainMode: activeSustainMode });
       }
       if (displayOptions.showRests) {
         drawScoreRests({ ctx, width: containerWidth, theme: scoreTheme, restsList, attackLineX, scrollOffset: playback.scrollOffsetRef.current, pixelsPerBeat });
@@ -209,7 +233,7 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
       active = false;
       cancelAnimationFrame(animId);
     };
-  }, [playback, scoreTheme, displayOptions, containerWidth, timeline, restsList, notes, enableAudio, autoPlayAudio, isDemoMode, instrument, beatsPerMeasure, enableSustain]);
+  }, [playback, scoreTheme, displayOptions, containerWidth, timeline, restsList, notes, enableAudio, autoPlayAudio, isDemoMode, instrument, beatsPerMeasure, activeSustainMode, isNotesSustain, isChordsSustain]);
 
   return (
     <div ref={containerRef} className="w-full flex flex-col rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-[#090814]">
@@ -226,8 +250,18 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
         showAudioToggle={autoPlayAudio}
         enableMetronome={metronome.isPlaying}
         onToggleMetronome={handleToggleMetronome}
-        enableSustain={enableSustain}
-        onToggleSustain={() => setEnableSustain(s => !s)}
+        sustainMode={activeSustainMode}
+        onSustainModeChange={handleSustainModeChange}
+        enableSustain={activeSustainMode !== 'off'}
+        onToggleSustain={() => {
+          const nextCycle: Record<ScoreSustainMode, ScoreSustainMode> = {
+            off: 'notes',
+            notes: 'chords',
+            chords: 'all',
+            all: 'off',
+          };
+          handleSustainModeChange(nextCycle[activeSustainMode] ?? 'all');
+        }}
         displayOptions={displayOptions}
         onToggleOption={k => setDisplayOptions(o => ({ ...o, [k]: !o[k] }))}
         score={playback.score}

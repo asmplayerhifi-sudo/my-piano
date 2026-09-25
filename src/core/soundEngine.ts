@@ -122,7 +122,9 @@ class SoundEngine {
 
   private initContext() {
     if (!this.ctx) {
+      if (typeof window === 'undefined') return;
       const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtx) return;
       this.ctx = new AudioCtx({ latencyHint: 'interactive', sampleRate: 44100 });
 
       this.masterGain = this.ctx.createGain();
@@ -318,19 +320,33 @@ class SoundEngine {
     const peakGain = 0.38 * velocity;
     const attack = 0.006;
     const decay = 0.22;
-    const sustain = Math.max(0.0001, peakGain * 0.38);
-    const naturalDecay = sustained ? 12.0 : Math.max(duration + 0.15, 0.3);
-
-    gainNode.gain.setValueAtTime(0.0001, startTime);
-    gainNode.gain.linearRampToValueAtTime(peakGain, startTime + attack);
-    gainNode.gain.exponentialRampToValueAtTime(sustain, startTime + decay);
-    gainNode.gain.exponentialRampToValueAtTime(0.00001, startTime + naturalDecay);
+    const sustain = Math.max(0.0001, peakGain * 0.42);
 
     filter.connect(comprPos);
     comprPos.connect(gainNode);
     gainNode.connect(this.masterGain!);
 
-    oscs.forEach(o => { o.start(startTime); if (!sustained) o.stop(startTime + naturalDecay + 0.05); });
+    if (sustained) {
+      // Ressonância acústica de piano com pedal de sustain (cordas livres sem abafadores)
+      const naturalDecay = Math.max(duration + 1.8, 4.8 + Math.max(0, (60 - midi) * 0.06));
+      gainNode.gain.setValueAtTime(0.0001, startTime);
+      gainNode.gain.linearRampToValueAtTime(peakGain, startTime + attack);
+      gainNode.gain.exponentialRampToValueAtTime(sustain, startTime + decay);
+      gainNode.gain.exponentialRampToValueAtTime(Math.max(0.0001, sustain * 0.4), startTime + Math.min(2.5, naturalDecay * 0.5));
+      gainNode.gain.exponentialRampToValueAtTime(0.00001, startTime + naturalDecay);
+      oscs.forEach(o => { o.start(startTime); o.stop(startTime + naturalDecay + 0.1); });
+    } else {
+      // Sem sustain: nota toca na duração rítmica com abafamento acústico rápido
+      const holdDuration = Math.max(0.12, duration);
+      const releaseStart = Math.max(startTime + decay, startTime + holdDuration);
+      const releaseDur = 0.08;
+      gainNode.gain.setValueAtTime(0.0001, startTime);
+      gainNode.gain.linearRampToValueAtTime(peakGain, startTime + attack);
+      gainNode.gain.exponentialRampToValueAtTime(sustain, startTime + decay);
+      gainNode.gain.setValueAtTime(sustain, releaseStart);
+      gainNode.gain.exponentialRampToValueAtTime(0.00001, releaseStart + releaseDur);
+      oscs.forEach(o => { o.start(startTime); o.stop(releaseStart + releaseDur + 0.05); });
+    }
 
     return { nodes: [...oscs, gainNode, filter, comprPos], gainNode };
   }
@@ -369,12 +385,6 @@ class SoundEngine {
     const attack = 0.003;
     const decay = 0.18;
     const sustain = Math.max(0.0001, peakGain * 0.45);
-    const totalDur = sustained ? 10.0 : Math.max(duration + 0.1, 0.3);
-
-    gainNode.gain.setValueAtTime(0.0001, startTime);
-    gainNode.gain.linearRampToValueAtTime(peakGain, startTime + attack);
-    gainNode.gain.exponentialRampToValueAtTime(sustain, startTime + decay);
-    gainNode.gain.exponentialRampToValueAtTime(0.00001, startTime + totalDur);
 
     carrier.connect(filter);
     filter.connect(gainNode);
@@ -382,9 +392,26 @@ class SoundEngine {
 
     carrier.start(startTime);
     modulator.start(startTime);
-    if (!sustained) {
-      carrier.stop(startTime + totalDur + 0.05);
-      modulator.stop(startTime + totalDur + 0.05);
+
+    if (sustained) {
+      const totalDur = Math.max(duration + 2.0, 7.5);
+      gainNode.gain.setValueAtTime(0.0001, startTime);
+      gainNode.gain.linearRampToValueAtTime(peakGain, startTime + attack);
+      gainNode.gain.exponentialRampToValueAtTime(sustain, startTime + decay);
+      gainNode.gain.exponentialRampToValueAtTime(0.00001, startTime + totalDur);
+      carrier.stop(startTime + totalDur + 0.1);
+      modulator.stop(startTime + totalDur + 0.1);
+    } else {
+      const holdDuration = Math.max(0.12, duration);
+      const releaseStart = Math.max(startTime + decay, startTime + holdDuration);
+      const releaseDur = 0.07;
+      gainNode.gain.setValueAtTime(0.0001, startTime);
+      gainNode.gain.linearRampToValueAtTime(peakGain, startTime + attack);
+      gainNode.gain.exponentialRampToValueAtTime(sustain, startTime + decay);
+      gainNode.gain.setValueAtTime(sustain, releaseStart);
+      gainNode.gain.exponentialRampToValueAtTime(0.00001, releaseStart + releaseDur);
+      carrier.stop(releaseStart + releaseDur + 0.05);
+      modulator.stop(releaseStart + releaseDur + 0.05);
     }
 
     return { nodes: [carrier, modulator, modGain, gainNode, filter], gainNode };
@@ -439,10 +466,8 @@ class SoundEngine {
     filter.connect(gainNode);
     gainNode.connect(this.masterGain!);
 
-    if (!sustained) {
-      oscs.forEach(o => o.stop(startTime + totalDur + 0.05));
-      vibLfo.stop(startTime + totalDur + 0.05);
-    }
+    oscs.forEach(o => o.stop(startTime + totalDur + 0.08));
+    vibLfo.stop(startTime + totalDur + 0.08);
 
     return { nodes: [...oscs, vibLfo, vibDepth, gainNode, filter], gainNode };
   }
@@ -497,11 +522,9 @@ class SoundEngine {
     osc2.start(startTime);
     lfo.start(startTime);
 
-    if (!sustained) {
-      osc1.stop(startTime + totalDur + 0.05);
-      osc2.stop(startTime + totalDur + 0.05);
-      lfo.stop(startTime + totalDur + 0.05);
-    }
+    osc1.stop(startTime + totalDur + 0.08);
+    osc2.stop(startTime + totalDur + 0.08);
+    lfo.stop(startTime + totalDur + 0.08);
 
     return { nodes: [osc1, osc2, lfo, lfoGain, mix1, mix2, gainNode], gainNode };
   }
@@ -553,10 +576,8 @@ class SoundEngine {
     osc.start(startTime);
     noiseSource.start(startTime);
 
-    if (!sustained) {
-      osc.stop(startTime + totalDur + 0.05);
-      noiseSource.stop(startTime + totalDur + 0.05);
-    }
+    osc.stop(startTime + totalDur + 0.08);
+    noiseSource.stop(startTime + totalDur + 0.08);
 
     return { nodes: [osc, noiseSource, noiseFilter, noiseGain, gainNode, filter], gainNode };
   }
@@ -603,9 +624,7 @@ class SoundEngine {
     gainNode.gain.exponentialRampToValueAtTime(0.00001, startTime + totalDur + 0.02);
     gainNode.connect(this.masterGain!);
 
-    if (!sustained) {
-      oscs.forEach(o => o.stop(startTime + totalDur + 0.05));
-    }
+    oscs.forEach(o => o.stop(startTime + totalDur + 0.08));
 
     return { nodes: [...oscs, gainNode, clickGain], gainNode };
   }
@@ -653,10 +672,8 @@ class SoundEngine {
 
     osc1.start(startTime);
     osc2.start(startTime);
-    if (!sustained) {
-      osc1.stop(startTime + totalDur + 0.05);
-      osc2.stop(startTime + totalDur + 0.05);
-    }
+    osc1.stop(startTime + totalDur + 0.08);
+    osc2.stop(startTime + totalDur + 0.08);
 
     return { nodes: [osc1, osc2, mix1, mix2, gainNode, filter], gainNode };
   }
@@ -708,10 +725,8 @@ class SoundEngine {
     filter.connect(gainNode);
     gainNode.connect(this.masterGain!);
 
-    if (!sustained) {
-      oscs.forEach(o => o.stop(startTime + totalDur + 0.1));
-      lfo.stop(startTime + totalDur + 0.1);
-    }
+    oscs.forEach(o => o.stop(startTime + totalDur + 0.1));
+    lfo.stop(startTime + totalDur + 0.1);
 
     return { nodes: [...oscs, lfo, lfoGain, gainNode, filter], gainNode };
   }
@@ -756,7 +771,7 @@ class SoundEngine {
     gainNode.connect(this.masterGain!);
 
     osc.start(startTime);
-    if (!sustained) osc.stop(startTime + totalDur + 0.05);
+    osc.stop(startTime + totalDur + 0.08);
 
     return { nodes: [osc, gainNode, filter, bodyFilter], gainNode };
   }
@@ -798,10 +813,8 @@ class SoundEngine {
     gainNode.connect(this.masterGain!);
 
     osc1.start(startTime); osc2.start(startTime);
-    if (!sustained) {
-      osc1.stop(startTime + totalDur + 0.15);
-      osc2.stop(startTime + totalDur + 0.15);
-    }
+    osc1.stop(startTime + totalDur + 0.15);
+    osc2.stop(startTime + totalDur + 0.15);
 
     return { nodes: [osc1, osc2, mix1, mix2, gainNode, filter], gainNode };
   }
@@ -879,7 +892,7 @@ class SoundEngine {
   }
 
   /** Toca uma nota de duração fixa (para partitura, repertório, etc.) */
-  public playPianoNote(midi: number, duration = 1.2, time?: number, velocity = 0.8) {
+  public playPianoNote(midi: number, duration = 1.2, time?: number, velocity = 0.8, sustained = false) {
     try {
       this.initContext();
       if (!this.ctx || !this.masterGain) return;
@@ -887,17 +900,19 @@ class SoundEngine {
       const now = this.ctx.currentTime;
       const startTime = Math.max(now, time ?? now);
 
-      this.synthNote(midi, startTime, duration, velocity, false);
+      this.synthNote(midi, startTime, duration, velocity, sustained);
 
       // Reflete no teclado global: acende a tecla pela duração sonora da nota
       const delayMs = Math.max(0, (startTime - now) * 1000);
-      const durationMs = Math.max(150, duration * 1000);
+      const visualDurSec = sustained ? Math.max(duration * 1.3, 1.8) : duration;
+      const durationMs = Math.max(150, visualDurSec * 1000);
       if (delayMs < 300) {
         // Nota imediata ou com lookahead pequeno: acende agora
         activeMidiStore.noteOn(midi, durationMs);
       } else {
         // Nota agendada no futuro (partitura): acende no momento certo
-        window.setTimeout(() => activeMidiStore.noteOn(midi, durationMs), delayMs);
+        const timerFn = typeof window !== 'undefined' ? window.setTimeout : setTimeout;
+        timerFn(() => activeMidiStore.noteOn(midi, durationMs), delayMs);
       }
     } catch (err) {
       console.warn('Erro ao tocar nota:', err);
@@ -905,19 +920,20 @@ class SoundEngine {
   }
 
   /** Toca uma corda de violão dedilhada (mantém compatibilidade) */
-  public playGuitarPluck(midi: number, duration = 1.8, time?: number, velocity = 0.8) {
-    this.playPianoNote(midi, duration, time, velocity);
+  public playGuitarPluck(midi: number, duration = 1.8, time?: number, velocity = 0.8, sustained = false) {
+    this.playPianoNote(midi, duration, time, velocity, sustained);
   }
 
   /** Toca um acorde simultâneo */
-  public playChord(midiNotes: number[], instrument: 'piano' | 'guitar' = 'piano', duration = 1.6) {
+  public playChord(midiNotes: number[], instrument: 'piano' | 'guitar' = 'piano', duration = 1.6, sustained = false) {
     // Acende todas as teclas do acorde simultaneamente
-    activeMidiStore.chordOn(midiNotes, Math.max(800, duration * 1000));
+    const visualDuration = sustained ? Math.max(1200, duration * 1000) : Math.max(350, duration * 1000);
+    activeMidiStore.chordOn(midiNotes, visualDuration);
     midiNotes.forEach(midi => {
       if (instrument === 'guitar') {
-        this.playGuitarPluck(midi, duration);
+        this.playGuitarPluck(midi, duration, undefined, 0.8, sustained);
       } else {
-        this.playPianoNote(midi, duration);
+        this.playPianoNote(midi, duration, undefined, 0.8, sustained);
       }
     });
   }

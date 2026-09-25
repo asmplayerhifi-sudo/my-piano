@@ -99,7 +99,8 @@ class ActiveMidiStore {
   /** Agenda um sweep automático quando a nota mais próxima expirar. */
   private scheduleSweep(delayMs: number): void {
     if (this.sweepTimer !== null) return;
-    this.sweepTimer = window.setTimeout(() => {
+    const timerFn = typeof window !== 'undefined' ? window.setTimeout : setTimeout;
+    this.sweepTimer = timerFn(() => {
       this.sweepTimer = null;
       this.sweep();
       // Se ainda há notas ativas, agenda o próximo sweep
@@ -108,7 +109,7 @@ class ActiveMidiStore {
         const remaining = Math.max(50, minExpiry - performance.now());
         this.scheduleSweep(remaining);
       }
-    }, Math.max(50, delayMs));
+    }, Math.max(50, delayMs)) as unknown as number;
   }
 }
 

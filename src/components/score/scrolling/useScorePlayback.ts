@@ -10,7 +10,7 @@ import { soundEngine } from '../../../core/soundEngine';
 import { NoteConfirmationValidator } from '../../../core/noteConfirmationValidator';
 import { EvaluateRhythmStrikeUseCase } from '../../../application/use-cases/EvaluateRhythmStrikeUseCase';
 import type { ScoreNote } from '../../../core/coursesData';
-import type { ChordSpan, ScoreErrorEvent } from './types';
+import type { ChordSpan, ScoreErrorEvent, ScoreSustainMode } from './types';
 
 interface PlaybackTimeline {
   noteOffsets: number[];
@@ -35,6 +35,7 @@ interface UseScorePlaybackProps {
   timeline: PlaybackTimeline;
   pixelsPerBeat: number;
   instrument?: 'piano' | 'guitar';
+  sustainMode?: ScoreSustainMode;
 }
 
 export function useScorePlayback({
@@ -54,6 +55,7 @@ export function useScorePlayback({
   timeline,
   pixelsPerBeat,
   instrument = 'piano',
+  sustainMode = 'all',
 }: UseScorePlaybackProps) {
   const [internalIsPlaying, setInternalIsPlaying] = useState<boolean>(false);
   const isPlaying = controlledIsPlaying !== undefined ? controlledIsPlaying : internalIsPlaying;
@@ -255,10 +257,17 @@ export function useScorePlayback({
       processStrike(diffMs, currentIndex);
 
       // Emite o som da nota acertada
+      const beatSec = 60 / tempo;
+      const isNotesSustain = sustainMode === 'notes' || sustainMode === 'all';
+      const targetDurSec = (targetNote.duration || 1) * beatSec;
+      const targetSoundDuration = isNotesSustain
+        ? Math.max(targetDurSec * 1.6, 2.5)
+        : Math.max(0.18, targetDurSec * 0.85);
+
       if (instrument === 'guitar') {
-        soundEngine.playGuitarPluck(targetNote.midi, 1.2);
+        soundEngine.playGuitarPluck(targetNote.midi, targetSoundDuration, undefined, 0.8, isNotesSustain);
       } else {
-        soundEngine.playPianoNote(targetNote.midi, 1.2);
+        soundEngine.playPianoNote(targetNote.midi, targetSoundDuration, undefined, 0.8, isNotesSustain);
       }
       return;
     }
@@ -286,10 +295,17 @@ export function useScorePlayback({
       const diffMs = (currentBeat - noteOffset) * ((60 / tempo) * 1000);
       processStrike(diffMs, nextIdx);
 
+      const beatSec = 60 / tempo;
+      const isNotesSustain = sustainMode === 'notes' || sustainMode === 'all';
+      const nextDurSec = (nextNote.duration || 1) * beatSec;
+      const nextSoundDuration = isNotesSustain
+        ? Math.max(nextDurSec * 1.6, 2.5)
+        : Math.max(0.18, nextDurSec * 0.85);
+
       if (instrument === 'guitar') {
-        soundEngine.playGuitarPluck(nextNote.midi, 1.2);
+        soundEngine.playGuitarPluck(nextNote.midi, nextSoundDuration, undefined, 0.8, isNotesSustain);
       } else {
-        soundEngine.playPianoNote(nextNote.midi, 1.2);
+        soundEngine.playPianoNote(nextNote.midi, nextSoundDuration, undefined, 0.8, isNotesSustain);
       }
       return;
     }

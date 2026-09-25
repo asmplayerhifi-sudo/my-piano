@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { Play, Pause, RotateCcw, Volume2, VolumeX, Sun, Moon, Radio, Sparkles } from 'lucide-react';
-import type { DisplayOptions, ScoreTheme } from './types';
+import type { DisplayOptions, ScoreTheme, ScoreSustainMode } from './types';
 
 interface ScoreControlsProps {
   isPlaying: boolean;
@@ -21,6 +21,8 @@ interface ScoreControlsProps {
   showAudioToggle?: boolean;
   enableMetronome: boolean;
   onToggleMetronome: () => void;
+  sustainMode?: ScoreSustainMode;
+  onSustainModeChange?: (mode: ScoreSustainMode) => void;
   enableSustain?: boolean;
   onToggleSustain?: () => void;
   hidePlaybackControls?: boolean;
@@ -43,6 +45,8 @@ export const ScoreCanvasControls: React.FC<ScoreControlsProps> = ({
   showAudioToggle = true,
   enableMetronome,
   onToggleMetronome,
+  sustainMode,
+  onSustainModeChange,
   enableSustain = true,
   onToggleSustain,
   hidePlaybackControls = false,
@@ -51,6 +55,8 @@ export const ScoreCanvasControls: React.FC<ScoreControlsProps> = ({
   score,
   feedback,
 }) => {
+  const currentSustainMode: ScoreSustainMode = sustainMode ?? (enableSustain ? 'all' : 'off');
+
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-slate-900/90 border-b border-white/10 text-white select-none">
       {/* 1. Controles Principais de Playback */}
@@ -144,20 +150,63 @@ export const ScoreCanvasControls: React.FC<ScoreControlsProps> = ({
           </button>
         )}
 
-        {/* Pedal de Sustain para Acordes e Harmonia */}
-        {!hidePlaybackControls && onToggleSustain && (
-          <button
-            onClick={onToggleSustain}
-            title={enableSustain ? 'Pedal de Sustain: LIGADO (Acordes ressoam com sustentação natural preenchendo o compasso)' : 'Pedal de Sustain: DESLIGADO (Acordes tocam secos em staccato)'}
-            className={`px-2 py-1.5 rounded-lg border flex items-center gap-1.5 text-xs transition-all cursor-pointer ${
-              enableSustain
-                ? 'bg-amber-500/25 border-amber-500/60 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.25)] font-bold'
-                : 'bg-white/5 border-white/10 text-slate-500 hover:text-slate-300'
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span className="text-[10px] font-bold">Sustain: {enableSustain ? 'ON' : 'OFF'}</span>
-          </button>
+        {/* Controle Avançado de Sustain: Off | Notas | Acordes | Ambos */}
+        {!hidePlaybackControls && (onSustainModeChange || onToggleSustain) && (
+          <div className="flex items-center bg-black/40 p-0.5 rounded-xl border border-white/10 text-xs shadow-inner">
+            {/* Opção Off */}
+            <button
+              onClick={() => onSustainModeChange ? onSustainModeChange('off') : onToggleSustain?.()}
+              title="Sustain Desativado: notas e acordes tocam secos com corte limpo (staccato)"
+              className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                currentSustainMode === 'off'
+                  ? 'bg-slate-700 text-white shadow-sm ring-1 ring-white/20'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <VolumeX className="w-3 h-3" />
+              <span>Off</span>
+            </button>
+
+            {/* Opção Apenas Notas */}
+            <button
+              onClick={() => onSustainModeChange ? onSustainModeChange('notes') : onToggleSustain?.()}
+              title="Sustain Notas Simples: ressonância melódica com legato natural nas notas individuais da pauta"
+              className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                currentSustainMode === 'notes'
+                  ? 'bg-indigo-600 text-white shadow-[0_0_10px_rgba(99,102,241,0.5)] ring-1 ring-indigo-400'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <span>🎹 Notas</span>
+            </button>
+
+            {/* Opção Apenas Acordes */}
+            <button
+              onClick={() => onSustainModeChange ? onSustainModeChange('chords') : onToggleSustain?.()}
+              title="Sustain Acordes: ressonância harmônica preenchendo o compasso nos blocos de acordes"
+              className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                currentSustainMode === 'chords'
+                  ? 'bg-purple-600 text-white shadow-[0_0_10px_rgba(168,85,247,0.5)] ring-1 ring-purple-400'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <span>🎼 Acordes</span>
+            </button>
+
+            {/* Opção Ambos (Notas + Acordes) */}
+            <button
+              onClick={() => onSustainModeChange ? onSustainModeChange('all') : onToggleSustain?.()}
+              title="Sustain Pleno (Ambos): sustentação simultânea em notas melódicas e acordes harmônicos"
+              className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                currentSustainMode === 'all'
+                  ? 'bg-amber-500 text-slate-950 font-black shadow-[0_0_12px_rgba(245,158,11,0.6)] ring-1 ring-amber-300'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Sparkles className="w-3 h-3 text-amber-300" />
+              <span>✨ Ambos</span>
+            </button>
+          </div>
         )}
 
         {/* Tema Claro / Noturno */}

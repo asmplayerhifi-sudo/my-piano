@@ -4,7 +4,7 @@
  * Regra: Faixa estritamente superior (Y: 20–42), sem invadir o pentagrama (Pauta começa em Y=70).
  */
 
-import type { ChordSpan, ScoreTheme } from './types';
+import type { ChordSpan, ScoreTheme, ScoreSustainMode } from './types';
 import { drawRoundedPill } from './scoreGeometry';
 import { parseChord } from '../../../core/musicTheory';
 
@@ -17,6 +17,7 @@ interface DrawChordsParams {
   scrollOffset: number;
   pixelsPerBeat: number;
   enableSustain?: boolean;
+  sustainMode?: ScoreSustainMode;
 }
 
 export function drawScoreChords({
@@ -28,9 +29,13 @@ export function drawScoreChords({
   scrollOffset,
   pixelsPerBeat,
   enableSustain = true,
+  sustainMode,
 }: DrawChordsParams): void {
   if (!chordSpans || chordSpans.length === 0) return;
 
+  const isChordSustained = sustainMode !== undefined
+    ? (sustainMode === 'chords' || sustainMode === 'all')
+    : enableSustain;
   const isTrad = theme === 'traditional';
   const currentBeat = scrollOffset / pixelsPerBeat;
 
@@ -111,7 +116,7 @@ export function drawScoreChords({
     let displayLabel = chord.chordName;
     if (isActive) {
       if (visibleWidth > 140 && notesPt) {
-        displayLabel = `🎹 ${chord.chordName} [${notesPt}]${enableSustain ? ' • Legato' : ''}`;
+        displayLabel = `🎹 ${chord.chordName} [${notesPt}]${isChordSustained ? ' • Legato' : ''}`;
       } else if (visibleWidth > 85 && notesPt) {
         displayLabel = `🎹 ${chord.chordName} [${notesPt}]`;
       } else if (visibleWidth > 55) {
