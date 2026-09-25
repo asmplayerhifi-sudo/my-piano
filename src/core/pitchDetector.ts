@@ -156,12 +156,25 @@ export class MicrophonePitchDetector {
   private stableCount = 0;
   private silenceFrameCount = 0;
 
+  /**
+   * Inicia a detecção de altura monofônica via microfone.
+   *
+   * @param onPitch      - Callback chamado a cada nota detectada
+   * @param onVolume     - Callback com nível de volume RMS (opcional)
+   * @param onActiveNote - Callback com nota atualmente sustentada (opcional)
+   * @param deviceId     - ID do dispositivo de áudio a usar (opcional)
+   * @param onOnset      - Callback de ataque percussivo/palma (opcional)
+   * @param onStreamReady - Callback chamado logo após o MediaStream ser autorizado,
+   *                        antes do loop iniciar — permite o detector de acordes
+   *                        reutilizar o mesmo stream sem nova requisição de permissão
+   */
   public async start(
     onPitch: (pitch: DetectedPitch) => void,
     onVolume?: (rms: number) => void,
     onActiveNote?: (midi: number | null, noteName: string | null) => void,
     deviceId?: string,
-    onOnset?: (rms: number) => void
+    onOnset?: (rms: number) => void,
+    onStreamReady?: (stream: MediaStream) => void
   ): Promise<boolean> {
     if (this.isListening) return true;
 
@@ -179,6 +192,12 @@ export class MicrophonePitchDetector {
       this.mediaStream = await navigator.mediaDevices.getUserMedia({
         audio: audioConstraints,
       });
+
+      // Notifica o caller que o stream está disponível, antes do loop iniciar.
+      // Permite o PolyphonicChordDetector reutilizar o mesmo MediaStream.
+      if (onStreamReady) {
+        onStreamReady(this.mediaStream);
+      }
 
       const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       this.audioCtx = new AudioCtx({ latencyHint: 'interactive' });
@@ -206,6 +225,15 @@ export class MicrophonePitchDetector {
       this.stop();
       return false;
     }
+  }
+
+  /**
+   * Retorna o MediaStream ativo, se o detector estiver em execução.
+   * Permite que outros módulos (ex: PolyphonicChordDetector) reutilizem
+   * o mesmo stream sem solicitar permissão de microfone novamente.
+   */
+  public getMediaStream(): MediaStream | null {
+    return this.mediaStream;
   }
 
   public static async getAvailableAudioDevices(): Promise<MediaDeviceInfo[]> {

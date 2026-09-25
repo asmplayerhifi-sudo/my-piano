@@ -51,6 +51,16 @@ export function useScoreTimeline(notes: ScoreNote[], timeSignature: string) {
       if (beatOffset + dur > maxBeat) maxBeat = beatOffset + dur;
     }
 
+    // Determina o total de compassos necessários para abrigar todas as notas e durações
+    const totalMeasures = Math.max(maxMeasure, Math.ceil(maxBeat / beatsPerMeasure));
+
+    // Garante que todo compasso de 1 até totalMeasures tenha seu beat de início definido
+    for (let m = 1; m <= totalMeasures; m++) {
+      if (!measureStartBeats.has(m)) {
+        measureStartBeats.set(m, (m - 1) * beatsPerMeasure);
+      }
+    }
+
     const rawChords: ChordSpan[] = [];
     notes.forEach((n, idx) => {
       const chord = n.chordName || (n as unknown as { chord?: string }).chord;
@@ -97,8 +107,8 @@ export function useScoreTimeline(notes: ScoreNote[], timeSignature: string) {
     return {
       noteOffsets,
       measureStartBeats,
-      maxMeasure,
-      totalBeats: Math.max(maxMeasure * beatsPerMeasure, maxBeat),
+      maxMeasure: totalMeasures,
+      totalBeats: Math.max(totalMeasures * beatsPerMeasure, maxBeat),
       chordSpans,
     };
   }, [notes, beatsPerMeasure]);

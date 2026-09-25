@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { micPitchDetector, MicrophonePitchDetector } from '../../core/pitchDetector';
 import type { DetectedPitch } from '../../core/pitchDetector';
+import { polyphonicChordDetector } from '../../core/chordDetector';
+import type { DetectedChord } from '../../core/chordDetector';
 import { getNoteInfo, identifyChordFromMidi, type IdentifiedChord } from '../../core/musicTheory';
 import { octaveConfigStore, useOctaveStandard } from '../../core/octaveConfigStore';
 import { Mic, MicOff, Activity, Radio, ShieldAlert, Cable, Sliders } from 'lucide-react';
@@ -49,6 +51,8 @@ export const MicrophonePitchBar: React.FC<Props> = ({
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
   const [recentAcousticNotes, setRecentAcousticNotes] = useState<Map<number, number>>(new Map());
+  // Acorde detectado polifonicamente via PCP/Chroma (FFT) — mais preciso para acordes simultâneos
+  const [polyphonicChord, setPolyphonicChord] = useState<DetectedChord | null>(null);
 
   const onNoteDetectedRef = useRef(onNoteDetected);
   onNoteDetectedRef.current = onNoteDetected;
@@ -135,9 +139,11 @@ export const MicrophonePitchBar: React.FC<Props> = ({
     setErrorMsg(null);
     if (isActive) {
       micPitchDetector.stop();
+      polyphonicChordDetector.stop();
       setIsActive(false);
       setCurrentPitch(null);
       setVolumeLevel(0);
+      setPolyphonicChord(null);
       if (onNoteHoldRef.current) {
         onNoteHoldRef.current(null);
       }
@@ -168,6 +174,25 @@ export const MicrophonePitchBar: React.FC<Props> = ({
           if (onOnsetDetectedRef.current) {
             onOnsetDetectedRef.current(rms);
           }
+        },
+        // Inicia o detector polifonico assim que o stream for autorizado,
+        // reutilizando o mesmo MediaStream sem nova requisição de permissão.
+        (stream) => {
+          polyphonicChordDetector.start(stream, (chord) => {
+            setPolyphonicChord(chord);
+            if (chord && onChordDetectedRef.current) {
+              // Converte DetectedChord para IdentifiedChord para compatibilidade com callers externos
+              const identified: IdentifiedChord = {
+                symbol: `${chord.rootName}${chord.suffix}`,
+                namePt: `${chord.rootName} ${chord.quality}`,
+                root: chord.rootName,
+                quality: chord.quality as IdentifiedChord['quality'],
+                notesPt: [],
+                isInversion: false,
+              };
+              onChordDetectedRef.current(identified, []);
+            }
+          });
         }
       );
 
@@ -197,9 +222,11 @@ export const MicrophonePitchBar: React.FC<Props> = ({
   useEffect(() => {
     if (disabled && isActive) {
       micPitchDetector.stop();
+      polyphonicChordDetector.stop();
       setIsActive(false);
       setCurrentPitch(null);
       setVolumeLevel(0);
+      setPolyphonicChord(null);
       if (onNoteHoldRef.current) {
         onNoteHoldRef.current(null);
       }
@@ -209,6 +236,7 @@ export const MicrophonePitchBar: React.FC<Props> = ({
   useEffect(() => {
     return () => {
       micPitchDetector.stop();
+      polyphonicChordDetector.stop();
       if (onNoteHoldRef.current) {
         onNoteHoldRef.current(null);
       }
@@ -357,9 +385,15 @@ export const MicrophonePitchBar: React.FC<Props> = ({
           ? Math.round((69 + 12 * Math.log2(currentPitch.frequency / 440) - currentPitch.midi) * 100)
           : 0;
 
-        const isChordMatch = liveDetectedChord && expectedChordName && (
-          liveDetectedChord.symbol.toLowerCase() === expectedChordName.toLowerCase() ||
-          liveDetectedChord.root.toLowerCase() === expectedChordName.toLowerCase()
+        // Acorde identificado pelo sistema polifonico (PCP/Chroma) — prioridade sobre o buffer secuencial
+        const displayChordSymbol = polyphonicChord
+          ? `${polyphonicChord.rootName}${polyphonicChord.suffix}`
+          : liveDetectedChord?.symbol ?? null;
+
+        const isChordMatch = displayChordSymbol && expectedChordName && (
+          displayChordSymbol.toLowerCase() === expectedChordName.toLowerCase() ||
+          polyphonicChord?.rootName.toLowerCase() === expectedChordName.toLowerCase() ||
+          liveDetectedChord?.root.toLowerCase() === expectedChordName.toLowerCase()
         );
 
         return (
@@ -378,9 +412,10 @@ export const MicrophonePitchBar: React.FC<Props> = ({
               <span className="text-[10px] font-mono text-slate-400 w-8">{volumeLevel}%</span>
             </div>
 
-            {/* Painel de Identificação: Acorde ou Nota Ouvida em Tempo Real */}
+            {/* Painel de Identificação: Acorde Polifonico ou Nota Ouvida */}
             <div className="flex items-center gap-3 flex-wrap">
-              {liveDetectedChord && activeAcousticMidis.length >= 2 ? (
+              {/* Exibe acorde detectado pelo PCP (polifonico) ou pelo buffer sequencial */}
+              {displayChordSymbol ? (
                 <div
                   className={`flex items-center gap-3 px-4 py-2 rounded-2xl border transition-all animate-fade-in ${
                     isChordMatch
@@ -395,18 +430,47 @@ export const MicrophonePitchBar: React.FC<Props> = ({
                       {isChordMatch ? '✔ ACORDE CORRETO' : '🎹 ACORDE OUVIDO'}
                     </span>
                     <span className="text-xl font-black font-display text-white">
-                      {liveDetectedChord.symbol}
+                      {displayChordSymbol}
                     </span>
-                    <span className="text-xs text-amber-300 font-medium">
-                      ({liveDetectedChord.namePt})
-                    </span>
+                    {polyphonicChord ? (
+                      <span className="text-xs text-cyan-300 font-medium">
+                        ({polyphonicChord.quality} • {Math.round(polyphonicChord.confidence * 100)}% confiança)
+                      </span>
+                    ) : liveDetectedChord ? (
+                      <span className="text-xs text-amber-300 font-medium">
+                        ({liveDetectedChord.namePt})
+                      </span>
+                    ) : null}
                   </div>
 
                   <div className="h-4 w-px bg-white/10 hidden sm:block" />
 
-                  <div className="text-[10px] font-mono text-slate-300">
-                    Notas: <span className="text-white font-bold">{liveDetectedChord.notesPt.join(' • ')}</span>
-                  </div>
+                  {/* Vetor chroma visual quando detectado pelo PCP */}
+                  {polyphonicChord && (
+                    <div className="flex items-end gap-0.5 h-5" title="Vetor Chroma (energia por semitom)">
+                      {Array.from(polyphonicChord.chromaVector).map((v, i) => (
+                        <div
+                          key={i}
+                          className="w-1.5 rounded-t-sm transition-all"
+                          style={{
+                            height: `${Math.round(v * 100)}%`,
+                            minHeight: '1px',
+                            background: v > 0.5
+                              ? 'rgb(52,211,153)'
+                              : v > 0.2
+                              ? 'rgb(251,191,36)'
+                              : 'rgb(71,85,105)',
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {!polyphonicChord && liveDetectedChord && (
+                    <div className="text-[10px] font-mono text-slate-300">
+                      Notas: <span className="text-white font-bold">{liveDetectedChord.notesPt.join(' • ')}</span>
+                    </div>
+                  )}
 
                   {expectedChordName && !isChordMatch && (
                     <span className="text-[10px] font-mono font-black text-amber-300 bg-amber-900/60 px-2 py-0.5 rounded-lg border border-amber-500/40">

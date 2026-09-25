@@ -9,6 +9,7 @@ import { soundEngine } from '../../core/soundEngine';
 import { octaveConfigStore, useOctaveStandard } from '../../core/octaveConfigStore';
 import { LessonIllustration } from '../course/illustrations/LessonIllustration';
 import { useFullscreen } from '../../hooks/useFullscreen';
+import { IntervalLaboratory } from './IntervalLaboratory';
 import {
   CheckCircle2,
   Sparkles,
@@ -16,8 +17,6 @@ import {
   ChevronLeft,
   Play,
   Volume2,
-  Sliders,
-  Layers,
   Search,
   HelpCircle,
   Lightbulb,
@@ -82,45 +81,7 @@ export const TheoryStudyAcademy: React.FC = () => {
     if (!isLessonExpanded) setIsCurriculumExpanded(false);
   };
 
-  // =========================================================================
-  // LABORATÓRIO DE INTERVALOS INTERATIVO
-  // =========================================================================
-  const [intervalRoot, setIntervalRoot] = useState<number>(60); // Dó Central (MIDI 60)
-  const [intervalSemitones, setIntervalSemitones] = useState<number>(4); // Terça Maior
 
-  const INTERVAL_NAMES = [
-    { semitones: 0, name: 'Uníssono Justo (1J)', formula: '0 semitons', mood: 'Identidade total' },
-    { semitones: 1, name: 'Segunda Menor (2m)', formula: '1 semitom', mood: 'Tensão dramática aguda (Tubarão)' },
-    { semitones: 2, name: 'Segunda Maior (2M)', formula: '2 semitons (1 tom)', mood: 'Passo melódico natural' },
-    { semitones: 3, name: 'Terça Menor (3m)', formula: '3 semitons (1½ tom)', mood: 'Tristeza, introspecção, blues' },
-    { semitones: 4, name: 'Terça Maior (3M)', formula: '4 semitons (2 tons)', mood: 'Alegria, brilho, solene' },
-    { semitones: 5, name: 'Quarta Justa (4J)', formula: '5 semitons (2½ tons)', mood: 'Neutro, consonância aberta' },
-    { semitones: 6, name: 'Trítono (4ª Aum / 5ª Dim)', formula: '6 semitons (3 tons)', mood: 'Tensão máxima magnética' },
-    { semitones: 7, name: 'Quinta Justa (5J)', formula: '7 semitons (3½ tons)', mood: 'Consonância perfeita, poder' },
-    { semitones: 8, name: 'Sexta Menor (6m)', formula: '8 semitons (4 tons)', mood: 'Nostalgia romântica' },
-    { semitones: 9, name: 'Sexta Maior (6M)', formula: '9 semitons (4½ tons)', mood: 'Elegância e luz (Jazz/Bossa)' },
-    { semitones: 10, name: 'Sétima Menor (7m)', formula: '10 semitons (5 tons)', mood: 'Tensão dominante resolutiva' },
-    { semitones: 11, name: 'Sétima Maior (7M)', formula: '11 semitons (5½ tons)', mood: 'Aveludado, sonhador' },
-    { semitones: 12, name: 'Oitava Justa (8J)', formula: '12 semitons (6 tons)', mood: 'Consonância pura oitavada' },
-  ];
-
-  const currentIntervalInfo = INTERVAL_NAMES[intervalSemitones] || INTERVAL_NAMES[4];
-
-  const playIntervalAudio = async (mode: 'melodic' | 'harmonic') => {
-    await soundEngine.ensureAudioReady();
-    const note1 = intervalRoot;
-    const note2 = intervalRoot + intervalSemitones;
-
-    if (mode === 'melodic') {
-      soundEngine.playPianoNote(note1, 0.7);
-      setTimeout(() => {
-        soundEngine.playPianoNote(note2, 0.9);
-      }, 400);
-    } else {
-      soundEngine.playPianoNote(note1, 1.2, undefined, 0.75);
-      soundEngine.playPianoNote(note2, 1.2, undefined, 0.75);
-    }
-  };
 
   // =========================================================================
   // NAVEGAÇÃO ENTRE LIÇÕES
@@ -429,74 +390,8 @@ export const TheoryStudyAcademy: React.FC = () => {
               </div>
             </div>
 
-            {/* 4. Mini Laboratório Interativo de Intervalos Acústicos */}
-            <div className="p-4 rounded-3xl bg-black/50 border border-purple-500/20 space-y-3">
-              <div className="flex items-center gap-2 text-indigo-400 text-xs font-mono font-bold uppercase">
-                <Sliders className="w-3.5 h-3.5" />
-                <span>Laboratório de Intervalos</span>
-              </div>
-
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-400 font-bold">{currentIntervalInfo.name}</span>
-                  <span className="text-indigo-300 font-mono text-[11px]">{currentIntervalInfo.formula}</span>
-                </div>
-                <p className="text-[11px] text-slate-400">{currentIntervalInfo.mood}</p>
-              </div>
-
-              {/* Slider de Semitons */}
-              <input
-                type="range"
-                min={0}
-                max={12}
-                value={intervalSemitones}
-                onChange={(e) => setIntervalSemitones(parseInt(e.target.value))}
-                className="w-full accent-purple-500 cursor-pointer"
-              />
-
-              {/* Seletor de Nota Fundamental */}
-              <div className="flex items-center gap-1 pt-1">
-                <span className="text-[10px] font-mono text-slate-400 uppercase mr-1">Fundamental:</span>
-                {[
-                  { name: 'Dó (C)', midi: 60 },
-                  { name: 'Ré (D)', midi: 62 },
-                  { name: 'Mi (E)', midi: 64 },
-                  { name: 'Fá (F)', midi: 65 },
-                  { name: 'Sol (G)', midi: 67 },
-                  { name: 'Lá (A)', midi: 69 },
-                ].map((r) => (
-                  <button
-                    key={r.midi}
-                    onClick={() => setIntervalRoot(r.midi)}
-                    className={`px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold cursor-pointer transition-colors ${
-                      intervalRoot === r.midi
-                        ? 'bg-purple-600 text-white'
-                        : 'bg-white/5 hover:bg-white/10 text-slate-400'
-                    }`}
-                  >
-                    {r.name.split(' ')[0]}
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => playIntervalAudio('melodic')}
-                  className="flex-1 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-mono text-[10px] font-bold flex items-center justify-center gap-1 cursor-pointer transition-colors"
-                >
-                  <Play className="w-3 h-3 fill-current" />
-                  <span>Ouvir Sucessivo</span>
-                </button>
-
-                <button
-                  onClick={() => playIntervalAudio('harmonic')}
-                  className="flex-1 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-[10px] font-bold flex items-center justify-center gap-1 cursor-pointer transition-colors"
-                >
-                  <Layers className="w-3 h-3" />
-                  <span>Ouvir Junto (Acorde)</span>
-                </button>
-              </div>
-            </div>
+            {/* 4. Laboratório Interativo Completo de Intervalos Acústicos */}
+            <IntervalLaboratory />
           </div>
         )}
 
