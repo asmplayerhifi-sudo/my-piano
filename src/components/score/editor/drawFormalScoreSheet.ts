@@ -1,7 +1,7 @@
 /**
  * editor/drawFormalScoreSheet.ts
- * Renderizador de Partitura Formal Clássica (Grand Staff) com Pautas Amplamente Espaçadas.
- * Regra: Função pura de renderização Canvas (< 250 linhas).
+ * Renderização gráfica em Canvas da Partitura Formal com suporte a cliques, figuras e acordes polifônicos.
+ * Regra: Função pura de renderização Canvas (< 340 linhas).
  */
 
 import type { FormalScoreNote, ScoreSheetRenderOptions } from './scoreSheetTypes';
@@ -22,10 +22,10 @@ interface DrawSheetParams {
   scrollLeft: number;
 }
 
-const START_X = 95;
+export const START_X = 95;
 
-/** Calcula a posição vertical Y exata respeitando a respectiva clave com espaçamento amplo */
-function getDiatonicY(noteName: string, clef: 'treble' | 'bass' = 'treble'): number {
+/** Calcula a posição vertical Y exata respeitando a respectiva clave com espaçamento de 6px por passo */
+export function getDiatonicY(noteName: string, clef: 'treble' | 'bass' = 'treble'): number {
   const match = noteName.match(/^([A-G])([#b♭♯]?)(\d+)$/i);
   if (!match) return clef === 'treble' ? 120 : 172;
   const letter = match[1].toUpperCase();
@@ -41,6 +41,58 @@ function getDiatonicY(noteName: string, clef: 'treble' | 'bass' = 'treble'): num
     const diatonicIndex = (octave - 2) * 7 + (letterSteps[letter] ?? 0) - 3;
     return 196 - diatonicIndex * 6;
   }
+}
+
+/** Converte coordenada Y do clique do usuário na pauta em tom diatônico, clave e nota MIDI */
+export function getPitchFromY(clickY: number): { clef: 'treble' | 'bass'; noteName: string; midi: number } {
+  const LETTERS = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+  const SEMITONES = [0, 2, 4, 5, 7, 9, 11];
+
+  if (clickY <= 145) {
+    // Clave de Sol: Mi3 (E3) = Y 108
+    const diatonicIndex = Math.round((108 - clickY) / 6);
+    const totalDiatonic = diatonicIndex + 23;
+    const octave = Math.floor(totalDiatonic / 7);
+    const letterIndex = ((totalDiatonic % 7) + 7) % 7;
+    const letter = LETTERS[letterIndex];
+    const noteName = `${letter}${octave}`;
+    const midi = (octave + 2) * 12 + SEMITONES[letterIndex];
+    return { clef: 'treble', noteName, midi };
+  } else {
+    // Clave de Fá: Fá2 (F2) = Y 196
+    const diatonicIndex = Math.round((196 - clickY) / 6);
+    const totalDiatonic = diatonicIndex + 17;
+    const octave = Math.floor(totalDiatonic / 7);
+    const letterIndex = ((totalDiatonic % 7) + 7) % 7;
+    const letter = LETTERS[letterIndex];
+    const noteName = `${letter}${octave}`;
+    const midi = (octave + 2) * 12 + SEMITONES[letterIndex];
+    return { clef: 'bass', noteName, midi };
+  }
+}
+
+/** Reconhece cifras harmônicas de notas empilhadas no mesmo beat */
+function detectChordSymbol(groupNotes: FormalScoreNote[]): string | null {
+  if (groupNotes.length < 2) return null;
+  const NOTE_LETTERS = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const pitchClasses = Array.from(new Set(groupNotes.map(n => ((n.midi % 12) + 12) % 12))).sort((a, b) => a - b);
+  if (pitchClasses.length < 2) return null;
+
+  for (const root of pitchClasses) {
+    const intervals = pitchClasses.map(p => (p - root + 12) % 12).sort((a, b) => a - b);
+    const intKey = intervals.join(',');
+    const rootName = NOTE_LETTERS[root];
+
+    if (intKey === '0,4,7') return rootName;
+    if (intKey === '0,3,7') return `${rootName}m`;
+    if (intKey === '0,3,6') return `${rootName}dim`;
+    if (intKey === '0,4,8') return `${rootName}aug`;
+    if (intKey === '0,4,7,10') return `${rootName}7`;
+    if (intKey === '0,3,7,10') return `${rootName}m7`;
+    if (intKey === '0,4,7,11') return `${rootName}maj7`;
+    if (intKey === '0,3,6,10') return `${rootName}m7(♭5)`;
+  }
+  return null;
 }
 
 export function drawFormalScoreSheet({
@@ -64,8 +116,7 @@ export function drawFormalScoreSheet({
   ctx.fillStyle = isPaper ? '#fcfbf7' : '#0a0a1a';
   ctx.fillRect(0, 0, width, height);
 
-  // 2. Pentagrama Superior (Clave de Sol: Y 60 a 108) e Inferior (Clave de Fá: Y 184 a 232)
-  // Espaço respirável central de 76px entre as pautas!
+  // 2. Pentagramas (Sol: Y 60 a 108, Fá: Y 184 a 232)
   const trebleLinesY = [60, 72, 84, 96, 108];
   const bassLinesY = [184, 196, 208, 220, 232];
   const staffColor = isPaper ? '#18181b' : '#475569';
@@ -81,14 +132,14 @@ export function drawFormalScoreSheet({
     ctx.stroke();
   });
 
-  // Linha grossa e chave esquerda conectando ambos os pentagramas
+  // Linha grossa e chave esquerda
   ctx.lineWidth = 3;
   ctx.beginPath();
   ctx.moveTo(20, trebleLinesY[0]);
   ctx.lineTo(20, bassLinesY[bassLinesY.length - 1]);
   ctx.stroke();
 
-  // Símbolos de Clave fixos na margem esquerda
+  // Símbolos de Clave
   ctx.fillStyle = isPaper ? '#09090b' : '#818cf8';
   ctx.font = 'bold 44px serif';
   ctx.fillText('𝄞', 30, 106);
@@ -102,10 +153,8 @@ export function drawFormalScoreSheet({
   ctx.fillStyle = isPaper ? '#1e293b' : '#e2e8f0';
   ctx.font = 'bold 20px "JetBrains Mono", serif';
   ctx.textAlign = 'center';
-  // Clave de Sol
   ctx.fillText(`${num}`, 72, 84);
   ctx.fillText(`${den}`, 72, 106);
-  // Clave de Fá
   ctx.fillText(`${num}`, 72, 208);
   ctx.fillText(`${den}`, 72, 230);
 
@@ -129,143 +178,200 @@ export function drawFormalScoreSheet({
     }
   }
 
-  // 4. Desenho das Notas Musicais
-  notes.forEach(note => {
-    const noteX = START_X + note.beat * pixelsPerBeat - scrollLeft;
+  // 4. Agrupamento por Beat e Clave para Suporte Real a Acordes (Chord Stacking)
+  const beatGroups = new Map<string, FormalScoreNote[]>();
+  notes.forEach(n => {
+    const key = `${n.beat}_${n.clef}`;
+    const list = beatGroups.get(key) || [];
+    list.push(n);
+    beatGroups.set(key, list);
+  });
+
+  // Também agrupa por beat geral para detectar e desenhar cifras de acordes no topo da pauta
+  const totalBeatMap = new Map<number, FormalScoreNote[]>();
+  notes.forEach(n => {
+    const list = totalBeatMap.get(n.beat) || [];
+    list.push(n);
+    totalBeatMap.set(n.beat, list);
+  });
+
+  // Desenha identificador de Cifra de Acorde se houver 2 ou mais notas no mesmo beat
+  totalBeatMap.forEach((bNotes, beat) => {
+    if (bNotes.length >= 2) {
+      const chordSymbol = detectChordSymbol(bNotes);
+      if (chordSymbol) {
+        const chordX = START_X + beat * pixelsPerBeat - scrollLeft;
+        if (chordX > 20 && chordX < width - 20) {
+          ctx.save();
+          ctx.fillStyle = isPaper ? '#b45309' : '#fbbf24';
+          ctx.font = 'bold 13px "JetBrains Mono", sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(chordSymbol, chordX, 42);
+          ctx.restore();
+        }
+      }
+    }
+  });
+
+  // 4.1 Desenho de Notas e Acordes
+  beatGroups.forEach((groupNotes) => {
+    const firstNote = groupNotes[0];
+    const beat = firstNote.beat;
+    const clef = firstNote.clef;
+    const noteX = START_X + beat * pixelsPerBeat - scrollLeft;
     if (noteX < -30 || noteX > width + 40) return;
 
-    const noteY = getDiatonicY(note.noteName, note.clef);
-    const isSelected = note.id === selectedNoteId;
-    const dur = note.duration;
+    // Ordena do mais agudo (menor Y) para o mais grave (maior Y)
+    const sorted = [...groupNotes].map(n => ({
+      note: n,
+      y: getDiatonicY(n.noteName, n.clef),
+    })).sort((a, b) => a.y - b.y);
+
+    const dur = firstNote.duration;
     const isWhole = dur >= 3.5;
     const isHalf = dur >= 1.75 && dur < 3.5;
+    const middleLineY = clef === 'treble' ? 84 : 208;
+    const avgY = sorted.reduce((sum, item) => sum + item.y, 0) / sorted.length;
+    const isUp = avgY >= middleLineY;
 
-    ctx.save();
+    // Desenha cada cabeça de nota e acidentes do acorde
+    sorted.forEach(({ note, y: noteY }) => {
+      const isSelected = note.id === selectedNoteId;
 
-    // Spotlight / Destaque de Nota Selecionada
-    if (isSelected) {
-      ctx.fillStyle = isPaper ? 'rgba(99, 102, 241, 0.25)' : 'rgba(129, 140, 248, 0.4)';
+      ctx.save();
+
+      // Spotlight de Seleção
+      if (isSelected) {
+        ctx.fillStyle = isPaper ? 'rgba(99, 102, 241, 0.25)' : 'rgba(129, 140, 248, 0.4)';
+        ctx.beginPath();
+        ctx.arc(noteX, noteY, 15, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#6366f1';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+
+      // Linhas Suplementares (Ledger lines)
+      ctx.lineWidth = 1.8;
+      ctx.strokeStyle = staffColor;
+
+      if (clef === 'treble') {
+        if (noteY <= 48) {
+          for (let ly = 48; ly >= noteY - 1; ly -= 12) {
+            ctx.beginPath();
+            ctx.moveTo(noteX - 12, ly);
+            ctx.lineTo(noteX + 12, ly);
+            ctx.stroke();
+          }
+        } else if (noteY >= 120) {
+          for (let ly = 120; ly <= noteY + 1; ly += 12) {
+            ctx.beginPath();
+            ctx.moveTo(noteX - 12, ly);
+            ctx.lineTo(noteX + 12, ly);
+            ctx.stroke();
+          }
+        }
+      } else {
+        if (noteY <= 172) {
+          for (let ly = 172; ly >= noteY - 1; ly -= 12) {
+            ctx.beginPath();
+            ctx.moveTo(noteX - 12, ly);
+            ctx.lineTo(noteX + 12, ly);
+            ctx.stroke();
+          }
+        } else if (noteY >= 244) {
+          for (let ly = 244; ly <= noteY + 1; ly += 12) {
+            ctx.beginPath();
+            ctx.moveTo(noteX - 12, ly);
+            ctx.lineTo(noteX + 12, ly);
+            ctx.stroke();
+          }
+        }
+      }
+
+      // Acidente (♯ ou ♭)
+      if (note.noteName.includes('#') || note.noteName.includes('♯')) {
+        ctx.fillStyle = isPaper ? '#0f172a' : '#f8fafc';
+        ctx.font = 'bold 16px serif';
+        ctx.textAlign = 'right';
+        ctx.fillText('♯', noteX - 9, noteY + 5);
+      } else if (note.noteName.includes('b') || note.noteName.includes('♭')) {
+        ctx.fillStyle = isPaper ? '#0f172a' : '#f8fafc';
+        ctx.font = 'bold 16px serif';
+        ctx.textAlign = 'right';
+        ctx.fillText('♭', noteX - 9, noteY + 4);
+      }
+
+      // Cabeça da Nota
+      const noteColor = isSelected ? '#6366f1' : isPaper ? '#09090b' : '#e2e8f0';
+      ctx.fillStyle = noteColor;
+      ctx.strokeStyle = noteColor;
+
       ctx.beginPath();
-      ctx.arc(noteX, noteY, 15, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#6366f1';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-
-    // Linhas Suplementares (Ledger lines)
-    ctx.lineWidth = 1.8;
-    ctx.strokeStyle = staffColor;
-
-    if (note.clef === 'treble') {
-      if (noteY <= 48) {
-        // Acima da Clave de Sol
-        for (let ly = 48; ly >= noteY - 1; ly -= 12) {
-          ctx.beginPath();
-          ctx.moveTo(noteX - 12, ly);
-          ctx.lineTo(noteX + 12, ly);
-          ctx.stroke();
-        }
-      } else if (noteY >= 120) {
-        // Abaixo da Clave de Sol (linha 1 = 108, Dó Central = 120)
-        for (let ly = 120; ly <= noteY + 1; ly += 12) {
-          ctx.beginPath();
-          ctx.moveTo(noteX - 12, ly);
-          ctx.lineTo(noteX + 12, ly);
-          ctx.stroke();
-        }
+      ctx.ellipse(noteX, noteY, 8, 5.5, -Math.PI / 8, 0, Math.PI * 2);
+      if (isWhole || isHalf) {
+        ctx.lineWidth = 2.2;
+        ctx.stroke();
+      } else {
+        ctx.fill();
       }
-    } else {
-      // Clave de Fá
-      if (noteY <= 172) {
-        // Acima da Clave de Fá (linha 5 = 184, Dó Central = 172)
-        for (let ly = 172; ly >= noteY - 1; ly -= 12) {
-          ctx.beginPath();
-          ctx.moveTo(noteX - 12, ly);
-          ctx.lineTo(noteX + 12, ly);
-          ctx.stroke();
-        }
-      } else if (noteY >= 244) {
-        // Abaixo da Clave de Fá (linha 1 = 232, Mi2 = 244, Dó2 = 256)
-        for (let ly = 244; ly <= noteY + 1; ly += 12) {
-          ctx.beginPath();
-          ctx.moveTo(noteX - 12, ly);
-          ctx.lineTo(noteX + 12, ly);
-          ctx.stroke();
-        }
+
+      // Rótulo da Nota (opcional)
+      if (options.showNoteNames) {
+        ctx.fillStyle = isPaper ? '#475569' : '#94a3b8';
+        ctx.font = 'bold 8.5px "JetBrains Mono", monospace';
+        ctx.textAlign = 'center';
+        const labelY = clef === 'treble'
+          ? (noteY >= 108 ? noteY + 16 : noteY - 12)
+          : (noteY >= 232 ? noteY + 16 : noteY - 12);
+        ctx.fillText(note.noteName, noteX, labelY);
       }
-    }
 
-    // Acidente musical (♯ ou ♭)
-    if (note.noteName.includes('#') || note.noteName.includes('♯')) {
-      ctx.fillStyle = isPaper ? '#0f172a' : '#f8fafc';
-      ctx.font = 'bold 16px serif';
-      ctx.textAlign = 'right';
-      ctx.fillText('♯', noteX - 9, noteY + 5);
-    } else if (note.noteName.includes('b') || note.noteName.includes('♭')) {
-      ctx.fillStyle = isPaper ? '#0f172a' : '#f8fafc';
-      ctx.font = 'bold 16px serif';
-      ctx.textAlign = 'right';
-      ctx.fillText('♭', noteX - 9, noteY + 4);
-    }
+      ctx.restore();
+    });
 
-    // Cabeça da Nota
-    const noteColor = isSelected ? '#6366f1' : isPaper ? '#09090b' : '#e2e8f0';
-    ctx.fillStyle = noteColor;
-    ctx.strokeStyle = noteColor;
-
-    ctx.beginPath();
-    ctx.ellipse(noteX, noteY, 8, 5.5, -Math.PI / 8, 0, Math.PI * 2);
-    if (isWhole || isHalf) {
-      ctx.lineWidth = 2.2;
-      ctx.stroke();
-    } else {
-      ctx.fill();
-    }
-
-    // Haste (Stem) apenas para Mínimas e Semínimas (não agrupáveis)
+    // Haste Contínua Unificada para Acordes e Notas Simples (Mínimas e Semínimas)
     if (!isWhole && dur > 0.75) {
-      const middleLineY = note.clef === 'treble' ? 84 : 208;
-      const isUp = noteY >= middleLineY;
+      ctx.save();
+      const minY = sorted[0].y;
+      const maxY = sorted[sorted.length - 1].y;
       const stemX = isUp ? noteX + 7 : noteX - 7;
-      const stemY = isUp ? noteY - 32 : noteY + 32;
+      const startY = isUp ? maxY : minY;
+      const endY = isUp ? minY - 32 : maxY + 32;
+
+      ctx.strokeStyle = isPaper ? '#09090b' : '#e2e8f0';
       ctx.lineWidth = 1.6;
       ctx.beginPath();
-      ctx.moveTo(stemX, noteY);
-      ctx.lineTo(stemX, stemY);
+      ctx.moveTo(stemX, startY);
+      ctx.lineTo(stemX, endY);
       ctx.stroke();
+      ctx.restore();
     }
-
-    // Rótulo da Nota (opcional)
-    if (options.showNoteNames) {
-      ctx.fillStyle = isPaper ? '#475569' : '#94a3b8';
-      ctx.font = 'bold 8.5px "JetBrains Mono", monospace';
-      ctx.textAlign = 'center';
-      const labelY = note.clef === 'treble'
-        ? (noteY >= 108 ? noteY + 16 : noteY - 12)
-        : (noteY >= 232 ? noteY + 16 : noteY - 12);
-      ctx.fillText(note.noteName, noteX, labelY);
-    }
-
-    ctx.restore();
   });
 
   // 4.2 Agrupamento Formal de Figuras (Beaming de Colcheias e Semicolcheias)
   const beamCandidates: BeamCandidate[] = [];
-  notes.forEach(note => {
-    const noteX = START_X + note.beat * pixelsPerBeat - scrollLeft;
-    if (noteX < -30 || noteX > width + 40) return;
-    const dur = note.duration;
+  beatGroups.forEach((groupNotes) => {
+    const firstNote = groupNotes[0];
+    const dur = firstNote.duration;
     if (dur <= 0.75) {
-      const noteY = getDiatonicY(note.noteName, note.clef);
-      const isSelected = note.id === selectedNoteId;
+      const noteX = START_X + firstNote.beat * pixelsPerBeat - scrollLeft;
+      if (noteX < -30 || noteX > width + 40) return;
+      const sorted = [...groupNotes].map(n => ({ n, y: getDiatonicY(n.noteName, n.clef) })).sort((a, b) => a.y - b.y);
+      const middleLineY = firstNote.clef === 'treble' ? 84 : 208;
+      const avgY = sorted.reduce((sum, item) => sum + item.y, 0) / sorted.length;
+      const isUp = avgY >= middleLineY;
+      // Para o feixe de ligação, conecta pela ponta da haste
+      const anchorY = isUp ? sorted[0].y : sorted[sorted.length - 1].y;
+      const isSelected = groupNotes.some(n => n.id === selectedNoteId);
+
       beamCandidates.push({
-        id: note.id,
+        id: firstNote.id,
         x: noteX,
-        y: noteY,
+        y: anchorY,
         duration: dur,
-        beat: note.beat,
-        clef: note.clef,
+        beat: firstNote.beat,
+        clef: firstNote.clef,
         color: isSelected ? '#6366f1' : (isPaper ? '#09090b' : '#e2e8f0'),
       });
     }
@@ -284,6 +390,65 @@ export function drawFormalScoreSheet({
     beamGroups.forEach(group => {
       renderBeamGroup(ctx, group, defaultColor, 1.6);
     });
+  }
+
+  // 4.3 Cursor Fantasma / Hover Preview de Inserção na Pauta
+  if (options.hoverPreview) {
+    const { x, y, noteName, clef, isChord } = options.hoverPreview;
+    ctx.save();
+    ctx.strokeStyle = isPaper ? 'rgba(99, 102, 241, 0.6)' : 'rgba(129, 140, 248, 0.7)';
+    ctx.fillStyle = isPaper ? 'rgba(99, 102, 241, 0.35)' : 'rgba(129, 140, 248, 0.45)';
+    ctx.lineWidth = 1.5;
+
+    // Linhas suplementares fantasmas
+    if (clef === 'treble') {
+      if (y <= 48) {
+        for (let ly = 48; ly >= y - 1; ly -= 12) {
+          ctx.beginPath();
+          ctx.moveTo(x - 12, ly);
+          ctx.lineTo(x + 12, ly);
+          ctx.stroke();
+        }
+      } else if (y >= 120) {
+        for (let ly = 120; ly <= y + 1; ly += 12) {
+          ctx.beginPath();
+          ctx.moveTo(x - 12, ly);
+          ctx.lineTo(x + 12, ly);
+          ctx.stroke();
+        }
+      }
+    } else {
+      if (y <= 172) {
+        for (let ly = 172; ly >= y - 1; ly -= 12) {
+          ctx.beginPath();
+          ctx.moveTo(x - 12, ly);
+          ctx.lineTo(x + 12, ly);
+          ctx.stroke();
+        }
+      } else if (y >= 244) {
+        for (let ly = 244; ly <= y + 1; ly += 12) {
+          ctx.beginPath();
+          ctx.moveTo(x - 12, ly);
+          ctx.lineTo(x + 12, ly);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Nota fantasma com ellipse translúcida
+    ctx.beginPath();
+    ctx.ellipse(x, y, 8, 5.5, -Math.PI / 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Rótulo da nota flutuante
+    ctx.fillStyle = isPaper ? '#1e1b4b' : '#c7d2fe';
+    ctx.font = 'bold 9px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
+    const badgeLabel = isChord ? `+ Acorde: ${noteName}` : noteName;
+    ctx.fillText(badgeLabel, x, y > 150 ? y + 18 : y - 12);
+
+    ctx.restore();
   }
 
   // 5. Cursor de Reprodução (Playhead)

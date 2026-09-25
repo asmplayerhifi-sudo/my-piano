@@ -1,13 +1,13 @@
 /**
  * editor/FormalScoreSheet.tsx
- * Componente visual que renderiza a Partitura Musical Formal Dinâmica em tempo real.
- * Regra: Componente visual compacto (< 180 linhas).
+ * Componente visual interativo que renderiza a Partitura Formal Dinâmica com suporte a cliques para inserção e acordes.
+ * Regra: Componente visual compacto (< 190 linhas).
  */
 
 import React, { useRef, useEffect, useState, useMemo } from 'react';
-import type { FormalScoreNote, ScoreSheetRenderOptions } from './scoreSheetTypes';
-import { drawFormalScoreSheet } from './drawFormalScoreSheet';
-import { Sun, Moon, Type } from 'lucide-react';
+import type { FormalScoreNote, ScoreSheetRenderOptions, StaffHoverPreview } from './scoreSheetTypes';
+import { drawFormalScoreSheet, START_X, getDiatonicY, getPitchFromY } from './drawFormalScoreSheet';
+import { Sun, Moon, Type, PlusCircle } from 'lucide-react';
 
 interface FormalScoreSheetProps {
   notes: FormalScoreNote[];
@@ -15,8 +15,12 @@ interface FormalScoreSheetProps {
   playheadBeat: number | null;
   selectedNoteId: string | null;
   onSelectNote: (id: string | null) => void;
+  onInsertNote?: (note: { midi: number; noteName: string; clef: 'treble' | 'bass'; duration: 4 | 2 | 1 | 0.5 | 0.25; beat: number; measure: number }) => void;
+  onDeleteNote?: (id: string) => void;
   beatsPerMeasure: number;
   totalMeasures: number;
+  selectedDuration?: 4 | 2 | 1 | 0.5 | 0.25;
+  isChordMode?: boolean;
 }
 
 export const FormalScoreSheet: React.FC<FormalScoreSheetProps> = ({
@@ -25,12 +29,17 @@ export const FormalScoreSheet: React.FC<FormalScoreSheetProps> = ({
   playheadBeat,
   selectedNoteId,
   onSelectNote,
+  onInsertNote,
+  onDeleteNote,
   beatsPerMeasure,
   totalMeasures,
+  selectedDuration = 1,
+  isChordMode = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [containerWidth, setContainerWidth] = useState<number>(1000);
+  const [hoverPreview, setHoverPreview] = useState<StaffHoverPreview | null>(null);
 
   const [options, setOptions] = useState<ScoreSheetRenderOptions>({
     theme: 'paper',
@@ -46,7 +55,7 @@ export const FormalScoreSheet: React.FC<FormalScoreSheetProps> = ({
   // Sincroniza scroll com o playhead
   useEffect(() => {
     if (playheadBeat !== null && containerRef.current) {
-      const targetX = 95 + playheadBeat * options.pixelsPerBeat - containerWidth / 2;
+      const targetX = START_X + playheadBeat * options.pixelsPerBeat - containerWidth / 2;
       containerRef.current.scrollLeft = Math.max(0, targetX);
     }
   }, [playheadBeat, options.pixelsPerBeat, containerWidth]);
@@ -61,7 +70,7 @@ export const FormalScoreSheet: React.FC<FormalScoreSheetProps> = ({
     return () => obs.disconnect();
   }, []);
 
-  // Renderiza no canvas sempre que as notas, compasso ou playhead mudarem
+  // Renderiza no canvas sempre que as notas, compasso, hover ou playhead mudarem
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -76,29 +85,102 @@ export const FormalScoreSheet: React.FC<FormalScoreSheetProps> = ({
       timeSignature,
       playheadBeat,
       selectedNoteId,
-      options,
+      options: {
+        ...options,
+        hoverPreview,
+        selectedDuration,
+      },
       totalMeasures,
       beatsPerMeasure,
       scrollLeft: 0,
     });
-  }, [notes, timeSignature, playheadBeat, selectedNoteId, options, totalMeasures, beatsPerMeasure, totalWidth]);
+  }, [notes, timeSignature, playheadBeat, selectedNoteId, options, hoverPreview, selectedDuration, totalMeasures, beatsPerMeasure, totalWidth]);
 
-  // Clique no canvas para selecionar notas
+  // Movimentação do mouse para preview da figura (Ghost Note)
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    if (mouseX < START_X - 10) {
+      setHoverPreview(null);
+      return;
+    }
+
+    const snap = selectedDuration < 1 ? selectedDuration : 1;
+    const rawBeat = Math.max(0, (mouseX - START_X) / options.pixelsPerBeat);
+    const beat = Math.round(rawBeat / snap) * snap;
+    const pitch = getPitchFromY(mouseY);
+    const snapX = START_X + beat * options.pixelsPerBeat;
+    const snapY = getDiatonicY(pitch.noteName, pitch.clef);
+
+    // Se já existem notas nesse beat, formará acorde!
+    const hasNotesAtBeat = notes.some(n => Math.abs(n.beat - beat) < 0.05);
+
+    setHoverPreview({
+      beat,
+      clef: pitch.clef,
+      noteName: pitch.noteName,
+      midi: pitch.midi,
+      isChord: hasNotesAtBeat || isChordMode,
+      x: snapX,
+      y: snapY,
+    });
+  };
+
+  const handleMouseLeave = () => {
+    setHoverPreview(null);
+  };
+
+  // Clique no canvas: seleciona nota existente ou insere nova figura/acorde
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
 
-    let foundId: string | null = null;
+    // 1. Verifica se clicou diretamente sobre nota existente (para selecionar ou remover com Alt)
+    let clickedNote: FormalScoreNote | null = null;
     for (const n of notes) {
-      const noteX = 95 + n.beat * options.pixelsPerBeat;
-      if (Math.abs(clickX - noteX) < 18) {
-        foundId = n.id;
+      const nX = START_X + n.beat * options.pixelsPerBeat;
+      const nY = getDiatonicY(n.noteName, n.clef);
+      const dist = Math.hypot(clickX - nX, clickY - nY);
+      if (dist <= 12) {
+        clickedNote = n;
         break;
       }
     }
-    onSelectNote(foundId);
+
+    if (clickedNote) {
+      if (e.altKey && onDeleteNote) {
+        onDeleteNote(clickedNote.id);
+      } else {
+        onSelectNote(clickedNote.id);
+      }
+      return;
+    }
+
+    // 2. Clicou na pauta para inserir figura musical / acorde
+    if (clickX < START_X - 10) return;
+    if (onInsertNote) {
+      const snap = selectedDuration < 1 ? selectedDuration : 1;
+      const rawBeat = Math.max(0, (clickX - START_X) / options.pixelsPerBeat);
+      const beat = Math.round(rawBeat / snap) * snap;
+      const measure = Math.floor(beat / beatsPerMeasure);
+      const pitch = getPitchFromY(clickY);
+
+      onInsertNote({
+        midi: pitch.midi,
+        noteName: pitch.noteName,
+        clef: pitch.clef,
+        duration: selectedDuration,
+        beat,
+        measure,
+      });
+    }
   };
 
   return (
@@ -112,6 +194,10 @@ export const FormalScoreSheet: React.FC<FormalScoreSheetProps> = ({
           </span>
           <span className="text-[10px] text-slate-400 bg-white/5 px-2 py-0.5 rounded-full font-mono">
             Pentagrama Duplo (Sol & Fá)
+          </span>
+          <span className="hidden sm:inline-flex items-center gap-1 text-[10px] text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+            <PlusCircle className="w-3 h-3 text-amber-400" />
+            Clique na pauta para inserir nota ou empilhar acordes
           </span>
         </div>
 
@@ -150,8 +236,10 @@ export const FormalScoreSheet: React.FC<FormalScoreSheetProps> = ({
           ref={canvasRef}
           width={totalWidth}
           height={300}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
           onClick={handleCanvasClick}
-          className="cursor-pointer block"
+          className="cursor-crosshair block"
         />
       </div>
     </div>

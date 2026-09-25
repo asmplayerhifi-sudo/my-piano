@@ -14,9 +14,21 @@ export interface FormalScoreNote {
   measure?: number;
 }
 
+export interface StaffHoverPreview {
+  beat: number;
+  clef: 'treble' | 'bass';
+  noteName: string;
+  midi: number;
+  isChord: boolean;
+  x: number;
+  y: number;
+}
+
 export interface ScoreSheetRenderOptions {
   theme: 'paper' | 'dark';
   pixelsPerBeat: number;
   showNoteNames: boolean;
   showMeasureNumbers: boolean;
+  hoverPreview?: StaffHoverPreview | null;
+  selectedDuration?: number;
 }

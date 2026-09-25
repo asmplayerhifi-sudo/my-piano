@@ -117,6 +117,17 @@ const DURATION_OPTIONS: { value: NoteDuration; label: string; symbol: string; be
   { value: 0.25, label: 'Semicolcheia', symbol: '𝅘𝅥𝅯', beats: 0.25 },
 ];
 
+const QUICK_TRIADS = [
+  { name: 'C', label: 'Dó Maior', notes: [{ midi: 60, name: 'C3' }, { midi: 64, name: 'E3' }, { midi: 67, name: 'G3' }] },
+  { name: 'Dm', label: 'Ré Menor', notes: [{ midi: 62, name: 'D3' }, { midi: 65, name: 'F3' }, { midi: 69, name: 'A3' }] },
+  { name: 'Em', label: 'Mi Menor', notes: [{ midi: 64, name: 'E3' }, { midi: 67, name: 'G3' }, { midi: 71, name: 'B3' }] },
+  { name: 'F', label: 'Fá Maior', notes: [{ midi: 65, name: 'F3' }, { midi: 69, name: 'A3' }, { midi: 72, name: 'C4' }] },
+  { name: 'G', label: 'Sol Maior', notes: [{ midi: 67, name: 'G3' }, { midi: 71, name: 'B3' }, { midi: 74, name: 'D4' }] },
+  { name: 'Am', label: 'Lá Menor', notes: [{ midi: 69, name: 'A3' }, { midi: 72, name: 'C4' }, { midi: 76, name: 'E4' }] },
+  { name: 'Bdim', label: 'Si Dim', notes: [{ midi: 71, name: 'B3' }, { midi: 74, name: 'D4' }, { midi: 77, name: 'F4' }] },
+  { name: 'G7', label: 'Sol 7ª', notes: [{ midi: 67, name: 'G3' }, { midi: 71, name: 'B3' }, { midi: 74, name: 'D4' }, { midi: 77, name: 'F4' }] },
+];
+
 // ────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ────────────────────────────────────────────────────────────────────────────
@@ -451,6 +462,8 @@ export const ScoreEditor: React.FC = () => {
   const [historyIndex, setHistoryIndex] = useState(0);
   const [isSaved, setIsSaved] = useState(true);
   const [viewLayout, setViewLayout] = useState<'both' | 'score' | 'grid'>('both');
+  const [isChordMode, setIsChordMode] = useState<boolean>(false);
+  const [chordRootBeat, setChordRootBeat] = useState<number | null>(null);
 
   const playbackRef = useRef<{ raf: number; startTime: number; startBeat: number } | null>(null);
   const projectRef = useRef(project);
@@ -491,39 +504,145 @@ export const ScoreEditor: React.FC = () => {
     setIsSaved(false);
   }, [history, historyIndex]);
 
-  // ── Adição de Nota ───────────────────────────────────────────────────────
+  // ── Adição de Nota / Criação de Acordes pela Paleta ───────────────────────
 
   const addNote = useCallback((midi: number, noteName: string) => {
     const current = projectRef.current;
     const bpm = current.notes;
 
-    // Calcula a próxima posição disponível
-    let nextBeat = 0;
-    if (bpm.length > 0) {
-      const lastNote = [...bpm].sort((a, b) => (b.beat + b.duration) - (a.beat + a.duration))[0];
-      nextBeat = lastNote.beat + lastNote.duration;
+    // Se estiver em modo acorde, empilha notas no mesmo beat; senão, avança para a próxima posição
+    let targetBeat = 0;
+    if (isChordMode) {
+      if (chordRootBeat !== null) {
+        targetBeat = chordRootBeat;
+      } else if (bpm.length > 0) {
+        const lastNote = [...bpm].sort((a, b) => b.beat - a.beat)[0];
+        targetBeat = lastNote.beat;
+      }
+    } else {
+      if (bpm.length > 0) {
+        const lastNote = [...bpm].sort((a, b) => (b.beat + b.duration) - (a.beat + a.duration))[0];
+        targetBeat = lastNote.beat + lastNote.duration;
+      }
     }
 
-    const measure = Math.floor(nextBeat / beatsPerMeasure);
-    const newNote: EditorNote = {
-      id: newNoteId(),
-      midi,
-      noteName,
-      clef: selectedClef,
-      duration: selectedDuration,
-      beat: nextBeat,
-      measure,
-    };
+    const measure = Math.floor(targetBeat / beatsPerMeasure);
 
-    const newNotes = [...current.notes, newNote];
+    // Evita duplicar a mesma nota exata no mesmo beat
+    const existingIndex = current.notes.findIndex(
+      n => Math.abs(n.beat - targetBeat) < 0.05 && n.midi === midi
+    );
+
+    let newNotes: EditorNote[];
+    if (existingIndex >= 0) {
+      newNotes = current.notes.filter((_, idx) => idx !== existingIndex);
+    } else {
+      const newNote: EditorNote = {
+        id: newNoteId(),
+        midi,
+        noteName,
+        clef: selectedClef,
+        duration: selectedDuration,
+        beat: targetBeat,
+        measure,
+      };
+      newNotes = [...current.notes, newNote];
+    }
+
     setProject(p => ({ ...p, notes: newNotes, updatedAt: new Date().toISOString() }));
     pushHistory(newNotes);
 
-    // Preview sonoro da nota
+    // Toca a nota ou o acorde completo caso haja múltiplas notas empilhadas
+    const notesAtBeat = newNotes.filter(n => Math.abs(n.beat - targetBeat) < 0.05);
+    const midisAtBeat = notesAtBeat.map(n => n.midi);
+
     soundEngine.ensureAudioReady().then(() => {
-      soundEngine.playPianoNote(midi, selectedDuration * beatDurationSec(current.bpm) * 0.85);
+      const durSec = selectedDuration * beatDurationSec(current.bpm) * 0.85;
+      if (midisAtBeat.length > 1) {
+        soundEngine.playChord(midisAtBeat, 'piano', durSec);
+      } else {
+        soundEngine.playPianoNote(midi, durSec);
+      }
     });
-  }, [selectedClef, selectedDuration, beatsPerMeasure, pushHistory]);
+  }, [selectedClef, selectedDuration, beatsPerMeasure, isChordMode, chordRootBeat, pushHistory]);
+
+  // ── Inserção Direta na Pauta por Clique ──────────────────────────────────
+
+  const insertNoteAt = useCallback((newNoteData: {
+    midi: number;
+    noteName: string;
+    clef: NoteClef;
+    duration: NoteDuration;
+    beat: number;
+    measure: number;
+  }) => {
+    const current = projectRef.current;
+    const existingIndex = current.notes.findIndex(
+      n => Math.abs(n.beat - newNoteData.beat) < 0.05 && n.midi === newNoteData.midi
+    );
+
+    let newNotes: EditorNote[];
+    if (existingIndex >= 0) {
+      newNotes = current.notes.filter((_, idx) => idx !== existingIndex);
+    } else {
+      const newNote: EditorNote = {
+        id: newNoteId(),
+        ...newNoteData,
+      };
+      newNotes = [...current.notes, newNote];
+    }
+
+    setProject(p => ({ ...p, notes: newNotes, updatedAt: new Date().toISOString() }));
+    pushHistory(newNotes);
+    setChordRootBeat(newNoteData.beat);
+
+    const notesAtBeat = newNotes.filter(n => Math.abs(n.beat - newNoteData.beat) < 0.05);
+    const midisAtBeat = notesAtBeat.map(n => n.midi);
+
+    soundEngine.ensureAudioReady().then(() => {
+      const durSec = newNoteData.duration * beatDurationSec(current.bpm) * 0.85;
+      if (midisAtBeat.length > 1) {
+        soundEngine.playChord(midisAtBeat, 'piano', durSec);
+      } else {
+        soundEngine.playPianoNote(newNoteData.midi, durSec);
+      }
+    });
+  }, [pushHistory]);
+
+  // ── Inserção Rápida de Tríades / Acordes Pré-configurados ─────────────────
+
+  const insertTriadChord = useCallback((chordNotes: { midi: number; name: string }[]) => {
+    const current = projectRef.current;
+    const bpm = current.notes;
+    let targetBeat = 0;
+    if (bpm.length > 0) {
+      const lastNote = [...bpm].sort((a, b) => (b.beat + b.duration) - (a.beat + a.duration))[0];
+      targetBeat = lastNote.beat + lastNote.duration;
+    }
+    const measure = Math.floor(targetBeat / beatsPerMeasure);
+
+    const addedNotes: EditorNote[] = chordNotes.map(cn => ({
+      id: newNoteId(),
+      midi: cn.midi,
+      noteName: cn.name,
+      clef: cn.midi >= 60 ? 'treble' : 'bass',
+      duration: selectedDuration,
+      beat: targetBeat,
+      measure,
+    }));
+
+    const newNotes = [...current.notes, ...addedNotes];
+    setProject(p => ({ ...p, notes: newNotes, updatedAt: new Date().toISOString() }));
+    pushHistory(newNotes);
+
+    soundEngine.ensureAudioReady().then(() => {
+      soundEngine.playChord(
+        chordNotes.map(cn => cn.midi),
+        'piano',
+        selectedDuration * beatDurationSec(current.bpm) * 0.95
+      );
+    });
+  }, [selectedDuration, beatsPerMeasure, pushHistory]);
 
   const deleteNote = useCallback((id: string) => {
     const newNotes = projectRef.current.notes.filter(n => n.id !== id);
@@ -880,6 +999,50 @@ export const ScoreEditor: React.FC = () => {
           </button>
         </div>
 
+        {/* Modo de Inserção: Nota Única vs Modo Acorde */}
+        <div className="flex items-center gap-1 bg-[#0a091e] rounded-xl p-1 border border-white/8 text-xs">
+          <button
+            onClick={() => {
+              setIsChordMode(false);
+              setChordRootBeat(null);
+            }}
+            className={`px-3 py-2 rounded-lg font-bold transition-all cursor-pointer ${
+              !isChordMode
+                ? 'bg-violet-500/25 border border-violet-500/50 text-violet-200'
+                : 'text-slate-400 hover:text-white'
+            }`}
+            title="Cada nota é inserida no tempo seguinte"
+          >
+            🎵 Nota
+          </button>
+          <button
+            onClick={() => setIsChordMode(true)}
+            className={`px-3 py-2 rounded-lg font-bold transition-all cursor-pointer ${
+              isChordMode
+                ? 'bg-amber-500/25 border border-amber-500/50 text-amber-200 shadow-sm shadow-amber-500/20'
+                : 'text-slate-400 hover:text-white'
+            }`}
+            title="Notas inseridas empilham no mesmo tempo formando acordes"
+          >
+            🎹 Acorde
+          </button>
+        </div>
+
+        {/* Tríades Rápidas */}
+        <div className="hidden md:flex items-center gap-1 bg-[#0a091e] rounded-xl p-1 border border-white/8 text-xs">
+          <span className="text-[10px] text-slate-400 font-bold px-1.5 font-mono">Tríades:</span>
+          {QUICK_TRIADS.map(triad => (
+            <button
+              key={triad.name}
+              onClick={() => insertTriadChord(triad.notes)}
+              title={`Inserir tríade ${triad.label} (${triad.notes.map(n => n.name).join(' - ')})`}
+              className="px-2 py-1 rounded bg-amber-500/10 hover:bg-amber-500/25 border border-amber-500/20 hover:border-amber-500/40 text-amber-200 font-bold font-mono text-[10px] transition-all cursor-pointer"
+            >
+              {triad.name}
+            </button>
+          ))}
+        </div>
+
         {/* Seletor de Modo de Visualização */}
         <div className="flex items-center gap-1 bg-[#0a091e] rounded-xl p-1 border border-white/8 text-xs">
           <button
@@ -994,8 +1157,12 @@ export const ScoreEditor: React.FC = () => {
           playheadBeat={playheadBeat}
           selectedNoteId={selectedNoteId}
           onSelectNote={setSelectedNoteId}
+          onInsertNote={insertNoteAt}
+          onDeleteNote={deleteNote}
           beatsPerMeasure={beatsPerMeasure}
           totalMeasures={totalMeasures}
+          selectedDuration={selectedDuration}
+          isChordMode={isChordMode}
         />
       )}
 
@@ -1013,11 +1180,12 @@ export const ScoreEditor: React.FC = () => {
       )}
 
       {/* ── Dicas de Uso ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] text-slate-500">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-[10px] text-slate-500">
         {[
+          ['Clique na Pauta', 'Inserir Nota / Acorde'],
           ['Space', 'Play / Pause'],
           ['Ctrl+Z / Y', 'Desfazer / Refazer'],
-          ['Delete', 'Remover nota selecionada'],
+          ['Delete', 'Remover nota'],
           ['Ctrl+S', 'Salvar projeto'],
         ].map(([key, desc]) => (
           <div key={key} className="flex items-center gap-2 bg-white/[0.02] rounded-lg px-3 py-2 border border-white/5">
