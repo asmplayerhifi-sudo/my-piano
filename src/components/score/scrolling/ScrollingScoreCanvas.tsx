@@ -45,6 +45,10 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
   const [enableAudio, setEnableAudio] = useState<boolean>(autoPlayAudio);
   const [enableMetronome, setEnableMetronome] = useState<boolean>(initialMetronome);
 
+  useEffect(() => {
+    setEnableAudio(autoPlayAudio);
+  }, [autoPlayAudio]);
+
   const [displayOptions, setDisplayOptions] = useState<DisplayOptions>({
     showFingering: true,
     showNoteNames: true,
@@ -110,7 +114,9 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
         playback.scrollOffsetRef.current += (playback.tempo / 60) * pixelsPerBeat * dt;
         const currentBeat = playback.scrollOffsetRef.current / pixelsPerBeat;
 
-        if (enableAudio || autoPlayAudio || isDemoMode) {
+        // Dispara áudio APENAS quando autoPlayAudio e enableAudio estiverem ativos
+        // Em modo de reprodução externa gerenciada pelo pai (ex: RepertoireView), autoPlayAudio é falso e não duplica a faixa!
+        if (enableAudio && autoPlayAudio) {
           timeline.noteOffsets.forEach((b, i) => {
             if (b <= currentBeat + 0.05 && !playback.playedNotesRef.current.has(i)) {
               playback.playedNotesRef.current.add(i);
@@ -165,6 +171,7 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
         onToggleTheme={() => setScoreTheme(t => (t === 'traditional' ? 'dark' : 'traditional'))}
         enableAudio={enableAudio}
         onToggleAudio={() => setEnableAudio(a => !a)}
+        showAudioToggle={autoPlayAudio}
         enableMetronome={enableMetronome}
         onToggleMetronome={() => setEnableMetronome(m => !m)}
         displayOptions={displayOptions}

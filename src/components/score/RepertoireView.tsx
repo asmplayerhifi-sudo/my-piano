@@ -566,6 +566,7 @@ export const RepertoireView: React.FC = () => {
           bpm={tempo}
           isPlaying={isPlaying}
           isDemoMode={true}
+          autoPlayAudio={false}
           currentNoteIndex={currentNoteIdx}
           onPlayPauseToggle={(playing) => {
             if (playing && !isPlaying) {
