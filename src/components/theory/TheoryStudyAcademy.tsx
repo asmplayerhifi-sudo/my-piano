@@ -279,6 +279,12 @@ export const TheoryStudyAcademy: React.FC = () => {
                         <p key={pIdx}>{octaveConfigStore.formatNoteOctavesInText(p, octaveStandard)}</p>
                       ))}
 
+                      {sec.formulaOrBox && (
+                        <div className="p-3 rounded-xl bg-black/60 border border-cyan-500/20 font-mono text-[11px] sm:text-xs text-cyan-200 overflow-x-auto whitespace-pre leading-relaxed my-2 shadow-inner">
+                          {octaveConfigStore.formatNoteOctavesInText(sec.formulaOrBox, octaveStandard)}
+                        </div>
+                      )}
+
                       {sec.bulletPoints && (
                         <ul className="space-y-1 pl-2 pt-1">
                           {sec.bulletPoints.map((bp, bpIdx) => (

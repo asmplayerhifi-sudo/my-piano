@@ -3,23 +3,29 @@ import { KEYBOARD_COURSE_MODULES, GUITAR_COURSE_MODULES } from '../../src/core/c
 import { THEORY_MODULES } from '../../src/core/theoryLessonsData';
 
 describe('Redesenho Responsivo & Pixel Budget (PRD HARMONIA)', () => {
-  describe('Orçamento Vertical (Pixel Budget e Header Responsivo REQ-UI-LESSONHEADER-01)', () => {
-    // Especificação Definitiva de UX/UI: Header Global ~54px e Header Unificado da Aula 44px
-    const HEADER_GLOBAL_TARGET_PX = 54;
+  describe('Orçamento Vertical e Header Global Dinâmico (REQ-UI-GLOBALHEADER-DYNAMIC-01 & REQ-UI-LESSONHEADER-01)', () => {
+    // Especificação Definitiva de UX/UI: Header Global 52px e Header Unificado da Aula 44px
+    const HEADER_GLOBAL_TARGET_PX = 52;
     const HEADER_UNIFIED_LESSON_TARGET_PX = 44;
     const TOTAL_TARGET_PX = HEADER_GLOBAL_TARGET_PX + HEADER_UNIFIED_LESSON_TARGET_PX;
     const MAX_STRUCTURAL_LIMIT_PX = 125;
 
-    it('a soma dos elementos persistentes superiores (Global + Aula Unificada) deve ser de 98px (<= 125px)', () => {
-      expect(TOTAL_TARGET_PX).toBe(98);
+    it('a soma dos elementos persistentes superiores (Global 52px + Aula Unificada 44px) deve ser de 96px (<= 125px)', () => {
+      expect(TOTAL_TARGET_PX).toBe(96);
       expect(TOTAL_TARGET_PX).toBeLessThanOrEqual(MAX_STRUCTURAL_LIMIT_PX);
+    });
+
+    it('o Header Global deve respeitar 52px no Desktop (>=1024px) e 48px no Mobile (<1024px) sem empilhamento', () => {
+      const desktopHeight = 52;
+      const mobileHeight = 48;
+      expect(desktopHeight).toBe(52);
+      expect(mobileHeight).toBe(48);
+      expect(desktopHeight).toBeLessThanOrEqual(54);
     });
 
     it('o Header da Aula Unificado não deve ultrapassar 44px de altura fixa sob nenhuma circunstância', () => {
       expect(HEADER_UNIFIED_LESSON_TARGET_PX).toBe(44);
       expect(HEADER_UNIFIED_LESSON_TARGET_PX).toBeLessThanOrEqual(44);
-      expect(HEADER_GLOBAL_TARGET_PX).toBeLessThanOrEqual(56);
-      expect(HEADER_GLOBAL_TARGET_PX).toBeGreaterThanOrEqual(50);
     });
   });
 

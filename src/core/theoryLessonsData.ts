@@ -166,62 +166,154 @@ export const THEORY_MODULES: TheoryModuleData[] = [
         moduleCode: 'M1',
         moduleTitle: 'Fundamentos do Som, Notação & Pentagrama',
         modulePhase: 'Fase 1: Alfabetização Musical',
-        title: 'Figuras Rítmicas, Proporções de Duração e Fórmulas de Compasso',
-        subtitle: 'A matemática da pulsação e a divisão do tempo em compassos',
+        title: 'Figuras Musicais, Pausas, Equivalências e Regras de Notação',
+        subtitle: 'As 7 figuras, valores negativos (silêncios), regras caligráficas, ligaduras e compassos',
         level: 'Iniciante',
-        readingTimeMinutes: 7,
-        summary: 'As figuras de som não possuem tempo em segundos fixos; elas possuem proporções binárias relativas. O andamento (BPM) e a fórmula de compasso definem quem recebe a pulsação principal.',
-        keyTakeaway: '1 Semibreve = 2 Mínimas = 4 Semínimas = 8 Colcheias = 16 Semicolcheias. No compasso 4/4, a Semínima vale 1 tempo.',
+        readingTimeMinutes: 8,
+        summary: 'O ritmo musical é governado pela relação proporcional entre 7 figuras de som (valores positivos) e seus silêncios correspondentes (valores negativos). Sinais de alteração como ligadura, ponto de aumento e staccato expandem a expressividade temporal.',
+        keyTakeaway: '1 Semibreve = 2 Mínimas = 4 Semínimas = 8 Colcheias = 16 Semicolcheias = 32 Fusas = 64 Semifusas. Hastes abaixo da 3ª linha sobem à direita (d); acima descem à esquerda (q).',
         sections: [
           {
-            heading: '1. A Pirâmide Proporcional das Figuras Musicais',
+            heading: '1. As 7 Figuras de Som e suas Pausas (Valores Positivos e Negativos)',
             paragraphs: [
-              'Cada figura musical vale o dobro da figura imediatamente inferior e a metade da figura imediatamente superior. Essa hierarquia geométrica garante precisão matemática absoluta na execução musical.'
+              'Na notação musical ocidental, a duração é expressa por dois grupos complementares de símbolos: os Valores Positivos (notas que soam, emitindo vibração acústica) e os Valores Negativos (pausas que indicam silêncio absoluto com idêntica correspondência temporal).',
+              'Cada figura completa é constituída por até três elementos anatômicos: a Cabeça da nota (elipse vazada ou preenchida), a Haste (traço vertical) e o Colchete ou Bandeirola (gancho curvado preso à ponta da haste).'
             ],
+            formulaOrBox:
+`TABELA OFICIAL DAS 7 FIGURAS E SUAS PAUSAS CORRESPONDENTES:
+┌──────────────┬────────┬────────┬─────────────────────────┬──────────────────────────────┐
+│ FIGURA       │ NÚMERO │ RAZÃO  │ VALOR POSITIVO (SOM)    │ VALOR NEGATIVO (PAUSA)       │
+├──────────────┼────────┼────────┼─────────────────────────┼──────────────────────────────┤
+│ Semibreve    │   1    │   1    │ Cabeça branca sem haste │ Retângulo sob a 4ª linha     │
+│ Mínima       │   2    │  1/2   │ Cabeça branca com haste │ Retângulo sobre a 3ª linha   │
+│ Semínima     │   4    │  1/4   │ Cabeça preta com haste  │ Símbolo sinuoso (estilo raio)│
+│ Colcheia     │   8    │  1/8   │ Haste com 1 bandeirola  │ Haste com 1 gancho à esquerda│
+│ Semicolcheia │  16    │  1/16  │ Haste com 2 bandeirolas │ Haste com 2 ganchos paralelos│
+│ Fusa         │  32    │  1/32  │ Haste com 3 bandeirolas │ Haste com 3 ganchos paralelos│
+│ Semifusa     │  64    │  1/64  │ Haste com 4 bandeirolas │ Haste com 4 ganchos paralelos│
+└──────────────┴────────┴────────┴─────────────────────────┴──────────────────────────────┘`,
             bulletPoints: [
-              'Semibreve (4 Tempos • Proporção 1): Cabeça oval branca vazada sem haste. Unidade de maior duração no compasso 4/4.',
-              'Mínima (2 Tempos • Proporção 1/2): Cabeça oval branca vazada com haste vertical. Vale a metade da semibreve (duas mínimas preenchem o compasso).',
-              'Semínima (1 Tempo • Proporção 1/4): Cabeça preta preenchida com haste vertical. Unidade de tempo e pulso fundamental da música.',
-              'Colcheia (½ Tempo • Proporção 1/8): Cabeça preta com haste e 1 bandeirola curva (ou barra horizontal em grupos). 2 colcheias completam 1 pulso.',
-              'Semicolcheia (¼ Tempo • Proporção 1/16): Cabeça preta com haste e 2 bandeirolas paralelas. 4 semicolcheias completam 1 pulso rápido.'
+              'Semibreve (Número 1 • Razão 1): A figura de maior valor do sistema moderno. Ocupa 4 tempos no compasso 4/4. Sua pausa fica suspensa abaixo da 4ª linha do pentagrama.',
+              'Mínima (Número 2 • Razão 1/2): Vale a metade da semibreve (2 tempos no 4/4). Sua pausa é um retângulo repousado sobre a 3ª linha.',
+              'Semínima (Número 4 • Razão 1/4): Representa a pulsação básica padrão (1 tempo no 4/4). Sua pausa é desenhada com um traço sinuoso vertical central.',
+              'Colcheia (Número 8 • Razão 1/8): Vale metade da semínima (½ tempo no 4/4). Possui 1 bandeirola. Sua pausa tem 1 gancho à esquerda.',
+              'Semicolcheia (Número 16 • Razão 1/16): Vale ¼ de tempo no 4/4. Possui 2 bandeirolas paralelas. Sua pausa tem 2 ganchos.',
+              'Fusa (Número 32 • Razão 1/32): Vale ⅛ de tempo no 4/4. Possui 3 bandeirolas paralelas. Sua pausa tem 3 ganchos.',
+              'Semifusa (Número 64 • Razão 1/64): A menor divisão rítmica habitual, valendo 1/16 de tempo no 4/4. Possui 4 bandeirolas. Sua pausa tem 4 ganchos.'
             ]
           },
           {
-            heading: '2. Fórmulas de Compasso (O que significa 4/4, 3/4 e 6/8?)',
+            heading: '2. Pirâmide de Equivalências e Agrupamento por Barras de Ligação (Beams)',
             paragraphs: [
-              'A fórmula de compasso aparece no início da música logo após a clave e armadura. Ela é composta por dois números:',
-              'O número SUPERIOR indica QUANTOS tempos cabem em cada compasso (ex: 4 tempos, 3 tempos, 2 tempos).',
-              'O número INFERIOR indica QUAL figura musical representa 1 tempo completo (o número 4 representa a Semínima, o 8 representa a Colcheia, o 2 representa a Mínima).'
+              'As figuras não possuem duração fixa em segundos; sua velocidade depende do andamento (BPM). O que permanece rigoroso é a proporção binária geométrica entre elas: cada figura equivale a 2 da figura imediatamente inferior e à metade da superior.',
+              'Para facilitar a leitura à primeira vista, figuras rápidas com bandeirolas (colcheias, semicolcheias, fusas e semifusas) são unidas por Barras de Ligação horizontais contínuas (Beams), agrupando notas que pertencem ao mesmo tempo ou pulso métrico.'
+            ],
+            formulaOrBox:
+`PIRÂMIDE DE EQUIVALÊNCIAS RELATIVAS:
+1 Semibreve    = 2 Mínimas = 4 Semínimas = 8 Colcheias = 16 Semicolcheias = 32 Fusas = 64 Semifusas
+1 Mínima       = 2 Semínimas = 4 Colcheias = 8 Semicolcheias = 16 Fusas = 32 Semifusas
+1 Semínima     = 2 Colcheias = 4 Semicolcheias = 8 Fusas = 16 Semifusas
+1 Colcheia     = 2 Semicolcheias = 4 Fusas = 8 Semifusas
+1 Semicolcheia = 2 Fusas = 4 Semifusas
+1 Fusa         = 2 Semifusas
+
+FIGURAS AGRUPADAS (BARRAS DE LIGAÇÃO / BEAMS):
+• 2 Colcheias     ➔ Unidas por 1 barra horizontal contínua
+• 2 Semicolcheias ➔ Unidas por 2 barras horizontais paralelas
+• 2 Fusas         ➔ Unidas por 3 barras horizontais paralelas
+• 2 Semifusas     ➔ Unidas por 4 barras horizontais paralelas`,
+            bulletPoints: [
+              'Regra de Métrica: As barras de ligação organizam a leitura visual agrupando notas dentro do mesmo tempo ou compasso. Jamais devem cruzar travessões (barlines) e nunca devem ser aplicadas a figuras sem bandeirola (como mínimas).',
+              'Clareza de Pulsação: O agrupamento orienta o cérebro a reconhecer instantaneamente onde começam e terminam os tempos fortes e fracos do compasso.'
+            ]
+          },
+          {
+            heading: '3. Regras Caligráficas de Grafia das Figuras e a Regra da 3ª Linha',
+            paragraphs: [
+              'A escrita no pentagrama segue normas caligráficas internacionais para manter a partitura legível e equilibrada, evitando que as hastes invadam sistemas vizinhos.',
+              'A linha de equilíbrio do pentagrama é a 3ª linha (a nota Si na Clave de Sol). Ela atua como um espelho de inversão para a orientação das hastes.'
+            ],
+            formulaOrBox:
+`REGRAS DE ORIENTAÇÃO DA HASTE:
+• Abaixo da 3ª linha  ➔ Haste para CIMA pelo lado DIREITO   (formato visual da letra "d")
+• Acima da 3ª linha   ➔ Haste para BAIXO pelo lado ESQUERDO (formato visual da letra "q")
+• Na própria 3ª linha ➔ Direção CONTEXTUAL (segue o fluxo das notas vizinhas)
+• Comprimento padrão  ➔ Aproximadamente 3,5 espaços do pentagrama (intervalo de 1 oitava)`,
+            bulletPoints: [
+              'Notas abaixo da 3ª linha: A haste é desenhada para cima e nasce no lado direito da cabeça (como a letra "d").',
+              'Notas acima da 3ª linha: A haste é desenhada para baixo e nasce no lado esquerdo da cabeça (como a letra "q").',
+              'Notas na 3ª linha: A haste pode ir para cima ou para baixo, orientada pela direção predominante das notas que compõem o desenho melódico.',
+              'Bandeirolas Soltas: São sempre desenhadas voltadas para o lado direito da haste, curvadas para dentro em direção à cabeça, quer a haste aponte para cima ou para baixo.'
+            ]
+          },
+          {
+            heading: '4. Sinais de Modificação da Duração: Ponto de Aumento, Ligaduras e Staccato',
+            paragraphs: [
+              'A notação musical utiliza três recursos essenciais para expandir, conectar ou encurtar a duração original das notas sem alterar a pulsação do compasso:'
+            ],
+            formulaOrBox:
+`SINAIS MODIFICADORES DE DURAÇÃO:
+• Ponto de Aumento Simples (•)  ➔ +50% do valor da nota  (Ex: Semínima pontuada = 1 + 1/2 = 1,5 tempos)
+• Ponto de Aumento Duplo (••)   ➔ +75% do valor da nota  (Ex: Mínima duplo ponto = 2 + 1 + 0,5 = 3,5 tempos)
+• Ligadura de Prolongamento     ➔ Soma 2 notas de MESMA altura num som contínuo
+• Ligadura de Fraseado (Legato) ➔ Conecta notas de ALTURAS DIFERENTES sem corte de articulação
+• Ponto de Diminuição (Staccato)➔ Reduz 50% da duração em som e 50% em pausa (toque seco e leve)`,
+            bulletPoints: [
+              'Ponto de Aumento Simples: Posicionado à direita da cabeça da nota. Acrescenta a metade (+50%) do seu valor nominal. Exemplo: Mínima pontuada = 2 + 1 = 3 tempos.',
+              'Ponto de Aumento Duplo: O segundo ponto acrescenta metade do valor do primeiro ponto (+25% do valor base). Exemplo: Mínima com ponto duplo = 2 + 1 + 0,5 = 3,5 tempos.',
+              'Ligadura de Prolongamento (ou de Valor): Linha curva que une duas notas de MESMA altura e nome. Soma suas durações numa única nota sustentada. É a única forma de sustentar notas que ultrapassam a barra de compasso.',
+              'Ligadura de Fraseado (ou Legato): Linha curva sobre notas de ALTURAS DIFERENTES. Não soma tempos; indica que as notas devem ser tocadas ligadas, sem articulação dura ou corte de ar entre elas.',
+              'Ponto de Diminuição (Staccato): Ponto posicionado acima ou abaixo da cabeça da nota. Corta a sustentação da nota pela metade: 50% soa e os outros 50% viram pausa, produzindo articulação curta e destacada.'
+            ]
+          },
+          {
+            heading: '5. Fórmulas de Compasso e a Unidade de Tempo',
+            paragraphs: [
+              'A fórmula de compasso aparece no início da pauta musical logo após a clave e a armadura. É expressa por dois números dispostos verticalmente:',
+              'O número SUPERIOR (numerador) indica QUANTOS tempos cabem em cada compasso (2, 3, 4, 6 tempos). O número INFERIOR (denominador) indica QUAL figura musical vale 1 tempo completo, utilizando o seu número identificador oficial (1=Semibreve, 2=Mínima, 4=Semínima, 8=Colcheia).'
             ],
             bulletPoints: [
-              '4/4 (Quaternário Simples): 4 tempos por compasso. Forte - fraco - meio forte - fraco. É a base do Pop, Rock e Samba.',
-              '3/4 (Ternário Simples): 3 tempos por compasso. Forte - fraco - fraco. O ritmo característico da Valsa, Guarânia e Baladas.',
-              '6/8 (Binário Composto): 2 pulsos subdivididos ternariamente (1-2-3, 4-5-6). É o balanço do Blues lento, Baião e Soul.'
+              '4/4 (Quaternário Simples): 4 tempos por compasso, com a semínima valendo 1 tempo. O primeiro tempo é o mais forte de todos.',
+              '3/4 (Ternário Simples): 3 tempos por compasso (forte - fraco - fraco). Ritmo característico de valsas e minuetos.',
+              '2/4 (Binário Simples): 2 tempos por compasso. Métrica enérgica marcante em marchas, sambas e choros.',
+              '6/8 (Binário Composto): 2 pulsos principais subdivididos em 3 colcheias cada (a semínima pontuada vale 1 tempo composto).'
             ]
           }
         ],
-        goldenRule: 'No compasso 4/4, o tempo 1 é o mais forte e gravitacional de todos. Sempre ancore sua mente no primeiro tempo de cada compasso.',
+        goldenRule: 'A Semibreve rege a matemática rítmica ocidental: todos os denominadores de compasso (1, 2, 4, 8, 16, 32, 64) nascem da fração proporcional da Semibreve.',
         audioExamples: [
           {
-            title: 'Pulsação 4/4 com Semínimas',
-            description: 'Quatro pulsos regulares e uniformes a 120 BPM em Dó.',
+            title: 'Pulsação 4/4 com Semínimas Regulares',
+            description: 'Quatro pulsos regulares e uniformes a 120 BPM em Dó (unidade de tempo semínima).',
             notes: [60, 60, 60, 60],
-            tempoMs: 500,
+            noteDurationsMs: [500, 500, 500, 500],
             type: 'melodic'
           },
           {
-            title: 'Subdivisão Rítmica: Semínima seguida de 4 Semicolcheias',
-            description: '1 tempo sustentado (semínima) seguido imediatamente por 4 notas rápidas iguais (semicolcheias).',
-            notes: [60, 64, 65, 67, 69],
-            noteDurationsMs: [600, 150, 150, 150, 150],
+            title: 'Semínima Pontuada + Colcheia (Balanço Rítmico)',
+            description: 'Primeira nota prolongada (+50% de duração) seguida da colcheia complementar.',
+            notes: [60, 64, 67],
+            noteDurationsMs: [750, 250, 600],
+            type: 'melodic'
+          },
+          {
+            title: 'Articulação: Som Sustentado vs Staccato Curto',
+            description: 'Ouça o contraste entre uma nota sustentada (mínima) e duas notas curtas e destacadas (staccato).',
+            notes: [60, 64, 67],
+            noteDurationsMs: [800, 250, 250],
             type: 'melodic'
           }
         ],
         quiz: {
-          question: 'Em uma fórmula de compasso 3/4, quantas semínimas completam exatamente um compasso?',
-          options: ['2 semínimas', '3 semínimas', '4 semínimas', '6 semínimas'],
-          correctIndex: 1,
-          explanation: 'No 3/4, o numerador indica 3 tempos e o denominador 4 indica que a semínima vale 1 tempo. Portanto, cabem 3 semínimas.'
+          question: 'Segundo as regras de grafia musical, como deve ser traçada a haste de uma nota posicionada acima da 3ª linha do pentagrama?',
+          options: [
+            'Para baixo, no lado esquerdo da cabeça da nota (formato "q")',
+            'Para cima, no lado direito da cabeça da nota (formato "d")',
+            'Para baixo, no lado direito da cabeça da nota',
+            'Para cima, no lado esquerdo da cabeça da nota'
+          ],
+          correctIndex: 0,
+          explanation: 'Pela Regra da 3ª Linha, notas situadas acima da 3ª linha do pentagrama têm a haste traçada para baixo pelo lado esquerdo da cabeça (silhueta da letra "q"), mantendo a notação equilibrada dentro do pentagrama.'
         }
       }
     ]
