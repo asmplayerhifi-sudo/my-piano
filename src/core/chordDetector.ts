@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Detecção Polifônica de Acordes via Chroma Features (Pitch Class Profile — PCP)
  *
  * Responsabilidade: identificar acordes tocados simultaneamente (piano, violão, etc.)
@@ -6,31 +6,51 @@
  * espectro inteiro em 12 bins cromáticos, comparados contra templates de acordes.
  *
  * Integração: usado pelo MicrophonePitchBar quando o usuário ativa detecção de acordes.
- * Coexiste com o MicrophonePitchDetector (monofônico) — ambos podem compartilhar
+ * Coexiste com o MicrophonePitchDetector (monofônico) — ambos compartilham
  * o mesmo MediaStream, pois o AnalyserNode é read-only e não interfere.
+ *
+ * Melhorias de precisão (v2):
+ * - FFT ampliado para 8192 pontos (~5.4 Hz/bin) melhor separação espectral.
+ * - Penalidade de energia fora do template aumentada (0.50 vs 0.35 anterior).
+ * - Limiar de confiança elevado (0.52) menos falsos positivos.
+ * - Limiar de RMS mais alto (0.015) filtra ruído de fundo mais agressivamente.
+ * - Suavização interna mais conservadora (alpha 0.25) chroma mais estável.
+ * - Estabilidade requerida aumentada (4 frames, ~67ms) antes de emitir.
+ * - smoothingTimeConstant do AnalyserNode reduzido para 0.3.
+ * - Templates de triades avaliados antes de tetrades.
+ * - Normalizacao L-inf (max-norm) substitui L1.
+ * - Clamping de bins abaixo de -80 dB.
+ * - DetectedChord inclui estimatedMidiNotes para destacar teclas no teclado.
  */
 
-// ─── Tipos ───────────────────────────────────────────────────────────────────
+// ── Tipos ─────────────────────────────────────────────────────────────────────
 
 /** Perfil de Classe de Altura (Pitch Class Profile), 12 valores para C..B */
 export type ChromaVector = Float32Array;
 
-/** Resultado de uma detecção de acorde polifônico */
+/** Resultado de uma detecção de acorde polifonico */
 export interface DetectedChord {
   /** Pitch class da raiz (0 = C, 1 = C#, ..., 11 = B) */
   rootPc: number;
-  /** Nome da raiz em notação ocidental */
+  /** Nome da raiz em notacao ocidental */
   rootName: string;
   /** Qualidade do acorde detectado */
   quality: ChordQuality;
-  /** Sufixo simbólico (ex: '', 'm', 'maj7', '7') */
+  /** Sufixo simbolico (ex: '', 'm', 'maj7', '7') */
   suffix: string;
-  /** Score de confiança normalizado [0, 1] */
+  /** Score de confianca normalizado [0, 1] */
   confidence: number;
-  /** Vetor chroma bruto que originou esta detecção */
+  /** Vetor chroma bruto que originou esta deteccao */
   chromaVector: ChromaVector;
   /** Energia RMS do frame analisado */
   rmsEnergy: number;
+  /**
+   * MIDIs estimados das notas detectadas.
+   * Posicionados na oitava 3-4 (MIDI 48-71) para coincidir com
+   * o registro mais comum do piano.
+   * Usado para destacar as teclas correspondentes no PianoKeyboard.
+   */
+  estimatedMidiNotes: number[];
 }
 
 export type ChordQuality =
@@ -38,61 +58,41 @@ export type ChordQuality =
   | 'maj7' | 'dom7' | 'min7' | 'm7b5' | 'dim7'
   | 'sus4' | 'sus2' | 'add9';
 
-// ─── Constantes ──────────────────────────────────────────────────────────────
+// ── Constantes ────────────────────────────────────────────────────────────────
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
-/**
- * Templates de acorde: intervalos (semitons a partir da raiz) que devem ter
- * energia dominante no vetor chroma. Ordenados do mais específico ao genérico.
- */
 const CHORD_TEMPLATES: Array<{
   quality: ChordQuality;
   suffix: string;
   intervals: number[];
   weights: number[];
 }> = [
-  // ── Tétrades ──
-  { quality: 'maj7',       suffix: 'maj7',   intervals: [0, 4, 7, 11], weights: [1, 1, 0.8, 0.9] },
-  { quality: 'dom7',       suffix: '7',      intervals: [0, 4, 7, 10], weights: [1, 1, 0.8, 0.9] },
-  { quality: 'min7',       suffix: 'm7',     intervals: [0, 3, 7, 10], weights: [1, 1, 0.8, 0.9] },
-  { quality: 'm7b5',       suffix: 'm7(b5)', intervals: [0, 3, 6, 10], weights: [1, 1, 0.9, 0.8] },
-  { quality: 'dim7',       suffix: 'dim7',   intervals: [0, 3, 6,  9], weights: [1, 1, 1,   0.9] },
-  { quality: 'add9',       suffix: 'add9',   intervals: [0, 2, 4,  7], weights: [1, 0.7, 1, 0.8] },
-  // ── Tríades ──
-  { quality: 'major',      suffix: '',       intervals: [0, 4, 7], weights: [1, 1, 0.9] },
-  { quality: 'minor',      suffix: 'm',      intervals: [0, 3, 7], weights: [1, 1, 0.9] },
-  { quality: 'diminished', suffix: 'dim',    intervals: [0, 3, 6], weights: [1, 1, 1]   },
-  { quality: 'augmented',  suffix: 'aug',    intervals: [0, 4, 8], weights: [1, 1, 1]   },
-  { quality: 'sus4',       suffix: 'sus4',   intervals: [0, 5, 7], weights: [1, 0.9, 0.9] },
-  { quality: 'sus2',       suffix: 'sus2',   intervals: [0, 2, 7], weights: [1, 0.8, 0.9] },
+  // Triades (avaliadas primeiro)
+  { quality: 'major',      suffix: '',       intervals: [0, 4, 7], weights: [1, 0.95, 0.9]  },
+  { quality: 'minor',      suffix: 'm',      intervals: [0, 3, 7], weights: [1, 0.95, 0.9]  },
+  { quality: 'diminished', suffix: 'dim',    intervals: [0, 3, 6], weights: [1, 0.95, 1.0]  },
+  { quality: 'augmented',  suffix: 'aug',    intervals: [0, 4, 8], weights: [1, 0.95, 1.0]  },
+  { quality: 'sus4',       suffix: 'sus4',   intervals: [0, 5, 7], weights: [1, 0.9,  0.9]  },
+  { quality: 'sus2',       suffix: 'sus2',   intervals: [0, 2, 7], weights: [1, 0.85, 0.9]  },
+  // Tetrades
+  { quality: 'maj7',  suffix: 'maj7',   intervals: [0, 4, 7, 11], weights: [1, 0.95, 0.85, 0.9]  },
+  { quality: 'dom7',  suffix: '7',      intervals: [0, 4, 7, 10], weights: [1, 0.95, 0.85, 0.9]  },
+  { quality: 'min7',  suffix: 'm7',     intervals: [0, 3, 7, 10], weights: [1, 0.95, 0.85, 0.9]  },
+  { quality: 'm7b5',  suffix: 'm7(b5)', intervals: [0, 3, 6, 10], weights: [1, 0.95, 0.9,  0.85] },
+  { quality: 'dim7',  suffix: 'dim7',   intervals: [0, 3, 6,  9], weights: [1, 0.95, 1.0,  0.9]  },
+  { quality: 'add9',  suffix: 'add9',   intervals: [0, 2, 4,  7], weights: [1, 0.75, 0.95, 0.85] },
 ];
 
 const A4_FREQ = 440;
 const A4_MIDI = 69;
 
-/** Energia RMS mínima para iniciar análise (evita ruído de fundo) */
-const MIN_RMS_THRESHOLD = 0.01;
+const MIN_RMS_THRESHOLD = 0.015;
+const MIN_CONFIDENCE_THRESHOLD = 0.52;
+const STABILITY_FRAMES_REQUIRED = 4;
 
-/** Confiança mínima para considerar um acorde detectado */
-const MIN_CONFIDENCE_THRESHOLD = 0.45;
+// ── Funcoes Puras ─────────────────────────────────────────────────────────────
 
-/** Frames consecutivos idênticos exigidos antes de emitir (debounce) */
-const STABILITY_FRAMES_REQUIRED = 3;
-
-// ─── Funções Puras ───────────────────────────────────────────────────────────
-
-/**
- * Calcula o vetor Chroma (PCP) a partir das magnitudes espectrais do FFT.
- *
- * Técnica: Pitch Class Profile com harmonic summation.
- * Cada bin FFT é tratado como potencial H2..H5 de uma fundamental, permitindo
- * detectar notas cujo fundamental é fraco no espectro (típico de piano acústico).
- *
- * @param magnitudes - Magnitudes lineares do FFT (não dB)
- * @param sampleRate - Taxa de amostragem do AudioContext
- * @param fftSize    - Tamanho do FFT (o dobro do frequencyBinCount)
- */
 export function computeChroma(
   magnitudes: Float32Array,
   sampleRate: number,
@@ -102,12 +102,10 @@ export function computeChroma(
   const binCount = magnitudes.length;
   const freqPerBin = sampleRate / fftSize;
 
-  // Cobre C2 (65 Hz) a E7 (2637 Hz) — registros do piano e violão
   const minBin = Math.max(1, Math.floor(60 / freqPerBin));
-  const maxBin = Math.min(binCount - 1, Math.ceil(2700 / freqPerBin));
+  const maxBin = Math.min(binCount - 1, Math.ceil(1800 / freqPerBin));
 
-  // Pesos por harmônico: H1 (fundamental) com peso 1.0, H2..H5 decrescentes
-  const harmonicWeights = [1.0, 0.5, 0.33, 0.25, 0.2];
+  const harmonicWeights = [1.0, 0.4, 0.25, 0.15, 0.1];
 
   for (let bin = minBin; bin <= maxBin; bin++) {
     const mag = magnitudes[bin];
@@ -117,9 +115,8 @@ export function computeChroma(
 
     for (let h = 1; h <= harmonicWeights.length; h++) {
       const fundamentalFreq = freq / h;
-      if (fundamentalFreq < 30) break;
+      if (fundamentalFreq < 40) break;
 
-      // Converte frequência para pitch class via distância em semitons de A4
       const midiContinuous = A4_MIDI + 12 * Math.log2(fundamentalFreq / A4_FREQ);
       const pitchClass = ((Math.round(midiContinuous) % 12) + 12) % 12;
 
@@ -127,7 +124,7 @@ export function computeChroma(
     }
   }
 
-  // Normaliza para [0, 1]
+  // Normalizacao L-inf (max-norm)
   let maxVal = 0;
   for (let i = 0; i < 12; i++) if (chroma[i] > maxVal) maxVal = chroma[i];
   if (maxVal > 0) {
@@ -137,13 +134,6 @@ export function computeChroma(
   return chroma;
 }
 
-/**
- * Compara um vetor chroma contra todos os templates de acorde.
- * Penaliza acordes com energia em notas fora do template (notas "erradas").
- *
- * @param chroma - ChromaVector normalizada
- * @returns Melhor match ou null se a confiança estiver abaixo do limiar
- */
 export function matchChordTemplate(chroma: ChromaVector): {
   rootPc: number;
   quality: ChordQuality;
@@ -156,7 +146,8 @@ export function matchChordTemplate(chroma: ChromaVector): {
 
   let chromaSum = 0;
   for (let i = 0; i < 12; i++) chromaSum += chroma[i];
-  if (chromaSum < 0.5) return null;
+
+  if (chromaSum < 1.0) return null;
 
   for (let rootPc = 0; rootPc < 12; rootPc++) {
     for (const template of CHORD_TEMPLATES) {
@@ -169,7 +160,6 @@ export function matchChordTemplate(chroma: ChromaVector): {
         maxTemplateWeight += template.weights[i];
       }
 
-      // Energia em pitch classes fora do template (penalidade)
       const templatePCSet = new Set(template.intervals.map(iv => (rootPc + iv) % 12));
       let outsideEnergy = 0;
       for (let pc = 0; pc < 12; pc++) {
@@ -177,7 +167,7 @@ export function matchChordTemplate(chroma: ChromaVector): {
       }
 
       const score = (templateEnergy / maxTemplateWeight) *
-                    (1 - 0.35 * (outsideEnergy / (chromaSum + 1e-6)));
+                    (1 - 0.5 * (outsideEnergy / (chromaSum + 1e-6)));
 
       if (score > bestScore) {
         bestScore = score;
@@ -197,26 +187,33 @@ export function matchChordTemplate(chroma: ChromaVector): {
   };
 }
 
-/** Calcula energia RMS de um buffer de domínio de tempo. */
 export function computeRmsFromTimeDomain(buffer: Float32Array): number {
   let sum = 0;
   for (let i = 0; i < buffer.length; i++) sum += buffer[i] * buffer[i];
   return Math.sqrt(sum / buffer.length);
 }
 
-// ─── Classe Principal ─────────────────────────────────────────────────────────
+function estimateMidiNotes(rootPc: number, intervals: number[]): number[] {
+  const rootMidi = 48 + rootPc;
+  return intervals.map(interval => {
+    let midi = rootMidi + interval;
+    while (midi < 48) midi += 12;
+    while (midi > 83) midi -= 12;
+    return midi;
+  });
+}
+
+// ── Classe Principal ──────────────────────────────────────────────────────────
 
 /**
- * Detector de acordes polifônicos em tempo real.
+ * Detector de acordes polifonicos em tempo real via FFT + PCP.
  *
  * Fluxo:
- * 1. Recebe um MediaStream já autorizado.
- * 2. Cria AnalyserNode com FFT de 4096 pontos para boa resolução espectral.
- * 3. A cada frame (~60fps): coleta FFT, converte dB→magnitude, computa chroma,
- *    suaviza temporalmente, compara com templates.
- * 4. Emite o acorde via callback após STABILITY_FRAMES_REQUIRED frames estáveis.
- *
- * Dependências: Web Audio API nativa (sem bibliotecas externas).
+ * 1. Recebe um MediaStream ja autorizado pelo usuario.
+ * 2. Cria AnalyserNode com FFT de 8192 pontos (resolucao ~5.4 Hz/bin a 44.1kHz).
+ * 3. A cada frame (~60fps): coleta FFT, aplica floor -80 dB, computa chroma,
+ *    suaviza temporalmente (alpha=0.25), compara com templates.
+ * 4. Emite o acorde via callback apos STABILITY_FRAMES_REQUIRED frames estaveis.
  */
 export class PolyphonicChordDetector {
   private audioCtx: AudioContext | null = null;
@@ -228,21 +225,13 @@ export class PolyphonicChordDetector {
 
   private onChordCallback: ((chord: DetectedChord | null) => void) | null = null;
 
-  // Estado de debounce temporal
   private stabilityCount = 0;
   private lastCandidateKey = '';
   private lastEmittedChordKey = '';
 
-  // Suavização exponencial do chroma entre frames
   private smoothedChroma: Float32Array = new Float32Array(12);
-  private readonly SMOOTH_ALPHA = 0.4;
+  private readonly SMOOTH_ALPHA = 0.25;
 
-  /**
-   * Inicia a detecção de acordes usando o MediaStream fornecido.
-   *
-   * @param stream  - MediaStream já autorizado pelo usuário
-   * @param onChord - Callback chamado ao detectar/encerrar um acorde
-   */
   public start(stream: MediaStream, onChord: (chord: DetectedChord | null) => void): void {
     if (this.isListening) return;
 
@@ -253,10 +242,8 @@ export class PolyphonicChordDetector {
     const source = this.audioCtx.createMediaStreamSource(stream);
 
     this.analyser = this.audioCtx.createAnalyser();
-    // 4096 pontos → resolução ~10.8 Hz/bin a 44.1kHz: suficiente para distinguir
-    // notas no registro médio (C3 = 261 Hz, resolução de ~0.7 semitons nessa faixa)
-    this.analyser.fftSize = 4096;
-    this.analyser.smoothingTimeConstant = 0.5;
+    this.analyser.fftSize = 8192;
+    this.analyser.smoothingTimeConstant = 0.3;
 
     source.connect(this.analyser);
 
@@ -273,7 +260,6 @@ export class PolyphonicChordDetector {
     this.loop();
   }
 
-  /** Encerra a detecção e libera todos os recursos. */
   public stop(): void {
     this.isListening = false;
 
@@ -298,7 +284,6 @@ export class PolyphonicChordDetector {
     this.onChordCallback = null;
   }
 
-  /** Retorna se o detector está ativo. */
   public isActive(): boolean {
     return this.isListening;
   }
@@ -308,14 +293,15 @@ export class PolyphonicChordDetector {
       return;
     }
 
-    // 1. Coleta espectro em dB e converte para magnitude linear
+    // 1. Coleta espectro em dB com floor de -80 dB e converte para magnitude linear
     this.analyser.getFloatFrequencyData(this.magnitudeBuffer);
     const linMagnitudes = new Float32Array(this.magnitudeBuffer.length);
     for (let i = 0; i < this.magnitudeBuffer.length; i++) {
-      linMagnitudes[i] = Math.pow(10, this.magnitudeBuffer[i] / 20);
+      const db = this.magnitudeBuffer[i];
+      linMagnitudes[i] = db > -80 ? Math.pow(10, db / 20) : 0;
     }
 
-    // 2. Verifica energia via domínio de tempo (mais rápido para decisão de silêncio)
+    // 2. Verifica silencio via RMS do dominio de tempo
     this.analyser.getFloatTimeDomainData(this.timeDomainBuffer);
     const rms = computeRmsFromTimeDomain(this.timeDomainBuffer);
 
@@ -324,6 +310,7 @@ export class PolyphonicChordDetector {
         this.lastEmittedChordKey = '';
         this.stabilityCount = 0;
         this.lastCandidateKey = '';
+        this.smoothedChroma.fill(0);
         this.onChordCallback?.(null);
       }
       this.animationFrameId = requestAnimationFrame(this.loop);
@@ -333,12 +320,12 @@ export class PolyphonicChordDetector {
     // 3. Calcula chroma do frame atual
     const frameChroma = computeChroma(linMagnitudes, this.audioCtx.sampleRate, this.analyser.fftSize);
 
-    // 4. Suavização exponencial temporal (reduz flickering entre frames)
+    // 4. Suavizacao exponencial temporal (alpha 0.25 = resposta conservadora)
     for (let i = 0; i < 12; i++) {
       this.smoothedChroma[i] = this.SMOOTH_ALPHA * frameChroma[i] + (1 - this.SMOOTH_ALPHA) * this.smoothedChroma[i];
     }
 
-    // 5. Compara chroma suavizado com templates
+    // 5. Compara chroma suavizado contra todos os templates
     const match = matchChordTemplate(this.smoothedChroma);
 
     if (match) {
@@ -351,9 +338,14 @@ export class PolyphonicChordDetector {
         this.stabilityCount = 1;
       }
 
-      // 6. Emite apenas após estabilidade suficiente e somente se mudou
+      // 6. Emite somente apos estabilidade e somente se mudou
       if (this.stabilityCount >= STABILITY_FRAMES_REQUIRED && candidateKey !== this.lastEmittedChordKey) {
         this.lastEmittedChordKey = candidateKey;
+
+        const template = CHORD_TEMPLATES.find(
+          t => t.quality === match.quality && t.suffix === match.suffix
+        ) ?? CHORD_TEMPLATES[0];
+
         this.onChordCallback?.({
           rootPc: match.rootPc,
           rootName: NOTE_NAMES[match.rootPc],
@@ -362,11 +354,11 @@ export class PolyphonicChordDetector {
           confidence: match.confidence,
           chromaVector: new Float32Array(this.smoothedChroma),
           rmsEnergy: rms,
+          estimatedMidiNotes: estimateMidiNotes(match.rootPc, template.intervals),
         });
       }
     } else {
-      // Sem match confiante: reseta debounce mas não emite silêncio ainda
-      // (o sinal acima do RMS continua; só o chroma não bateu com nenhum template)
+      // Sem match: reseta debounce mas nao emite silencio (ha som mas nao e tonal)
       this.stabilityCount = 0;
       this.lastCandidateKey = '';
     }
@@ -375,5 +367,5 @@ export class PolyphonicChordDetector {
   };
 }
 
-/** Instância singleton compartilhada entre componentes */
+/** Instancia singleton compartilhada entre componentes */
 export const polyphonicChordDetector = new PolyphonicChordDetector();

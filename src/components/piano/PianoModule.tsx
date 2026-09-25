@@ -16,10 +16,12 @@ export const PianoModule: React.FC = () => {
   const [selectedInversion, setSelectedInversion] = useState<0 | 1 | 2>(0);
   const [midiDevices, setMidiDevices] = useState<MidiDevice[]>([]);
   const [micActiveMidi, setMicActiveMidi] = useState<number | null>(null);
+  const [micAcousticNotes, setMicAcousticNotes] = useState<number[]>([]);
 
-  // Fusão de todas as fontes ativas e identificação do acorde em tempo real
+  // Fusao de todas as fontes ativas e identificacao do acorde em tempo real
   const { activeNotes: activeExternalNotes, liveChord: liveIdentifiedChord } = useActiveNotes({
     micHearingMidi: micActiveMidi,
+    micAcousticNotes,
   });
 
   // Subscreve a dispositivos MIDI físicos conectados (USB / OTG / Bluetooth)
@@ -173,6 +175,7 @@ export const PianoModule: React.FC = () => {
 
           <MicrophonePitchBar
             onNoteHold={(midi) => setMicActiveMidi(midi)}
+            onAcousticChordNotesChange={setMicAcousticNotes}
             expectedMidi={activeVoicing.midi[0]}
             expectedNoteName={activeVoicing.notes[0]}
           />

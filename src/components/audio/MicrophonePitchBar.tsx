@@ -176,21 +176,27 @@ export const MicrophonePitchBar: React.FC<Props> = ({
           }
         },
         // Inicia o detector polifonico assim que o stream for autorizado,
-        // reutilizando o mesmo MediaStream sem nova requisição de permissão.
+        // reutilizando o mesmo MediaStream sem nova requisicao de permissao.
         (stream) => {
           polyphonicChordDetector.start(stream, (chord) => {
             setPolyphonicChord(chord);
-            if (chord && onChordDetectedRef.current) {
-              // Converte DetectedChord para IdentifiedChord para compatibilidade com callers externos
-              const identified: IdentifiedChord = {
-                symbol: `${chord.rootName}${chord.suffix}`,
-                namePt: `${chord.rootName} ${chord.quality}`,
-                root: chord.rootName,
-                quality: chord.quality as IdentifiedChord['quality'],
-                notesPt: [],
-                isInversion: false,
-              };
-              onChordDetectedRef.current(identified, []);
+            if (chord) {
+              // Propaga os MIDIs estimados para o teclado visual (highlight das teclas)
+              onAcousticChordNotesChangeRef.current?.(chord.estimatedMidiNotes);
+              if (onChordDetectedRef.current) {
+                const identified: IdentifiedChord = {
+                  symbol: `${chord.rootName}${chord.suffix}`,
+                  namePt: `${chord.rootName} ${chord.quality}`,
+                  root: chord.rootName,
+                  quality: chord.quality as IdentifiedChord['quality'],
+                  notesPt: [],
+                  isInversion: false,
+                };
+                onChordDetectedRef.current(identified, chord.estimatedMidiNotes);
+              }
+            } else {
+              // Acorde encerrado: limpa as teclas destacadas no teclado
+              onAcousticChordNotesChangeRef.current?.([]);
             }
           });
         }
