@@ -94,11 +94,25 @@ export function useScorePlayback({
   useEffect(() => {
     const target = notes[currentIndex] || null;
     const targetMidi = target ? target.midi : null;
+    if (target) {
+      const noteOffset = timeline.noteOffsets[currentIndex] ?? 0;
+      const expectedTimeMs = noteOffset * ((60 / tempo) * 1000);
+      const expectedDurationMs = (target.duration || 1) * ((60 / tempo) * 1000);
+      validatorRef.current.getEvaluator().setTarget({
+        midi: target.midi,
+        chordName: target.chordName,
+        expectedTimeMs,
+        expectedDurationMs,
+      });
+    } else {
+      validatorRef.current.getEvaluator().setTarget(null);
+    }
+
     if (lastTargetMidiRef.current !== targetMidi) {
       lastTargetMidiRef.current = targetMidi;
       onTargetNoteChangeRef.current?.(target, currentIndex);
     }
-  }, [currentIndex, notes]);
+  }, [currentIndex, notes, timeline.noteOffsets, tempo]);
 
   const currentIndexRef = useRef(currentIndex);
   currentIndexRef.current = currentIndex;
@@ -184,6 +198,11 @@ export function useScorePlayback({
 
     const nextNote = notes[currentIndex + 1] || null;
     const now = performance.now();
+    const intensity =
+      typeof currentMidiPressed === 'object' && currentMidiPressed !== null && 'velocity' in currentMidiPressed
+        ? ((currentMidiPressed as { velocity?: number }).velocity ?? 80) / 127
+        : 0.75;
+    validatorRef.current.getEvaluator().feedNote(rawMidi, intensity, now);
 
     // Verifica se a nota tocada é compatível com o acorde da nota atual
     let isChordNoteMatch = false;

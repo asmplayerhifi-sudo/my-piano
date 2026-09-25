@@ -6,12 +6,16 @@
  * 2. Transientes rápidos de transição de dedos/palhetada.
  * 3. Ruídos e pequenas oscilações acústicas no microfone.
  * 4. Latência de buffer de áudio.
+ * 5. Ciclo de vida completo do evento musical: nota/acorde, intensidade, duração e timing.
  *
  * Regra: Acerto imediato (0ms de latência), tolerância para sustain anterior,
  * e confirmação de erro apenas após janela de tolerância/estabilização sem que a nota esperada seja executada.
+ * Trata cada execução como um evento musical completo (acompanhamento contínuo até a próxima nota/evento).
  */
 
 import type { ScoreNote } from './coursesData';
+import { MusicalEventEvaluator } from './musicalEventEvaluator';
+import type { MusicalEvent } from '../domain/entities/MusicalEvent';
 
 export interface NoteConfirmationConfig {
   /** Janela mínima de estabilização para confirmar que uma nota é realmente um erro (ms) */
@@ -29,11 +33,11 @@ export const DEFAULT_CONFIRMATION_CONFIG: NoteConfirmationConfig = {
 };
 
 export type NoteValidationAction =
-  | { action: 'hit'; note: ScoreNote }
-  | { action: 'hit_next'; note: ScoreNote }
+  | { action: 'hit'; note: ScoreNote; musicalEvent?: MusicalEvent }
+  | { action: 'hit_next'; note: ScoreNote; musicalEvent?: MusicalEvent }
   | { action: 'ignore_sustain'; previousMidi: number; elapsedMs: number }
   | { action: 'pending_confirmation'; candidateMidi: number; elapsedMs: number }
-  | { action: 'confirmed_error'; playedMidi: number; expectedMidi: number; timestamp: number };
+  | { action: 'confirmed_error'; playedMidi: number; expectedMidi: number; timestamp: number; musicalEvent?: MusicalEvent };
 
 export class NoteConfirmationValidator {
   private config: NoteConfirmationConfig;
@@ -45,9 +49,14 @@ export class NoteConfirmationValidator {
   private pendingErrorCount = 0;
 
   private pendingTimer: ReturnType<typeof setTimeout> | null = null;
+  private eventEvaluator: MusicalEventEvaluator;
 
   constructor(customConfig?: Partial<NoteConfirmationConfig>) {
     this.config = { ...DEFAULT_CONFIRMATION_CONFIG, ...customConfig };
+    this.eventEvaluator = new MusicalEventEvaluator({
+      sustainDecayWindowMs: this.config.sustainDecayWindowMs,
+      silenceReleaseThresholdMs: 240,
+    });
   }
 
   public getConfig(): Readonly<NoteConfirmationConfig> {
@@ -56,6 +65,13 @@ export class NoteConfirmationValidator {
 
   public setConfig(customConfig: Partial<NoteConfirmationConfig>) {
     this.config = { ...this.config, ...customConfig };
+    this.eventEvaluator.setConfig({
+      sustainDecayWindowMs: this.config.sustainDecayWindowMs,
+    });
+  }
+
+  public getEvaluator(): MusicalEventEvaluator {
+    return this.eventEvaluator;
   }
 
   /**
@@ -77,6 +93,12 @@ export class NoteConfirmationValidator {
       confirmationWindowMs,
       sustainDecayWindowMs,
     };
+
+    this.eventEvaluator.setConfig({
+      sustainDecayWindowMs,
+      perfectWindowMs: Math.round(beatMs * 0.1),
+      goodWindowMs: Math.round(beatMs * 0.22),
+    });
   }
 
   public reset() {
@@ -86,6 +108,7 @@ export class NoteConfirmationValidator {
     this.pendingErrorMidi = null;
     this.pendingErrorStart = 0;
     this.pendingErrorCount = 0;
+    this.eventEvaluator.reset();
   }
 
   public onNoteCompleted(midi: number, timestamp = performance.now()) {
@@ -145,22 +168,33 @@ export class NoteConfirmationValidator {
     playedMidi: number,
     targetNote: ScoreNote | null,
     nextNote?: ScoreNote | null,
-    now = performance.now()
+    now = performance.now(),
+    intensity = 0.7
   ): NoteValidationAction {
     if (!targetNote) {
       return { action: 'pending_confirmation', candidateMidi: playedMidi, elapsedMs: 0 };
     }
 
+    // Configura o alvo no motor de eventos musicais
+    this.eventEvaluator.setTarget({
+      midi: targetNote.midi,
+      chordName: targetNote.chordName,
+      expectedTimeMs: now,
+    });
+
+    // Alimenta o motor de eventos com a nota e intensidade
+    const { finalizedPrevious } = this.eventEvaluator.feedNote(playedMidi, intensity, now);
+
     // 1. ACERTO IMEDIATO (Zero Latência): A nota tocada é a nota alvo esperada!
     if (playedMidi === -1 || playedMidi === targetNote.midi) {
       this.onNoteCompleted(targetNote.midi, now);
-      return { action: 'hit', note: targetNote };
+      return { action: 'hit', note: targetNote, musicalEvent: finalizedPrevious };
     }
 
     // 2. TRANSIÇÃO ANTECIPADA: Usuário tocou a próxima nota da sequência
     if (nextNote && playedMidi === nextNote.midi) {
       this.onNoteCompleted(nextNote.midi, now);
-      return { action: 'hit_next', note: nextNote };
+      return { action: 'hit_next', note: nextNote, musicalEvent: finalizedPrevious };
     }
 
     // 3. TOLERÂNCIA DE SUSTAIN: A nota tocada é o resíduo/decaimento da nota anterior
@@ -194,16 +228,18 @@ export class NoteConfirmationValidator {
     // Se persistir além da janela de confirmação E com frames estáveis, confirma o erro real!
     if (elapsed >= this.config.confirmationWindowMs && this.pendingErrorCount >= this.config.minStableFrames) {
       const confirmedMidi = this.pendingErrorMidi;
-      // Reseta para não disparar o mesmo erro repetidamente em loop
       this.pendingErrorMidi = null;
       this.pendingErrorStart = 0;
       this.pendingErrorCount = 0;
+
+      const finalizedEv = this.eventEvaluator.finalizeCurrentEvent(now, 'manual');
 
       return {
         action: 'confirmed_error',
         playedMidi: confirmedMidi,
         expectedMidi: targetNote.midi,
         timestamp: now,
+        musicalEvent: finalizedEv ?? undefined,
       };
     }
 
