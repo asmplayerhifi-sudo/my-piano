@@ -89,16 +89,31 @@ class AccompanimentStore {
 
   constructor() {
     this.state = this.loadInitialState();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('harmonia-metronome-sound-changed', (e: Event) => {
+        const customEvent = e as CustomEvent<MetronomeSoundType>;
+        const sound = customEvent.detail;
+        if (sound && this.state.metronomeSound !== sound) {
+          this.updateState({ metronomeSound: sound });
+        }
+      });
+    }
   }
 
   private loadInitialState(): AccompanimentState {
+    const dedicatedSound = typeof localStorage !== 'undefined' ? localStorage.getItem('harmonia_metronome_sound') : null;
+    const initialSound: MetronomeSoundType =
+      dedicatedSound === 'cowbell' || dedicatedSound === 'woodblock' || dedicatedSound === 'keyboard-sidestick' || dedicatedSound === 'mechanical' || dedicatedSound === 'digital'
+        ? dedicatedSound
+        : 'cowbell'; // Padrão soberano: cowbell
+
     const defaultState: AccompanimentState = {
       isPlaying: false,
       bpm: 90,
       timeSignature: '4/4',
       subdivision: 'quarter',
 
-      metronomeSound: 'digital',
+      metronomeSound: initialSound,
       metronomeVolume: 80,
       muteMetronomeMaster: false,
       muteDownbeat: false,
@@ -131,6 +146,7 @@ class AccompanimentStore {
         return {
           ...defaultState,
           ...parsed,
+          metronomeSound: dedicatedSound ? initialSound : (parsed.metronomeSound === 'digital' ? 'cowbell' : (parsed.metronomeSound || 'cowbell')),
           isPlaying: false,
           currentBeat: 1,
           currentMeasure: 1,
@@ -236,8 +252,28 @@ class AccompanimentStore {
     this.updateState({ subdivision: sub });
   }
 
-  public setMetronomeSound(sound: MetronomeSoundType) {
-    this.updateState({ metronomeSound: sound });
+  public setMetronomeSound(sound: MetronomeSoundType, preview = false) {
+    if (this.state.metronomeSound !== sound) {
+      this.updateState({ metronomeSound: sound });
+      this.saveState();
+      try {
+        localStorage.setItem('harmonia_metronome_sound', sound);
+      } catch {}
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('harmonia-metronome-sound-changed', { detail: sound })
+        );
+      }
+    }
+    if (preview) {
+      accompanimentSynthesizer.playMetronomeSound(
+        sound,
+        true,
+        false,
+        undefined,
+        (this.state.metronomeVolume / 100) * 0.95
+      );
+    }
   }
 
   public setMetronomeVolume(vol: number) {

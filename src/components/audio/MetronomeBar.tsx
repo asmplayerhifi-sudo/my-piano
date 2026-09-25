@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { metronomeEngine, useMetronome } from '../../core/metronomeEngine';
-import type { MetronomeSoundType } from '../../core/accompanimentSynthesizer';
+import { METRONOME_SOUND_OPTIONS, accompanimentSynthesizer, type MetronomeSoundType } from '../../core/accompanimentSynthesizer';
 import {
   Play,
   Square,
@@ -62,6 +62,7 @@ export const MetronomeBar: React.FC<MetronomeBarProps> = ({
   };
 
   const handleTapTempo = () => {
+    accompanimentSynthesizer.playMetronomeSound(metronome.soundType, false, true, undefined, 0.6);
     const now = performance.now();
     const taps = tapTimesRef.current;
 
@@ -192,10 +193,11 @@ export const MetronomeBar: React.FC<MetronomeBarProps> = ({
               className="bg-black/60 text-amber-300 text-[10px] font-mono border border-white/10 rounded-lg px-1.5 py-0.5 cursor-pointer outline-none"
               title="Timbre Sonoro"
             >
-              <option value="keyboard-sidestick">Aro Teclado</option>
-              <option value="woodblock">Madeira Orgânica</option>
-              <option value="cowbell">Cowbell 808</option>
-              <option value="digital">Digital Beep</option>
+              {METRONOME_SOUND_OPTIONS.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.label}
+                </option>
+              ))}
             </select>
 
             <input
@@ -380,10 +382,11 @@ export const MetronomeBar: React.FC<MetronomeBarProps> = ({
               onChange={(e) => metronomeEngine.setSoundType(e.target.value as MetronomeSoundType)}
               className="bg-black/60 text-slate-200 text-xs font-mono border border-white/10 rounded-lg px-2 py-0.5 cursor-pointer outline-none"
             >
-              <option value="keyboard-sidestick">Aro de Teclado</option>
-              <option value="woodblock">Bloco de Madeira</option>
-              <option value="cowbell">Cowbell 808</option>
-              <option value="digital">Digital Beep</option>
+              {METRONOME_SOUND_OPTIONS.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.label}
+                </option>
+              ))}
             </select>
           </div>
 

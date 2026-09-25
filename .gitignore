@@ -29,3 +29,4 @@ android/build
 android/app/build
 android/local.properties
 .gradle
+arquivos/build_log.txt

@@ -35,7 +35,7 @@ export const MetronomeView: React.FC<Props> = ({ onBpmChange, onPlayStateChange,
   const handleTapTempo = async () => {
     await soundEngine.ensureAudioReady();
     accompanimentStore.tapTempo();
-    accompanimentSynthesizer.playMetronomeSound('digital', false, true, undefined, 0.5);
+    accompanimentSynthesizer.playMetronomeSound(accState.metronomeSound, false, true, undefined, 0.6);
   };
 
   const updateBpm = (newBpm: number) => {

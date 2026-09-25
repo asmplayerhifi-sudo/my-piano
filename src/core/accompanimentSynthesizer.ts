@@ -6,11 +6,25 @@
 import { soundEngine } from './soundEngine';
 import { midiToFrequency } from './musicTheory';
 
-export type MetronomeSoundType = 'digital' | 'woodblock' | 'mechanical' | 'cowbell' | 'keyboard-sidestick';
+export type MetronomeSoundType = 'cowbell' | 'woodblock' | 'keyboard-sidestick' | 'mechanical' | 'digital';
+
+export interface MetronomeSoundOption {
+  id: MetronomeSoundType;
+  label: string;
+}
+
+export const METRONOME_SOUND_OPTIONS: MetronomeSoundOption[] = [
+  { id: 'cowbell', label: 'Cowbell 808' },
+  { id: 'woodblock', label: 'Bloco de Madeira' },
+  { id: 'keyboard-sidestick', label: 'Aro de Teclado' },
+  { id: 'mechanical', label: 'Mecânico Tradicional' },
+  { id: 'digital', label: 'Digital Beep' },
+];
 
 class AccompanimentSynthesizer {
   /**
-   * Toca o clique do metrônomo configurável por tipo de som e função métrica
+   * Toca o clique do metrônomo configurável por tipo de som e função métrica.
+   * Síntese procedural de alta definição (Web Audio API) com envelopes seguros e livres de pops/DC offset.
    */
   public playMetronomeSound(
     soundType: MetronomeSoundType,
@@ -24,102 +38,41 @@ class AccompanimentSynthesizer {
     const dest = destinationNode || soundEngine.getMasterGain();
     if (!ctx || !dest || volume <= 0.001) return;
 
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+
     const t = Math.max(ctx.currentTime, time ?? ctx.currentTime);
 
     switch (soundType) {
-      case 'digital': {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-
-        if (isDownbeat) {
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(1600, t);
-          osc.frequency.exponentialRampToValueAtTime(700, t + 0.035);
-          gain.gain.setValueAtTime(0.7 * volume, t);
-          gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.045);
-          osc.stop(t + 0.05);
-        } else if (isSubdivision) {
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(650, t);
-          gain.gain.setValueAtTime(0.3 * volume, t);
-          gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.025);
-          osc.stop(t + 0.03);
-        } else {
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(1050, t);
-          osc.frequency.exponentialRampToValueAtTime(500, t + 0.03);
-          gain.gain.setValueAtTime(0.5 * volume, t);
-          gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.035);
-          osc.stop(t + 0.04);
-        }
-
-        osc.connect(gain);
-        gain.connect(dest);
-        osc.start(t);
-        break;
-      }
-
-      case 'woodblock': {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sine';
-
-        const freq = isDownbeat ? 1400 : isSubdivision ? 720 : 980;
-        osc.frequency.setValueAtTime(freq, t);
-        osc.frequency.exponentialRampToValueAtTime(freq * 0.6, t + 0.03);
-
-        const peak = (isDownbeat ? 0.8 : isSubdivision ? 0.35 : 0.55) * volume;
-        gain.gain.setValueAtTime(peak, t);
-        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.045);
-
-        osc.connect(gain);
-        gain.connect(dest);
-        osc.start(t);
-        osc.stop(t + 0.05);
-        break;
-      }
-
-      case 'keyboard-sidestick': {
-        // Som musical de sidestick / aro de teclado (madeira orgânica + estalido harmônico)
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'triangle';
-
-        const freq = isDownbeat ? 1750 : isSubdivision ? 880 : 1250;
-        osc.frequency.setValueAtTime(freq, t);
-        osc.frequency.exponentialRampToValueAtTime(freq * 0.45, t + 0.025);
-
-        const peak = (isDownbeat ? 0.85 : isSubdivision ? 0.35 : 0.6) * volume;
-        gain.gain.setValueAtTime(peak, t);
-        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.04);
-
-        osc.connect(gain);
-        gain.connect(dest);
-        osc.start(t);
-        osc.stop(t + 0.045);
-        break;
-      }
-
       case 'cowbell': {
-        // Cowbell tipo 808 clássico (dois osciladores de onda quadrada com filtro passa-banda)
+        // Roland TR-808 Cowbell Autêntico:
+        // Dois osciladores de onda quadrada na proporção harmônica clássica (~1.481)
+        // Passando por filtro passa-banda ressonante com decaimento metálico percussivo.
         const osc1 = ctx.createOscillator();
         const osc2 = ctx.createOscillator();
         const filter = ctx.createBiquadFilter();
         const gain = ctx.createGain();
 
-        const baseF = isDownbeat ? 840 : isSubdivision ? 520 : 640;
+        // Downbeat (tempo forte) tem afinação superior; tempos normais com 540Hz e 800Hz padrão 808
+        const baseF = isDownbeat ? 780 : isSubdivision ? 440 : 540;
         osc1.type = 'square';
         osc1.frequency.setValueAtTime(baseF, t);
+
         osc2.type = 'square';
-        osc2.frequency.setValueAtTime(baseF * 1.5, t);
+        osc2.frequency.setValueAtTime(Math.round(baseF * 1.481), t);
 
         filter.type = 'bandpass';
-        filter.frequency.setValueAtTime(baseF * 1.25, t);
-        filter.Q.setValueAtTime(3.0, t);
+        filter.frequency.setValueAtTime(baseF * 1.35, t);
+        filter.Q.setValueAtTime(3.2, t);
 
-        const peak = (isDownbeat ? 0.55 : isSubdivision ? 0.25 : 0.4) * volume;
-        gain.gain.setValueAtTime(peak, t);
-        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.08);
+        const peak = (isDownbeat ? 0.7 : isSubdivision ? 0.35 : 0.55) * volume;
+        const decayTime = isDownbeat ? 0.09 : isSubdivision ? 0.05 : 0.075;
+
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.linearRampToValueAtTime(peak, t + 0.001);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + decayTime);
+        gain.gain.setValueAtTime(0, t + decayTime + 0.005);
 
         osc1.connect(filter);
         osc2.connect(filter);
@@ -128,30 +81,150 @@ class AccompanimentSynthesizer {
 
         osc1.start(t);
         osc2.start(t);
-        osc1.stop(t + 0.085);
-        osc2.stop(t + 0.085);
+        osc1.stop(t + decayTime + 0.01);
+        osc2.stop(t + decayTime + 0.01);
         break;
       }
 
-      case 'mechanical':
+      case 'woodblock': {
+        // Bloco de Madeira Orgânico Ressonante:
+        // Fundamental com queda de tom rápida + sobretom cilíndrico (razão 1.62)
+        // Filtragem passa-banda que confere a cavidade oca acústica ("tok!")
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const filter = ctx.createBiquadFilter();
+        const gain = ctx.createGain();
+
+        const baseF = isDownbeat ? 1350 : isSubdivision ? 680 : 960;
+        osc1.type = 'triangle';
+        osc1.frequency.setValueAtTime(baseF, t);
+        osc1.frequency.exponentialRampToValueAtTime(baseF * 0.65, t + 0.02);
+
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(baseF * 1.62, t);
+
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(baseF * 1.15, t);
+        filter.Q.setValueAtTime(3.8, t);
+
+        const peak = (isDownbeat ? 0.9 : isSubdivision ? 0.45 : 0.75) * volume;
+        const decayTime = isDownbeat ? 0.06 : isSubdivision ? 0.035 : 0.05;
+
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.linearRampToValueAtTime(peak, t + 0.001);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + decayTime);
+        gain.gain.setValueAtTime(0, t + decayTime + 0.005);
+
+        osc1.connect(filter);
+        osc2.connect(filter);
+        filter.connect(gain);
+        gain.connect(dest);
+
+        osc1.start(t);
+        osc2.start(t);
+        osc1.stop(t + decayTime + 0.01);
+        osc2.stop(t + decayTime + 0.01);
+        break;
+      }
+
+      case 'keyboard-sidestick': {
+        // Aro de Teclado / Rimshot Acústico:
+        // Estalido percussivo rápido de baqueta no aro (transiente brilhante + corpo da caixa)
+        const snapOsc = ctx.createOscillator();
+        const bodyOsc = ctx.createOscillator();
+        const snapFilter = ctx.createBiquadFilter();
+        const gain = ctx.createGain();
+
+        const snapFreq = isDownbeat ? 3400 : isSubdivision ? 1800 : 2600;
+        snapOsc.type = 'triangle';
+        snapOsc.frequency.setValueAtTime(snapFreq, t);
+        snapOsc.frequency.exponentialRampToValueAtTime(750, t + 0.012);
+
+        snapFilter.type = 'highpass';
+        snapFilter.frequency.setValueAtTime(900, t);
+
+        const bodyFreq = isDownbeat ? 880 : isSubdivision ? 500 : 720;
+        bodyOsc.type = 'sine';
+        bodyOsc.frequency.setValueAtTime(bodyFreq, t);
+        bodyOsc.frequency.exponentialRampToValueAtTime(bodyFreq * 0.6, t + 0.025);
+
+        const peak = (isDownbeat ? 0.9 : isSubdivision ? 0.4 : 0.75) * volume;
+        const decayTime = isDownbeat ? 0.05 : isSubdivision ? 0.03 : 0.04;
+
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.linearRampToValueAtTime(peak, t + 0.001);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + decayTime);
+        gain.gain.setValueAtTime(0, t + decayTime + 0.005);
+
+        snapOsc.connect(snapFilter);
+        snapFilter.connect(gain);
+        bodyOsc.connect(gain);
+        gain.connect(dest);
+
+        snapOsc.start(t);
+        bodyOsc.start(t);
+        snapOsc.stop(t + decayTime + 0.01);
+        bodyOsc.stop(t + decayTime + 0.01);
+        break;
+      }
+
+      case 'mechanical': {
+        // Metrônomo Mecânico Tradicional (Maelzel / Wittner):
+        // Pêndulo acústico de madeira: "Tick" agudo no tempo 1 e "Tock" encorpado nos tempos fracos
+        const osc = ctx.createOscillator();
+        const filter = ctx.createBiquadFilter();
+        const gain = ctx.createGain();
+
+        const freq = isDownbeat ? 2100 : isSubdivision ? 1100 : 1550;
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, t);
+        osc.frequency.exponentialRampToValueAtTime(320, t + 0.018);
+
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(isDownbeat ? 1600 : 1200, t);
+        filter.Q.setValueAtTime(2.8, t);
+
+        const peak = (isDownbeat ? 0.85 : isSubdivision ? 0.4 : 0.7) * volume;
+        const decayTime = isDownbeat ? 0.04 : isSubdivision ? 0.025 : 0.035;
+
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.linearRampToValueAtTime(peak, t + 0.001);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + decayTime);
+        gain.gain.setValueAtTime(0, t + decayTime + 0.005);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(dest);
+
+        osc.start(t);
+        osc.stop(t + decayTime + 0.01);
+        break;
+      }
+
+      case 'digital':
       default: {
-        // Metrônomo mecânico antigo (clique seco com ruído de madeira)
+        // Digital Beep de Precisão:
+        // Senoide pura com notas calibradas (A6 para tempo 1, A5 para tempos normais)
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        osc.type = 'triangle';
 
-        const freq = isDownbeat ? 2200 : isSubdivision ? 1100 : 1600;
+        const freq = isDownbeat ? 1760 : isSubdivision ? 440 : 880;
+        osc.type = isSubdivision ? 'triangle' : 'sine';
         osc.frequency.setValueAtTime(freq, t);
-        osc.frequency.exponentialRampToValueAtTime(100, t + 0.015);
 
-        const peak = (isDownbeat ? 0.85 : isSubdivision ? 0.35 : 0.6) * volume;
-        gain.gain.setValueAtTime(peak, t);
-        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.025);
+        const peak = (isDownbeat ? 0.7 : isSubdivision ? 0.35 : 0.55) * volume;
+        const decayTime = isDownbeat ? 0.045 : isSubdivision ? 0.025 : 0.035;
+
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.linearRampToValueAtTime(peak, t + 0.001);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + decayTime);
+        gain.gain.setValueAtTime(0, t + decayTime + 0.005);
 
         osc.connect(gain);
         gain.connect(dest);
+
         osc.start(t);
-        osc.stop(t + 0.03);
+        osc.stop(t + decayTime + 0.01);
         break;
       }
     }

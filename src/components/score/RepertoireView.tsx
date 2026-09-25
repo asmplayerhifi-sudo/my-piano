@@ -8,7 +8,7 @@ import { RepertoireCatalogModal } from './RepertoireCatalogModal';
 import { RepertoireAccuracyModal } from './RepertoireAccuracyModal';
 import { TimbreSelector } from '../audio/TimbreSelector';
 import { soundEngine } from '../../core/soundEngine';
-import type { MetronomeSoundType } from '../../core/accompanimentSynthesizer';
+import { METRONOME_SOUND_OPTIONS, type MetronomeSoundType } from '../../core/accompanimentSynthesizer';
 import { metronomeEngine, useMetronome } from '../../core/metronomeEngine';
 import { useOctaveStandard, octaveConfigStore } from '../../core/octaveConfigStore';
 import { computeNoteOffsets } from './scrolling/scoreGeometry';
@@ -562,10 +562,11 @@ export const RepertoireView: React.FC = () => {
                   className="bg-black/60 text-[10px] text-amber-200 border border-white/10 rounded-lg px-1.5 py-0.5 font-mono cursor-pointer outline-none"
                   title="Timbre Musical do Metrônomo"
                 >
-                  <option value="keyboard-sidestick">Aro Teclado</option>
-                  <option value="woodblock">Bloco Madeira</option>
-                  <option value="cowbell">Cowbell</option>
-                  <option value="digital">Digital Beep</option>
+                  {METRONOME_SOUND_OPTIONS.map((opt) => (
+                    <option key={opt.id} value={opt.id}>
+                      {opt.label}
+                    </option>
+                  ))}
                 </select>
 
                 <input

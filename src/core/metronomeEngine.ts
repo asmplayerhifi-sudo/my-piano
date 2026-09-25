@@ -22,6 +22,18 @@ export interface MetronomeState {
 export type MetronomeListener = (state: MetronomeState) => void;
 export type BeatTickListener = (beatNumber: number, isDownbeat: boolean) => void;
 
+export const METRONOME_SOUND_STORAGE_KEY = 'harmonia_metronome_sound';
+
+function getStoredSoundType(): MetronomeSoundType {
+  try {
+    const val = localStorage.getItem(METRONOME_SOUND_STORAGE_KEY);
+    if (val === 'cowbell' || val === 'woodblock' || val === 'keyboard-sidestick' || val === 'mechanical' || val === 'digital') {
+      return val;
+    }
+  } catch {}
+  return 'cowbell'; // Padrão oficial soberano: cowbell
+}
+
 class MetronomeEngine {
   private state: MetronomeState = {
     isPlaying: false,
@@ -29,7 +41,7 @@ class MetronomeEngine {
     timeSignature: '4/4',
     beatsPerMeasure: 4,
     currentBeat: 1,
-    soundType: 'keyboard-sidestick',
+    soundType: getStoredSoundType(),
     volume: 85,
     isDownbeat: true,
   };
@@ -46,6 +58,15 @@ class MetronomeEngine {
 
   constructor() {
     this.updateBeatsPerMeasure();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('harmonia-metronome-sound-changed', (e: Event) => {
+        const customEvent = e as CustomEvent<MetronomeSoundType>;
+        const sound = customEvent.detail;
+        if (sound && this.state.soundType !== sound) {
+          this.updateState({ soundType: sound });
+        }
+      });
+    }
   }
 
   private updateBeatsPerMeasure(timeSignature = this.state.timeSignature): number {
@@ -168,9 +189,28 @@ class MetronomeEngine {
     }
   }
 
-  public setSoundType(sound: MetronomeSoundType) {
+  public setSoundType(sound: MetronomeSoundType, preview = true) {
     if (this.state.soundType !== sound) {
       this.updateState({ soundType: sound });
+      try {
+        localStorage.setItem(METRONOME_SOUND_STORAGE_KEY, sound);
+      } catch {}
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('harmonia-metronome-sound-changed', { detail: sound })
+        );
+      }
+    }
+
+    // Feedback auditivo imediato ao trocar o timbre
+    if (preview) {
+      accompanimentSynthesizer.playMetronomeSound(
+        sound,
+        true,
+        false,
+        undefined,
+        (this.state.volume / 100) * 0.95
+      );
     }
   }
 

@@ -28,7 +28,7 @@ import {
   TONALITY_ROOTS,
 } from '../../core/harmonicProgressions';
 import type { TimeSignature } from '../../core/types';
-import type { MetronomeSoundType } from '../../core/accompanimentSynthesizer';
+import { METRONOME_SOUND_OPTIONS } from '../../core/accompanimentSynthesizer';
 import { soundEngine } from '../../core/soundEngine';
 
 export type StudioTabType = 'metronome' | 'accompaniment' | 'mixer';
@@ -190,25 +190,19 @@ export const MetronomeAccompanimentStudio: React.FC<Props> = ({
                     <span>Tap Tempo</span>
                   </button>
 
-                  <div className="flex items-center gap-1 bg-black/50 p-1.5 rounded-2xl border border-white/10 text-xs">
-                    {(
-                      [
-                        { id: 'digital', label: 'Digital' },
-                        { id: 'woodblock', label: 'Bloco' },
-                        { id: 'mechanical', label: 'Mecânico' },
-                        { id: 'cowbell', label: 'Cowbell' },
-                      ] as { id: MetronomeSoundType; label: string }[]
-                    ).map((snd) => (
+                  <div className="flex items-center gap-1 bg-black/50 p-1.5 rounded-2xl border border-white/10 text-xs flex-wrap">
+                    {METRONOME_SOUND_OPTIONS.map((snd) => (
                       <button
                         key={snd.id}
-                        onClick={() => accompanimentStore.setMetronomeSound(snd.id)}
+                        onClick={() => accompanimentStore.setMetronomeSound(snd.id, true)}
                         className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
                           accState.metronomeSound === snd.id
                             ? 'bg-indigo-600 text-white shadow-md'
                             : 'text-slate-400 hover:text-white'
                         }`}
+                        title={snd.label}
                       >
-                        {snd.label}
+                        {snd.label.split(' ')[0]}
                       </button>
                     ))}
                   </div>
