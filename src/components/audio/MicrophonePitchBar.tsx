@@ -1,13 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { micPitchDetector, MicrophonePitchDetector } from '../../core/pitchDetector';
 import type { DetectedPitch } from '../../core/pitchDetector';
-import { getNoteInfo } from '../../core/musicTheory';
+import { getNoteInfo, identifyChordFromMidi, type IdentifiedChord } from '../../core/musicTheory';
 import { octaveConfigStore, useOctaveStandard } from '../../core/octaveConfigStore';
 import { Mic, MicOff, Activity, Radio, ShieldAlert, Cable, Sliders } from 'lucide-react';
 
 interface Props {
   onNoteDetected?: (midi: number, noteName: string) => void;
   onNoteHold?: (midi: number | null, noteName?: string) => void;
+  onChordDetected?: (chord: IdentifiedChord, midiNotes: number[]) => void;
+  onAcousticChordNotesChange?: (notes: number[]) => void;
   onClapDetected?: () => void;
   onOnsetDetected?: (rms: number) => void;
   className?: string;
@@ -15,6 +17,8 @@ interface Props {
   disabledMessage?: string;
   expectedMidi?: number | null;
   expectedNoteName?: string;
+  expectedChordName?: string;
+  expectedChordNotes?: number[];
   isErrorActive?: boolean;
   customLabel?: string;
 }
@@ -22,6 +26,8 @@ interface Props {
 export const MicrophonePitchBar: React.FC<Props> = ({
   onNoteDetected,
   onNoteHold,
+  onChordDetected,
+  onAcousticChordNotesChange,
   onClapDetected,
   onOnsetDetected,
   className = '',
@@ -29,6 +35,8 @@ export const MicrophonePitchBar: React.FC<Props> = ({
   disabledMessage,
   expectedMidi,
   expectedNoteName,
+  expectedChordName,
+  expectedChordNotes,
   isErrorActive = false,
   customLabel,
 }) => {
@@ -40,6 +48,7 @@ export const MicrophonePitchBar: React.FC<Props> = ({
   const [sensitivityPercent, setSensitivityPercent] = useState<number>(() => micPitchDetector.getSensitivityPercent());
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
+  const [recentAcousticNotes, setRecentAcousticNotes] = useState<Map<number, number>>(new Map());
 
   const onNoteDetectedRef = useRef(onNoteDetected);
   onNoteDetectedRef.current = onNoteDetected;
@@ -47,11 +56,68 @@ export const MicrophonePitchBar: React.FC<Props> = ({
   const onNoteHoldRef = useRef(onNoteHold);
   onNoteHoldRef.current = onNoteHold;
 
+  const onChordDetectedRef = useRef(onChordDetected);
+  onChordDetectedRef.current = onChordDetected;
+
+  const onAcousticChordNotesChangeRef = useRef(onAcousticChordNotesChange);
+  onAcousticChordNotesChangeRef.current = onAcousticChordNotesChange;
+
   const onClapDetectedRef = useRef(onClapDetected);
   onClapDetectedRef.current = onClapDetected;
 
   const onOnsetDetectedRef = useRef(onOnsetDetected);
   onOnsetDetectedRef.current = onOnsetDetected;
+
+  // Registra nota ouvida para buffer de acordes acústicos em tempo real
+  const registerAcousticNote = (midi: number) => {
+    setRecentAcousticNotes((prev) => {
+      const next = new Map(prev);
+      next.set(midi, Date.now() + 1800); // 1.8s de sustentação harmônica
+      return next;
+    });
+  };
+
+  // Limpeza de notas acústicas expiradas do buffer de acordes
+  useEffect(() => {
+    if (!isActive) {
+      setRecentAcousticNotes(new Map());
+      return;
+    }
+    const timer = setInterval(() => {
+      const now = Date.now();
+      setRecentAcousticNotes((prev) => {
+        let changed = false;
+        const next = new Map(prev);
+        for (const [m, expiry] of next) {
+          if (now >= expiry) {
+            next.delete(m);
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
+    }, 250);
+    return () => clearInterval(timer);
+  }, [isActive]);
+
+  const activeAcousticMidis = useMemo(() => Array.from(recentAcousticNotes.keys()), [recentAcousticNotes]);
+
+  useEffect(() => {
+    onAcousticChordNotesChangeRef.current?.(activeAcousticMidis);
+  }, [activeAcousticMidis]);
+
+  const liveDetectedChord = useMemo(() => {
+    if (activeAcousticMidis.length >= 2) {
+      return identifyChordFromMidi(activeAcousticMidis, octaveStandard);
+    }
+    return null;
+  }, [activeAcousticMidis, octaveStandard]);
+
+  useEffect(() => {
+    if (liveDetectedChord) {
+      onChordDetectedRef.current?.(liveDetectedChord, activeAcousticMidis);
+    }
+  }, [liveDetectedChord, activeAcousticMidis]);
 
   // Carrega dispositivos de entrada de áudio (microfone integrado, cabo auxiliar ou interface USB)
   useEffect(() => {
@@ -77,6 +143,7 @@ export const MicrophonePitchBar: React.FC<Props> = ({
       const success = await micPitchDetector.start(
         (pitch) => {
           setCurrentPitch(pitch);
+          registerAcousticNote(pitch.midi);
           if (pitch.isNewAttack && onNoteDetectedRef.current) {
             onNoteDetectedRef.current(pitch.midi, pitch.noteName);
           }
@@ -86,6 +153,7 @@ export const MicrophonePitchBar: React.FC<Props> = ({
           setVolumeLevel(Math.min(100, Math.round(rms * 400)));
         },
         (activeMidi, noteName) => {
+          if (activeMidi !== null) registerAcousticNote(activeMidi);
           if (onNoteHoldRef.current) {
             onNoteHoldRef.current(activeMidi, noteName || undefined);
           }
@@ -277,14 +345,20 @@ export const MicrophonePitchBar: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* Barra de Status e Feedback de Nota em Tempo Real */}
+      {/* Barra de Status e Feedback de Nota/Acorde em Tempo Real */}
       {isActive && (() => {
         const hasTarget = expectedMidi !== undefined && expectedMidi !== null;
         const isMatch = currentPitch && hasTarget && currentPitch.midi === expectedMidi;
-        const isWrong = (currentPitch && hasTarget && currentPitch.midi !== expectedMidi) || isErrorActive;
+        const isChordNote = currentPitch && expectedChordNotes && expectedChordNotes.includes(currentPitch.midi);
+        const isWrong = isErrorActive;
         const cents = currentPitch
           ? Math.round((69 + 12 * Math.log2(currentPitch.frequency / 440) - currentPitch.midi) * 100)
           : 0;
+
+        const isChordMatch = liveDetectedChord && expectedChordName && (
+          liveDetectedChord.symbol.toLowerCase() === expectedChordName.toLowerCase() ||
+          liveDetectedChord.root.toLowerCase() === expectedChordName.toLowerCase()
+        );
 
         return (
           <div className="pt-2 border-t border-white/5 flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs">
@@ -302,56 +376,94 @@ export const MicrophonePitchBar: React.FC<Props> = ({
               <span className="text-[10px] font-mono text-slate-400 w-8">{volumeLevel}%</span>
             </div>
 
-            {/* Amostrador de Alta Resolução de Nota Ouvida */}
-            {currentPitch ? (
-              <div
-                className={`flex items-center gap-3 px-4 py-2 rounded-2xl border transition-all animate-fade-in ${
-                  isWrong
-                    ? 'bg-rose-950/80 border-rose-500/80 text-rose-200 shadow-lg shadow-rose-950/50 animate-pulse'
-                    : isMatch
-                    ? 'bg-emerald-950/80 border-emerald-500/80 text-emerald-200 shadow-lg shadow-emerald-950/50'
-                    : 'bg-indigo-950/60 border-indigo-500/40 text-slate-200'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className={`text-[10px] font-mono uppercase font-black px-2 py-0.5 rounded-md ${
+            {/* Painel de Identificação: Acorde ou Nota Ouvida em Tempo Real */}
+            <div className="flex items-center gap-3 flex-wrap">
+              {liveDetectedChord && activeAcousticMidis.length >= 2 ? (
+                <div
+                  className={`flex items-center gap-3 px-4 py-2 rounded-2xl border transition-all animate-fade-in ${
+                    isChordMatch
+                      ? 'bg-emerald-950/80 border-emerald-500/80 text-emerald-200 shadow-lg shadow-emerald-950/50'
+                      : 'bg-amber-950/50 border-amber-500/40 text-amber-200 shadow-lg shadow-amber-950/30'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] font-mono uppercase font-black px-2 py-0.5 rounded-md ${
+                      isChordMatch ? 'bg-emerald-500 text-slate-950' : 'bg-amber-500 text-slate-950'
+                    }`}>
+                      {isChordMatch ? '✔ ACORDE CORRETO' : '🎹 ACORDE OUVIDO'}
+                    </span>
+                    <span className="text-xl font-black font-display text-white">
+                      {liveDetectedChord.symbol}
+                    </span>
+                    <span className="text-xs text-amber-300 font-medium">
+                      ({liveDetectedChord.namePt})
+                    </span>
+                  </div>
+
+                  <div className="h-4 w-px bg-white/10 hidden sm:block" />
+
+                  <div className="text-[10px] font-mono text-slate-300">
+                    Notas: <span className="text-white font-bold">{liveDetectedChord.notesPt.join(' • ')}</span>
+                  </div>
+
+                  {expectedChordName && !isChordMatch && (
+                    <span className="text-[10px] font-mono font-black text-amber-300 bg-amber-900/60 px-2 py-0.5 rounded-lg border border-amber-500/40">
+                      Alvo: {expectedChordName}
+                    </span>
+                  )}
+                </div>
+              ) : currentPitch ? (
+                <div
+                  className={`flex items-center gap-3 px-4 py-2 rounded-2xl border transition-all animate-fade-in ${
                     isWrong
-                      ? 'bg-rose-500 text-white'
-                      : isMatch
-                      ? 'bg-emerald-500 text-slate-950'
-                      : 'bg-indigo-500/30 text-indigo-300'
-                  }`}>
-                    {isWrong ? '✕ NOTA ERRADA' : isMatch ? '✔ NOTA CORRETA' : '♫ AMOSTRADOR'}
-                  </span>
-                  <span className="text-xl font-black font-display text-white">
-                    {currentPitch.noteName}
-                  </span>
+                      ? 'bg-rose-950/80 border-rose-500/80 text-rose-200 shadow-lg shadow-rose-950/50 animate-pulse'
+                      : isMatch || isChordNote
+                      ? 'bg-emerald-950/80 border-emerald-500/80 text-emerald-200 shadow-lg shadow-emerald-950/50'
+                      : 'bg-indigo-950/60 border-indigo-500/40 text-slate-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] font-mono uppercase font-black px-2 py-0.5 rounded-md ${
+                      isWrong
+                        ? 'bg-rose-500 text-white'
+                        : isMatch
+                        ? 'bg-emerald-500 text-slate-950'
+                        : isChordNote
+                        ? 'bg-cyan-500 text-slate-950'
+                        : 'bg-indigo-500/30 text-indigo-300'
+                    }`}>
+                      {isWrong ? '✕ NOTA ERRADA' : isMatch ? '✔ NOTA CORRETA' : isChordNote ? '✔ NOTA DO ACORDE' : '♫ AMOSTRADOR'}
+                    </span>
+                    <span className="text-xl font-black font-display text-white">
+                      {currentPitch.noteName}
+                    </span>
+                  </div>
+
+                  <div className="h-4 w-px bg-white/10 hidden sm:block" />
+
+                  <div className="flex items-center gap-2 text-[10px] font-mono">
+                    <span className="text-cyan-300 font-bold">{currentPitch.frequency} Hz</span>
+                    <span className={`px-1.5 py-0.5 rounded ${
+                      Math.abs(cents) <= 8
+                        ? 'bg-emerald-500/20 text-emerald-300'
+                        : 'bg-amber-500/20 text-amber-300'
+                    }`}>
+                      {Math.abs(cents) <= 8 ? '● Afinada' : cents > 0 ? `+${cents}ct ♯` : `${cents}ct ♭`}
+                    </span>
+                  </div>
+
+                  {isWrong && (expectedMidi !== null && expectedMidi !== undefined ? getNoteInfo(expectedMidi, false, octaveStandard).fullName : expectedNoteName ? octaveConfigStore.convertNoteOctave(expectedNoteName, octaveStandard, 'C3') : null) && (
+                    <span className="text-[10px] font-mono font-black text-rose-300 bg-rose-900/60 px-2 py-0.5 rounded-lg border border-rose-500/40">
+                      A partitura pede: {expectedMidi !== null && expectedMidi !== undefined ? getNoteInfo(expectedMidi, false, octaveStandard).fullName : octaveConfigStore.convertNoteOctave(expectedNoteName!, octaveStandard, 'C3')}
+                    </span>
+                  )}
                 </div>
-
-                <div className="h-4 w-px bg-white/10 hidden sm:block" />
-
-                <div className="flex items-center gap-2 text-[10px] font-mono">
-                  <span className="text-cyan-300 font-bold">{currentPitch.frequency} Hz</span>
-                  <span className={`px-1.5 py-0.5 rounded ${
-                    Math.abs(cents) <= 8
-                      ? 'bg-emerald-500/20 text-emerald-300'
-                      : 'bg-amber-500/20 text-amber-300'
-                  }`}>
-                    {Math.abs(cents) <= 8 ? '● Afinada' : cents > 0 ? `+${cents}ct ♯` : `${cents}ct ♭`}
-                  </span>
-                </div>
-
-                {isWrong && (expectedMidi !== null && expectedMidi !== undefined ? getNoteInfo(expectedMidi, false, octaveStandard).fullName : expectedNoteName ? octaveConfigStore.convertNoteOctave(expectedNoteName, octaveStandard, 'C3') : null) && (
-                  <span className="text-[10px] font-mono font-black text-rose-300 bg-rose-900/60 px-2 py-0.5 rounded-lg border border-rose-500/40">
-                    A partitura pede: {expectedMidi !== null && expectedMidi !== undefined ? getNoteInfo(expectedMidi, false, octaveStandard).fullName : octaveConfigStore.convertNoteOctave(expectedNoteName!, octaveStandard, 'C3')}
-                  </span>
-                )}
-              </div>
-            ) : (
-              <span className="text-[11px] text-slate-400 italic">
-                Amostrador ativo: toque qualquer tecla no seu piano acústico ou teclado elétrico...
-              </span>
-            )}
+              ) : (
+                <span className="text-[11px] text-slate-400 italic">
+                  Amostrador ativo: toque notas ou acordes no seu piano acústico ou teclado elétrico...
+                </span>
+              )}
+            </div>
           </div>
         );
       })()}

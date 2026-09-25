@@ -78,4 +78,19 @@ describe('Real-Time Chord Identification from MIDI notes', () => {
     expect(fifth).not.toBeNull();
     expect(fifth?.namePt).toContain('Quinta Justa');
   });
+
+  it('identifica acordes com notas desordenadas acumuladas acusticamente', () => {
+    // Dó Maior tocado na ordem G3 (67), C3 (60), E3 (64)
+    const cChord = identifyChordFromMidi([67, 60, 64], 'C3');
+    expect(cChord).not.toBeNull();
+    expect(cChord?.symbol).toContain('C');
+    expect(cChord?.namePt).toContain('Dó Maior');
+  });
+
+  it('identifica acorde Ré Menor (Dm) com D3 (62), F3 (65), A3 (69)', () => {
+    const dm = identifyChordFromMidi([62, 65, 69]);
+    expect(dm).not.toBeNull();
+    expect(dm?.symbol).toBe('Dm');
+    expect(dm?.namePt).toBe('Ré Menor');
+  });
 });

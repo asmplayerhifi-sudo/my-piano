@@ -5,11 +5,11 @@
  */
 
 import { useRef, useState, useCallback, useEffect } from 'react';
-import type { ScoreNote } from '../../../core/coursesData';
-import { getNoteInfo } from '../../../core/musicTheory';
+import { getNoteInfo, parseChord, CHROMATIC_NOTES_SHARP, CHROMATIC_NOTES_FLAT } from '../../../core/musicTheory';
 import { soundEngine } from '../../../core/soundEngine';
 import { NoteConfirmationValidator } from '../../../core/noteConfirmationValidator';
 import { EvaluateRhythmStrikeUseCase } from '../../../application/use-cases/EvaluateRhythmStrikeUseCase';
+import type { ScoreNote } from '../../../core/coursesData';
 import type { ChordSpan, ScoreErrorEvent } from './types';
 
 interface PlaybackTimeline {
@@ -185,8 +185,21 @@ export function useScorePlayback({
     const nextNote = notes[currentIndex + 1] || null;
     const now = performance.now();
 
-    // 1. Acerto Imediato (Zero Latência): Toque rítmico genérico (-1) ou a nota correta
-    if (rawMidi === -1 || targetNote.midi === rawMidi) {
+    // Verifica se a nota tocada é compatível com o acorde da nota atual
+    let isChordNoteMatch = false;
+    if (targetNote.chordName) {
+      const parsedChord = parseChord(targetNote.chordName);
+      if (parsedChord) {
+        const rawPitchClass = ((rawMidi % 12) + 12) % 12;
+        isChordNoteMatch = parsedChord.notes.some(n => {
+          const idx = CHROMATIC_NOTES_SHARP.indexOf(n);
+          return (idx !== -1 ? idx : CHROMATIC_NOTES_FLAT.indexOf(n)) === rawPitchClass;
+        });
+      }
+    }
+
+    // 1. Acerto Imediato (Zero Latência): Toque rítmico genérico (-1), nota correta ou nota do acorde
+    if (rawMidi === -1 || targetNote.midi === rawMidi || isChordNoteMatch) {
       validatorRef.current.onNoteCompleted(targetNote.midi, now);
       setLastError(null);
       const noteOffset = timeline.noteOffsets[currentIndex] ?? 0;
@@ -203,8 +216,21 @@ export function useScorePlayback({
       return;
     }
 
-    // 2. Transição Antecipada: Usuário tocou a próxima nota da partitura
-    if (nextNote && nextNote.midi === rawMidi) {
+    // Verifica compatibilidade com acorde da próxima nota
+    let isNextChordNoteMatch = false;
+    if (nextNote?.chordName) {
+      const parsedNext = parseChord(nextNote.chordName);
+      if (parsedNext) {
+        const rawPitchClass = ((rawMidi % 12) + 12) % 12;
+        isNextChordNoteMatch = parsedNext.notes.some(n => {
+          const idx = CHROMATIC_NOTES_SHARP.indexOf(n);
+          return (idx !== -1 ? idx : CHROMATIC_NOTES_FLAT.indexOf(n)) === rawPitchClass;
+        });
+      }
+    }
+
+    // 2. Transição Antecipada: Usuário tocou a próxima nota da partitura ou nota do próximo acorde
+    if (nextNote && (nextNote.midi === rawMidi || isNextChordNoteMatch)) {
       validatorRef.current.onNoteCompleted(nextNote.midi, now);
       setLastError(null);
       const nextIdx = currentIndex + 1;

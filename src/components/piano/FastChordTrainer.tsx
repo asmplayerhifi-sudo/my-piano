@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useSyncExternalStore, useMemo } from 'react';
 import { PianoKeyboard } from './PianoKeyboard';
-import { getKeyboardInversions } from '../../core/musicTheory';
+import { getKeyboardInversions, type IdentifiedChord } from '../../core/musicTheory';
 import { soundEngine } from '../../core/soundEngine';
 import { octaveConfigStore, useOctaveStandard } from '../../core/octaveConfigStore';
+import { midiManager } from '../../core/midiManager';
+import { activeMidiStore } from '../../core/activeMidiStore';
+import { MicrophonePitchBar } from '../audio/MicrophonePitchBar';
 import { Zap, CheckCircle2, Clock, Trophy } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -91,6 +94,45 @@ export const FastChordTrainer: React.FC = () => {
     degreeName: idx === 0 ? '1' : idx === 1 ? '3' : '5',
     finger: targetVoicing.fingeringRH[idx],
   }));
+
+  // Escuta entradas MIDI de teclado físico externo (USB / OTG / Bluetooth)
+  useEffect(() => {
+    midiManager.initialize();
+    const unsub = midiManager.subscribe((payload) => {
+      if (payload.isDown && isActive && !isSuccess) {
+        if (targetVoicing.midi.includes(payload.midi)) {
+          handleConfirmFingering();
+        }
+      }
+    });
+    return unsub;
+  }, [isActive, isSuccess, targetVoicing]);
+
+  const globalActiveMidi = useSyncExternalStore(
+    activeMidiStore.subscribe,
+    activeMidiStore.getSnapshot,
+  );
+
+  const [micAcousticNotes, setMicAcousticNotes] = useState<number[]>([]);
+
+  const activeExternalNotes = useMemo(() => {
+    const set = new Set<number>();
+    globalActiveMidi.forEach(m => set.add(m));
+    micAcousticNotes.forEach(m => set.add(m));
+    return Array.from(set);
+  }, [globalActiveMidi, micAcousticNotes]);
+
+  const handleAcousticChordDetected = (detected: IdentifiedChord) => {
+    if (isActive && !isSuccess) {
+      const targetSymbol = currentChallenge.root + (currentChallenge.quality === 'minor' ? 'm' : '');
+      if (
+        detected.symbol.toLowerCase() === targetSymbol.toLowerCase() ||
+        detected.root.toLowerCase() === currentChallenge.root.toLowerCase()
+      ) {
+        handleConfirmFingering();
+      }
+    }
+  };
 
   // Temporizador regressivo
   useEffect(() => {
@@ -212,6 +254,20 @@ export const FastChordTrainer: React.FC = () => {
         </div>
       </div>
 
+      {/* Escuta Acústica e MIDI para Prática com Instrumento Real */}
+      <MicrophonePitchBar
+        expectedChordName={currentChallenge.root + (currentChallenge.quality === 'minor' ? 'm' : '')}
+        expectedChordNotes={targetVoicing.midi}
+        onChordDetected={handleAcousticChordDetected}
+        onAcousticChordNotesChange={(notes) => setMicAcousticNotes(notes)}
+        onNoteDetected={(midi) => {
+          if (isActive && !isSuccess && targetVoicing.midi.includes(midi)) {
+            handleConfirmFingering();
+          }
+        }}
+        customLabel="Escutar Acorde no seu Piano Real / Teclado Externo:"
+      />
+
       {/* Teclado Virtual com o Acorde e Dedilhado Mapeado */}
       <div className="pt-2">
         <PianoKeyboard
@@ -219,6 +275,7 @@ export const FastChordTrainer: React.FC = () => {
           octaveCount={3}
           allowOctaveControls={true}
           highlightedKeys={highlightedKeys}
+          activeExternalNotes={activeExternalNotes}
           onKeyPlay={(midi) => {
             if (isActive && !isSuccess) {
               if (targetVoicing.midi.includes(midi)) {

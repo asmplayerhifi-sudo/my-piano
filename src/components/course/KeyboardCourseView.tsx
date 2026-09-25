@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, useSyncExternalStore } from 'react';
 import { KEYBOARD_COURSE_MODULES } from '../../core/coursesData';
 import type { CourseLesson, CourseModule, ScoreNote, CourseExercise } from '../../core/coursesData';
-import { getNoteInfo } from '../../core/musicTheory';
+import { getNoteInfo, identifyChordFromMidi } from '../../core/musicTheory';
 import { octaveConfigStore, useOctaveStandard } from '../../core/octaveConfigStore';
+import { midiManager } from '../../core/midiManager';
+import { activeMidiStore } from '../../core/activeMidiStore';
 import { ScrollingScoreCanvas } from '../score/ScrollingScoreCanvas';
 import { FastChordTrainer } from '../piano/FastChordTrainer';
 import { PianoKeyboard } from '../piano/PianoKeyboard';
@@ -28,6 +30,7 @@ import {
   Play,
   Pause,
   AlertCircle,
+  Radio,
 } from 'lucide-react';
 
 interface PerformanceReport {
@@ -168,6 +171,40 @@ export const KeyboardCourseView: React.FC = () => {
   const handleNoteInput = useCallback((midi: number) => {
     setLastMidiEvent({ midi, timestamp: performance.now() });
   }, []);
+
+  // Escuta entradas MIDI de teclado físico externo (USB / OTG / Bluetooth)
+  useEffect(() => {
+    midiManager.initialize();
+    const unsub = midiManager.subscribe((payload) => {
+      if (payload.isDown) {
+        handleNoteInput(payload.midi);
+      }
+    });
+    return unsub;
+  }, [handleNoteInput]);
+
+  // Subscreve ao store global de notas MIDI ativas
+  const globalActiveMidi = useSyncExternalStore(
+    activeMidiStore.subscribe,
+    activeMidiStore.getSnapshot,
+  );
+
+  // Notas ouvidas via microfone acumuladas para identificação de acordes acústicos
+  const [micAcousticNotes, setMicAcousticNotes] = useState<number[]>([]);
+
+  // Combina todas as notas externas ativas (microfone + teclado MIDI)
+  const activeExternalNotes = useMemo(() => {
+    const set = new Set<number>();
+    globalActiveMidi.forEach(m => set.add(m));
+    micAcousticNotes.forEach(m => set.add(m));
+    if (micHearingMidi !== null) set.add(micHearingMidi);
+    return Array.from(set);
+  }, [globalActiveMidi, micAcousticNotes, micHearingMidi]);
+
+  // Identificação em tempo real do acorde ou nota externa executada
+  const liveIdentifiedChord = useMemo(() => {
+    return identifyChordFromMidi(activeExternalNotes, octaveStandard);
+  }, [activeExternalNotes, octaveStandard]);
 
   const handleTargetNoteChange = useCallback((note: ScoreNote | null) => {
     setTargetScoreNote(prev => {
@@ -866,8 +903,10 @@ export const KeyboardCourseView: React.FC = () => {
                 <MicrophonePitchBar
                   onNoteDetected={(midi) => handleNoteInput(midi)}
                   onNoteHold={(midi) => handleMicNoteHold(midi)}
+                  onAcousticChordNotesChange={(notes) => setMicAcousticNotes(notes)}
                   expectedMidi={targetScoreNote?.midi ?? null}
                   expectedNoteName={targetScoreNote ? getNoteInfo(targetScoreNote.midi, false, octaveStandard).fullName : undefined}
+                  expectedChordName={targetScoreNote?.chordName}
                   isErrorActive={activeErrors.length > 0}
                 />
 
@@ -895,8 +934,10 @@ export const KeyboardCourseView: React.FC = () => {
                     <MicrophonePitchBar
                       onNoteDetected={(midi) => handleNoteInput(midi)}
                       onNoteHold={(midi) => handleMicNoteHold(midi)}
+                      onAcousticChordNotesChange={(notes) => setMicAcousticNotes(notes)}
                       expectedMidi={targetScoreNote?.midi ?? null}
                       expectedNoteName={targetScoreNote?.noteName}
+                      expectedChordName={targetScoreNote?.chordName}
                       isErrorActive={activeErrors.length > 0}
                     />
                     <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block mb-2 font-bold">
@@ -905,13 +946,46 @@ export const KeyboardCourseView: React.FC = () => {
                   </>
                 )}
 
+                {/* Painel de Reconhecimento em Tempo Real de Acorde / Nota Escutada */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl bg-black/40 border border-white/10 mb-2">
+                  <div className="flex items-center gap-2">
+                    <Radio className={`w-3.5 h-3.5 ${liveIdentifiedChord ? 'text-amber-400 animate-pulse' : 'text-slate-500'}`} />
+                    <span className="text-[11px] font-mono text-slate-300 font-bold uppercase tracking-wider">
+                      Escutado no Instrumento:
+                    </span>
+                    {liveIdentifiedChord ? (
+                      <span className="flex items-baseline gap-2">
+                        <span className="text-base font-black font-display text-amber-400">
+                          {liveIdentifiedChord.symbol}
+                        </span>
+                        <span className="text-xs text-slate-300 font-medium">
+                          ({liveIdentifiedChord.namePt})
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-400 hidden md:inline">
+                          [{liveIdentifiedChord.notesPt.join(' • ')}]
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="text-xs text-slate-500 italic">
+                        Toque no piano/teclado para identificar notas e acordes em tempo real...
+                      </span>
+                    )}
+                  </div>
+
+                  {targetScoreNote?.chordName && (
+                    <div className="text-[11px] font-mono text-indigo-300">
+                      Acorde da partitura: <span className="font-bold text-white">{targetScoreNote.chordName}</span>
+                    </div>
+                  )}
+                </div>
+
                 <PianoKeyboard
                   startOctave={2}
                   octaveCount={3}
                   allowOctaveControls={true}
                   highlightedKeys={highlightedLessonKeys}
                   activeFingerPrompt={activeFingerPrompt}
-                  activeExternalNotes={micHearingMidi !== null ? [micHearingMidi] : []}
+                  activeExternalNotes={activeExternalNotes}
                   errorNotes={activeErrors}
                   correctNotes={activeCorrect}
                   onKeyPlay={(midi) => handleNoteInput(midi)}
