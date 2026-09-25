@@ -1,0 +1,181 @@
+import type { RepertoireSong } from '../repertoireData';
+
+export const ETHEREAL_DRIFT: RepertoireSong = {
+    id: 'ethereal-drift',
+    title: 'Ethereal Drift',
+    composerOrArtist: 'Harmonia App (Composicao Original)',
+    genre: 'Rock Psicodelico & Progressivo',
+    difficulty: 'Intermediario',
+    recommendedBpm: 72,
+    timeSignature: '4/4',
+    tonality: 'Mi Menor (Em)',
+    description: 'Jornada atmosferica em Mi Menor com arpejo pentatonico ascendente, drone de baixo sustentado e progressao Em-Cmaj7-G-D. Introducao eterica, verso denso e interludio contemplativo.',
+    historicalContext: 'Composicao original inspirada no rock psicodelico britanico dos anos 60-70: baixo sustentado como pedal tonal, arpejos de guitarra sobre progressoes modais e dinamica gradual de ppp a fff.',
+    biomechanicsTip: 'Arpejo em Mi Menor: posicione os dedos em E-G-B antes de tocar. Mantenha o movimento circular suave, sem tensao no pulso. O baixo sustentado (drone) deve ser tocado com toque firme e uniforme.',
+    chords: ['Em', 'Cmaj7', 'G', 'D', 'Am', 'Bm'],
+    scoreTrack: [
+      // Introducao (C 1-4)
+      { midi: 40, clef: 'bass', duration: 4, beat: 1, measure: 1, fingerLeftHand: 5, noteName: 'E1', chordName: 'Em' },
+      { midi: 64, clef: 'treble', duration: 0.5, beat: 1, measure: 1, fingerRightHand: 1, noteName: 'E3' },
+      { midi: 67, clef: 'treble', duration: 0.5, beat: 1.5, measure: 1, fingerRightHand: 2, noteName: 'G3' },
+      { midi: 71, clef: 'treble', duration: 0.5, beat: 2, measure: 1, fingerRightHand: 3, noteName: 'B3' },
+      { midi: 76, clef: 'treble', duration: 0.5, beat: 2.5, measure: 1, fingerRightHand: 5, noteName: 'E4' },
+      { midi: 71, clef: 'treble', duration: 0.5, beat: 3, measure: 1, fingerRightHand: 3, noteName: 'B3' },
+      { midi: 67, clef: 'treble', duration: 0.5, beat: 3.5, measure: 1, fingerRightHand: 2, noteName: 'G3' },
+      { midi: 71, clef: 'treble', duration: 0.5, beat: 4, measure: 1, fingerRightHand: 3, noteName: 'B3' },
+      { midi: 76, clef: 'treble', duration: 0.5, beat: 4.5, measure: 1, fingerRightHand: 5, noteName: 'E4' },
+
+      { midi: 36, clef: 'bass', duration: 4, beat: 1, measure: 2, fingerLeftHand: 5, noteName: 'C1', chordName: 'Cmaj7' },
+      { midi: 64, clef: 'treble', duration: 0.5, beat: 1, measure: 2, fingerRightHand: 1, noteName: 'E3' },
+      { midi: 67, clef: 'treble', duration: 0.5, beat: 1.5, measure: 2, fingerRightHand: 2, noteName: 'G3' },
+      { midi: 72, clef: 'treble', duration: 0.5, beat: 2, measure: 2, fingerRightHand: 3, noteName: 'C4' },
+      { midi: 76, clef: 'treble', duration: 0.5, beat: 2.5, measure: 2, fingerRightHand: 5, noteName: 'E4' },
+      { midi: 72, clef: 'treble', duration: 0.5, beat: 3, measure: 2, fingerRightHand: 3, noteName: 'C4' },
+      { midi: 71, clef: 'treble', duration: 0.5, beat: 3.5, measure: 2, fingerRightHand: 2, noteName: 'B3' },
+      { midi: 72, clef: 'treble', duration: 0.5, beat: 4, measure: 2, fingerRightHand: 3, noteName: 'C4' },
+      { midi: 76, clef: 'treble', duration: 0.5, beat: 4.5, measure: 2, fingerRightHand: 5, noteName: 'E4' },
+
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 3, fingerLeftHand: 5, noteName: 'G1', chordName: 'G' },
+      { midi: 67, clef: 'treble', duration: 0.5, beat: 1, measure: 3, fingerRightHand: 1, noteName: 'G3' },
+      { midi: 71, clef: 'treble', duration: 0.5, beat: 1.5, measure: 3, fingerRightHand: 2, noteName: 'B3' },
+      { midi: 74, clef: 'treble', duration: 0.5, beat: 2, measure: 3, fingerRightHand: 3, noteName: 'D4' },
+      { midi: 79, clef: 'treble', duration: 0.5, beat: 2.5, measure: 3, fingerRightHand: 5, noteName: 'G4' },
+      { midi: 74, clef: 'treble', duration: 0.5, beat: 3, measure: 3, fingerRightHand: 3, noteName: 'D4' },
+      { midi: 71, clef: 'treble', duration: 0.5, beat: 3.5, measure: 3, fingerRightHand: 2, noteName: 'B3' },
+      { midi: 74, clef: 'treble', duration: 0.5, beat: 4, measure: 3, fingerRightHand: 3, noteName: 'D4' },
+      { midi: 79, clef: 'treble', duration: 0.5, beat: 4.5, measure: 3, fingerRightHand: 5, noteName: 'G4' },
+
+      { midi: 50, clef: 'bass', duration: 4, beat: 1, measure: 4, fingerLeftHand: 5, noteName: 'D2', chordName: 'D' },
+      { midi: 66, clef: 'treble', duration: 0.5, beat: 1, measure: 4, fingerRightHand: 1, noteName: 'F#3' },
+      { midi: 69, clef: 'treble', duration: 0.5, beat: 1.5, measure: 4, fingerRightHand: 2, noteName: 'A3' },
+      { midi: 74, clef: 'treble', duration: 0.5, beat: 2, measure: 4, fingerRightHand: 4, noteName: 'D4' },
+      { midi: 78, clef: 'treble', duration: 0.5, beat: 2.5, measure: 4, fingerRightHand: 5, noteName: 'F#4' },
+      { midi: 74, clef: 'treble', duration: 0.5, beat: 3, measure: 4, fingerRightHand: 4, noteName: 'D4' },
+      { midi: 71, clef: 'treble', duration: 0.5, beat: 3.5, measure: 4, fingerRightHand: 2, noteName: 'B3' },
+      { midi: 74, clef: 'treble', duration: 1, beat: 4, measure: 4, fingerRightHand: 4, noteName: 'D4' },
+
+      // Verso (C 5-12)
+      { midi: 40, clef: 'bass', duration: 2, beat: 1, measure: 5, fingerLeftHand: 5, noteName: 'E1', chordName: 'Em' },
+      { midi: 52, clef: 'bass', duration: 2, beat: 3, measure: 5, fingerLeftHand: 3, noteName: 'E2' },
+      { midi: 76, clef: 'treble', duration: 2, beat: 1, measure: 5, fingerRightHand: 5, noteName: 'E4' },
+      { midi: 74, clef: 'treble', duration: 1, beat: 3, measure: 5, fingerRightHand: 4, noteName: 'D4' },
+      { midi: 71, clef: 'treble', duration: 1, beat: 4, measure: 5, fingerRightHand: 2, noteName: 'B3' },
+
+      { midi: 36, clef: 'bass', duration: 4, beat: 1, measure: 6, fingerLeftHand: 5, noteName: 'C1', chordName: 'Cmaj7' },
+      { midi: 72, clef: 'treble', duration: 1.5, beat: 1, measure: 6, fingerRightHand: 3, noteName: 'C4' },
+      { midi: 71, clef: 'treble', duration: 0.5, beat: 2.5, measure: 6, fingerRightHand: 2, noteName: 'B3' },
+      { midi: 69, clef: 'treble', duration: 2, beat: 3, measure: 6, fingerRightHand: 1, noteName: 'A3' },
+
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 7, fingerLeftHand: 5, noteName: 'G1', chordName: 'G' },
+      { midi: 79, clef: 'treble', duration: 2, beat: 1, measure: 7, fingerRightHand: 5, noteName: 'G4' },
+      { midi: 76, clef: 'treble', duration: 1, beat: 3, measure: 7, fingerRightHand: 3, noteName: 'E4' },
+      { midi: 74, clef: 'treble', duration: 1, beat: 4, measure: 7, fingerRightHand: 2, noteName: 'D4' },
+
+      { midi: 50, clef: 'bass', duration: 2, beat: 1, measure: 8, fingerLeftHand: 5, noteName: 'D2', chordName: 'D' },
+      { midi: 40, clef: 'bass', duration: 2, beat: 3, measure: 8, fingerLeftHand: 5, noteName: 'E1', chordName: 'Em' },
+      { midi: 71, clef: 'treble', duration: 1, beat: 1, measure: 8, fingerRightHand: 2, noteName: 'B3' },
+      { midi: 69, clef: 'treble', duration: 1, beat: 2, measure: 8, fingerRightHand: 1, noteName: 'A3' },
+      { midi: 71, clef: 'treble', duration: 2, beat: 3, measure: 8, fingerRightHand: 2, noteName: 'B3' },
+
+      { midi: 40, clef: 'bass', duration: 4, beat: 1, measure: 9, fingerLeftHand: 5, noteName: 'E1', chordName: 'Em' },
+      { midi: 88, clef: 'treble', duration: 2, beat: 1, measure: 9, fingerRightHand: 5, noteName: 'E5' },
+      { midi: 86, clef: 'treble', duration: 1, beat: 3, measure: 9, fingerRightHand: 4, noteName: 'D5' },
+      { midi: 83, clef: 'treble', duration: 1, beat: 4, measure: 9, fingerRightHand: 2, noteName: 'B4' },
+
+      { midi: 36, clef: 'bass', duration: 4, beat: 1, measure: 10, fingerLeftHand: 5, noteName: 'C1', chordName: 'Cmaj7' },
+      { midi: 84, clef: 'treble', duration: 1.5, beat: 1, measure: 10, fingerRightHand: 3, noteName: 'C5' },
+      { midi: 83, clef: 'treble', duration: 0.5, beat: 2.5, measure: 10, fingerRightHand: 2, noteName: 'B4' },
+      { midi: 81, clef: 'treble', duration: 2, beat: 3, measure: 10, fingerRightHand: 1, noteName: 'A4' },
+
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 11, fingerLeftHand: 5, noteName: 'G1', chordName: 'G' },
+      { midi: 91, clef: 'treble', duration: 2, beat: 1, measure: 11, fingerRightHand: 5, noteName: 'G5' },
+      { midi: 88, clef: 'treble', duration: 2, beat: 3, measure: 11, fingerRightHand: 3, noteName: 'E5' },
+
+      { midi: 50, clef: 'bass', duration: 2, beat: 1, measure: 12, fingerLeftHand: 5, noteName: 'D2', chordName: 'D' },
+      { midi: 40, clef: 'bass', duration: 2, beat: 3, measure: 12, fingerLeftHand: 5, noteName: 'E1', chordName: 'Em' },
+      { midi: 86, clef: 'treble', duration: 2, beat: 1, measure: 12, fingerRightHand: 5, noteName: 'D5' },
+      { midi: 83, clef: 'treble', duration: 2, beat: 3, measure: 12, fingerRightHand: 3, noteName: 'B4' },
+
+      // Interludio (C 13-16)
+      { midi: 45, clef: 'bass', duration: 4, beat: 1, measure: 13, fingerLeftHand: 5, noteName: 'A1', chordName: 'Am' },
+      { midi: 69, clef: 'treble', duration: 1, beat: 1, measure: 13, fingerRightHand: 1, noteName: 'A3' },
+      { midi: 72, clef: 'treble', duration: 1, beat: 2, measure: 13, fingerRightHand: 3, noteName: 'C4' },
+      { midi: 76, clef: 'treble', duration: 2, beat: 3, measure: 13, fingerRightHand: 5, noteName: 'E4' },
+
+      { midi: 47, clef: 'bass', duration: 4, beat: 1, measure: 14, fingerLeftHand: 5, noteName: 'B1', chordName: 'Bm' },
+      { midi: 71, clef: 'treble', duration: 1, beat: 1, measure: 14, fingerRightHand: 1, noteName: 'B3' },
+      { midi: 74, clef: 'treble', duration: 1, beat: 2, measure: 14, fingerRightHand: 3, noteName: 'D4' },
+      { midi: 78, clef: 'treble', duration: 2, beat: 3, measure: 14, fingerRightHand: 5, noteName: 'F#4' },
+
+      { midi: 40, clef: 'bass', duration: 4, beat: 1, measure: 15, fingerLeftHand: 5, noteName: 'E1', chordName: 'Em' },
+      { midi: 76, clef: 'treble', duration: 2, beat: 1, measure: 15, fingerRightHand: 5, noteName: 'E4' },
+      { midi: 74, clef: 'treble', duration: 1, beat: 3, measure: 15, fingerRightHand: 4, noteName: 'D4' },
+      { midi: 71, clef: 'treble', duration: 1, beat: 4, measure: 15, fingerRightHand: 2, noteName: 'B3' },
+
+      { midi: 36, clef: 'bass', duration: 4, beat: 1, measure: 16, fingerLeftHand: 5, noteName: 'C1', chordName: 'Cmaj7' },
+      { midi: 72, clef: 'treble', duration: 4, beat: 1, measure: 16, fingerRightHand: 4, noteName: 'C4' },
+
+      // Encerramento (C 17-20)
+      { midi: 43, clef: 'bass', duration: 4, beat: 1, measure: 17, fingerLeftHand: 5, noteName: 'G1', chordName: 'G' },
+      { midi: 79, clef: 'treble', duration: 2, beat: 1, measure: 17, fingerRightHand: 5, noteName: 'G4' },
+      { midi: 76, clef: 'treble', duration: 2, beat: 3, measure: 17, fingerRightHand: 3, noteName: 'E4' },
+
+      { midi: 50, clef: 'bass', duration: 4, beat: 1, measure: 18, fingerLeftHand: 5, noteName: 'D2', chordName: 'D' },
+      { midi: 74, clef: 'treble', duration: 2, beat: 1, measure: 18, fingerRightHand: 4, noteName: 'D4' },
+      { midi: 71, clef: 'treble', duration: 2, beat: 3, measure: 18, fingerRightHand: 2, noteName: 'B3' },
+
+      { midi: 40, clef: 'bass', duration: 4, beat: 1, measure: 19, fingerLeftHand: 5, noteName: 'E1', chordName: 'Em' },
+      { midi: 67, clef: 'treble', duration: 2, beat: 1, measure: 19, fingerRightHand: 2, noteName: 'G3' },
+      { midi: 64, clef: 'treble', duration: 2, beat: 3, measure: 19, fingerRightHand: 1, noteName: 'E3' },
+
+      { midi: 40, clef: 'bass', duration: 4, beat: 1, measure: 20, fingerLeftHand: 5, noteName: 'E1', chordName: 'Em' },
+      { midi: 64, clef: 'treble', duration: 1, beat: 1, measure: 20, fingerRightHand: 1, noteName: 'E3' },
+      { midi: 67, clef: 'treble', duration: 1, beat: 1, measure: 20, fingerRightHand: 2, noteName: 'G3' },
+      { midi: 71, clef: 'treble', duration: 4, beat: 1, measure: 20, fingerRightHand: 3, noteName: 'B3' },
+    ],
+    extension: {
+      credits: {
+        composer: 'Harmonia App',
+        arrangementAuthor: 'Harmonia App',
+        arrangementVersion: '1.0',
+        scoreSource: 'Composicao original',
+        license: 'original',
+        origin: 'Brasil',
+      },
+      sections: [
+        { id: 'intro', label: 'Drift (Intro)', startMeasure: 1, endMeasure: 4, dynamic: 'pp', tempo: 72, icon: 'intro' },
+        { id: 'verse1', label: 'Verso I', startMeasure: 5, endMeasure: 8, dynamic: 'mf', icon: 'verse' },
+        { id: 'verse2', label: 'Verso II', startMeasure: 9, endMeasure: 12, dynamic: 'f', icon: 'verse' },
+        { id: 'interlude', label: 'Interludio', startMeasure: 13, endMeasure: 16, dynamic: 'mp', icon: 'interlude' },
+        { id: 'outro', label: 'Dissolve', startMeasure: 17, endMeasure: 20, dynamic: 'p', icon: 'outro' },
+      ],
+      arrangements: [
+        {
+          id: 'full-psychedelic',
+          label: 'Psicodelico Completo',
+          description: 'Bateria progressiva + baixo sustentado + acordes + arpejos',
+          defaultBpm: 72,
+          styleId: 'ballad_4_4',
+          enabledChannels: { drums: true, bass: true, chords: true, arpeggio: true },
+          melodicTimbre: 'rhodes',
+          icon: '🌌',
+        },
+        {
+          id: 'ambient-keys',
+          label: 'Teclado Ambiente',
+          description: 'Apenas piano Rhodes com arpejo atmosferico',
+          defaultBpm: 60,
+          styleId: 'ballad_4_4',
+          enabledChannels: { drums: false, bass: false, chords: false, arpeggio: true },
+          melodicTimbre: 'synth_pad',
+          icon: '🎹',
+        },
+      ],
+      chordProgression: [
+        { measure: 1, beat: 1, chord: 'Em', durationBeats: 4 },
+        { measure: 2, beat: 1, chord: 'Cmaj7', durationBeats: 4 },
+        { measure: 3, beat: 1, chord: 'G', durationBeats: 4 },
+        { measure: 4, beat: 1, chord: 'D', durationBeats: 4 },
+      ],
+    },
+  };
