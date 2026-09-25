@@ -19,7 +19,7 @@ export const PianoModule: React.FC = () => {
   // Subscreve ao store global de notas ativas (partitura, repertório, acordes, qualquer módulo ou teclado USB físico)
   const globalActiveMidi = useSyncExternalStore(
     activeMidiStore.subscribe,
-    activeMidiStore.getSnapshotRef,
+    activeMidiStore.getSnapshot,
   );
 
   // Inicializa gerenciador de entrada física MIDI (USB / Cabo OTG / Bluetooth)
@@ -63,6 +63,12 @@ export const PianoModule: React.FC = () => {
       };
     });
   }, [activeVoicing, selectedQuality]);
+
+  const activeExternalNotes = useMemo(() => {
+    return micActiveMidi !== null
+      ? [...globalActiveMidi, micActiveMidi]
+      : (globalActiveMidi as number[]);
+  }, [globalActiveMidi, micActiveMidi]);
 
   return (
     <div className="w-full space-y-6">
@@ -137,10 +143,7 @@ export const PianoModule: React.FC = () => {
             octaveCount={3}
             allowOctaveControls={true}
             highlightedKeys={highlightedKeys}
-            activeExternalNotes={[
-              ...globalActiveMidi,
-              ...(micActiveMidi !== null ? [micActiveMidi] : []),
-            ]}
+            activeExternalNotes={activeExternalNotes}
           />
         </div>
       </div>

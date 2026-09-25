@@ -2,9 +2,10 @@
  * ActiveMidiStore — Singleton reativo de notas MIDI ativas globalmente.
  *
  * Qualquer módulo que toque uma nota chama `activeMidiStore.noteOn(midi, durationMs)`.
- * O PianoKeyboard subscreve via `useActiveMidi()` e acende as teclas correspondentes.
+ * O PianoKeyboard subscreve via `useSyncExternalStore` e acende as teclas correspondentes.
  *
- * Design: pub/sub mínimo sem dependência externa — compatível com React 18 useSyncExternalStore.
+ * Design: Snapshot em cache estável (referência imutável) — 100% aderente às regras de
+ * useSyncExternalStore do React 18/19 para prevenir loops infinitos e estouro de profundidade.
  */
 
 type Listener = () => void;
@@ -14,6 +15,8 @@ class ActiveMidiStore {
   private notes = new Map<number, number>();
   private listeners = new Set<Listener>();
   private sweepTimer: number | null = null;
+  /** Cache de snapshot com identidade referencial imutável */
+  private cachedSnapshot: readonly number[] = [];
 
   // ── API Pública ────────────────────────────────────────────────────────────
 
@@ -21,7 +24,7 @@ class ActiveMidiStore {
   noteOn(midi: number, durationMs = 600): void {
     const expiry = performance.now() + durationMs;
     this.notes.set(midi, expiry);
-    this.notify();
+    this.updateSnapshot();
     this.scheduleSweep(durationMs);
   }
 
@@ -29,15 +32,14 @@ class ActiveMidiStore {
   chordOn(midis: number[], durationMs = 1800): void {
     const expiry = performance.now() + durationMs;
     midis.forEach(m => this.notes.set(m, expiry));
-    this.notify();
+    this.updateSnapshot();
     this.scheduleSweep(durationMs);
   }
 
   /** Apaga uma nota imediatamente. */
   noteOff(midi: number): void {
-    if (this.notes.has(midi)) {
-      this.notes.delete(midi);
-      this.notify();
+    if (this.notes.delete(midi)) {
+      this.updateSnapshot();
     }
   }
 
@@ -45,15 +47,21 @@ class ActiveMidiStore {
   allNotesOff(): void {
     if (this.notes.size > 0) {
       this.notes.clear();
-      this.notify();
+      this.updateSnapshot();
     }
   }
 
-  /** Retorna snapshot imutável das notas ativas agora. */
-  getSnapshot(): readonly number[] {
-    this.sweep();
-    return Array.from(this.notes.keys());
-  }
+  /**
+   * Retorna snapshot imutável em cache das notas ativas.
+   * Regra estrita useSyncExternalStore: Pura, sem efeitos colaterais e com referência estável.
+   */
+  getSnapshot = (): readonly number[] => {
+    return this.cachedSnapshot;
+  };
+
+  getSnapshotRef = (): readonly number[] => {
+    return this.cachedSnapshot;
+  };
 
   // ── useSyncExternalStore API ───────────────────────────────────────────────
 
@@ -62,15 +70,18 @@ class ActiveMidiStore {
     return () => this.listeners.delete(listener);
   };
 
-  getSnapshotRef = (): readonly number[] => this.getSnapshot();
-
   // ── Internos ──────────────────────────────────────────────────────────────
+
+  private updateSnapshot(): void {
+    this.cachedSnapshot = Array.from(this.notes.keys());
+    this.notify();
+  }
 
   private notify(): void {
     this.listeners.forEach(l => l());
   }
 
-  /** Remove notas cujo tempo de expiração já passou. */
+  /** Remove notas expiradas e atualiza o snapshot. Chamado apenas pelo timer assíncrono. */
   private sweep(): void {
     const now = performance.now();
     let changed = false;
@@ -80,7 +91,9 @@ class ActiveMidiStore {
         changed = true;
       }
     }
-    if (changed) this.notify();
+    if (changed) {
+      this.updateSnapshot();
+    }
   }
 
   /** Agenda um sweep automático quando a nota mais próxima expirar. */
@@ -89,7 +102,7 @@ class ActiveMidiStore {
     this.sweepTimer = window.setTimeout(() => {
       this.sweepTimer = null;
       this.sweep();
-      // Se ainda há notas ativas, agenda mais um sweep
+      // Se ainda há notas ativas, agenda o próximo sweep
       if (this.notes.size > 0) {
         const minExpiry = Math.min(...Array.from(this.notes.values()));
         const remaining = Math.max(50, minExpiry - performance.now());
