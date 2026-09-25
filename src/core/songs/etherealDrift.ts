@@ -5,7 +5,7 @@ export const ETHEREAL_DRIFT: RepertoireSong = {
     title: 'Ethereal Drift',
     composerOrArtist: 'Harmonia App (Composicao Original)',
     genre: 'Rock Psicodelico & Progressivo',
-    difficulty: 'Intermediario',
+    difficulty: 'Intermediário',
     recommendedBpm: 72,
     timeSignature: '4/4',
     tonality: 'Mi Menor (Em)',

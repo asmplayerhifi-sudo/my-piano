@@ -5,7 +5,7 @@ export const THE_QUIET_STORM: RepertoireSong = {
     title: 'The Quiet Storm',
     composerOrArtist: 'Harmonia App (Composicao Original)',
     genre: 'Rock Psicodelico & Progressivo',
-    difficulty: 'Intermediario',
+    difficulty: 'Intermediário',
     recommendedBpm: 60,
     timeSignature: '4/4',
     tonality: 'La Menor (Am)',

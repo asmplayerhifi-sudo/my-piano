@@ -5,7 +5,7 @@ export const CRIMSON_TIDE_RISING: RepertoireSong = {
     title: 'Crimson Tide Rising',
     composerOrArtist: 'Harmonia App (Composicao Original)',
     genre: 'Rock Psicodelico & Progressivo',
-    difficulty: 'Avancado',
+    difficulty: 'Avançado',
     recommendedBpm: 104,
     timeSignature: '4/4',
     tonality: 'Si Menor (Bm)',

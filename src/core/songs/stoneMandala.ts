@@ -5,7 +5,7 @@ export const STONE_MANDALA: RepertoireSong = {
     title: 'Stone Mandala',
     composerOrArtist: 'Harmonia App (Composicao Original)',
     genre: 'Rock Psicodelico & Progressivo',
-    difficulty: 'Intermediario',
+    difficulty: 'Intermediário',
     recommendedBpm: 88,
     timeSignature: '4/4',
     tonality: 'Re Menor (Dm)',

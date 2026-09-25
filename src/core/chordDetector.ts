@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Detecção Polifônica de Acordes via Chroma Features (Pitch Class Profile — PCP)
  *
  * Responsabilidade: identificar acordes tocados simultaneamente (piano, violão, etc.)
@@ -218,8 +218,8 @@ function estimateMidiNotes(rootPc: number, intervals: number[]): number[] {
 export class PolyphonicChordDetector {
   private audioCtx: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
-  private magnitudeBuffer: Float32Array | null = null;
-  private timeDomainBuffer: Float32Array | null = null;
+  private magnitudeBuffer: Float32Array<ArrayBuffer> | null = null;
+  private timeDomainBuffer: Float32Array<ArrayBuffer> | null = null;
   private animationFrameId: number | null = null;
   private isListening = false;
 

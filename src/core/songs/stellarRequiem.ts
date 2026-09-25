@@ -5,7 +5,7 @@ export const STELLAR_REQUIEM: RepertoireSong = {
     title: 'Stellar Requiem',
     composerOrArtist: 'Harmonia App (Composicao Original)',
     genre: 'Rock Psicodelico & Progressivo',
-    difficulty: 'Avancado',
+    difficulty: 'Avançado',
     recommendedBpm: 68,
     timeSignature: '4/4',
     tonality: 'Sol Menor (Gm)',
