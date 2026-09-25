@@ -153,6 +153,18 @@ export const KeyboardCourseView: React.FC = () => {
     soundEngine.stopAllNotes();
   }, [activeLesson.id, selectedExerciseIndex]);
 
+  // RF-01: Atalho global de teclado Ctrl + T / Cmd + T para abrir a Trilha de Aulas
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 't') {
+        e.preventDefault();
+        setIsTrailModalOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const handleNoteInput = useCallback((midi: number) => {
     setLastMidiEvent({ midi, timestamp: performance.now() });
   }, []);

@@ -142,6 +142,18 @@ export const GuitarCourseView: React.FC = () => {
     };
   }, [activeLesson.id]);
 
+  // RF-01: Atalho global de teclado Ctrl + T / Cmd + T para abrir a Trilha de Aulas
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 't') {
+        e.preventDefault();
+        setIsTrailModalOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Lista linear de todas as lições do curso para navegação Anterior / Próxima sem recarregar
   const allLessons = useMemo(() => {
     return GUITAR_COURSE_MODULES.flatMap((mod) =>

@@ -25,7 +25,7 @@ import {
 export const TheoryStudyAcademy: React.FC = () => {
   const [selectedModule, setSelectedModule] = useState<TheoryModuleData>(THEORY_MODULES[0]);
   const [activeLesson, setActiveLesson] = useState<TheoryLesson>(THEORY_MODULES[0].lessons[0]);
-  const [academyTab, setAcademyTab] = useState<'all' | 'audio' | 'quiz' | 'lab'>('all');
+  const [academyTab, setAcademyTab] = useState<'all' | 'theory' | 'lab'>('all');
   const [isTrailModalOpen, setIsTrailModalOpen] = useState<boolean>(false);
   const [isTipOpen, setIsTipOpen] = useState<boolean>(false);
 
@@ -58,6 +58,18 @@ export const TheoryStudyAcademy: React.FC = () => {
     return () => {
       clearAudioTimeouts();
     };
+  }, []);
+
+  // RF-01: Atalho global de teclado Ctrl + T / Cmd + T para abrir a Trilha de Aulas
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 't') {
+        e.preventDefault();
+        setIsTrailModalOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   // Lista linear de todas as lições de teoria
@@ -200,11 +212,8 @@ export const TheoryStudyAcademy: React.FC = () => {
             shortLabel: 'Lição',
             icon: <Sparkles className="w-3 h-3 text-cyan-400" />,
           },
-          ...(activeLesson.audioExamples && activeLesson.audioExamples.length > 0
-            ? [{ id: 'audio', label: 'Exemplos de Áudio', shortLabel: 'Áudios' }]
-            : []),
-          { id: 'quiz', label: 'Quiz de Fixação', shortLabel: 'Quiz' },
-          { id: 'lab', label: 'Laboratório de Intervalos', shortLabel: 'Intervalos' },
+          { id: 'theory', label: 'Teoria & Exercícios', shortLabel: 'Teoria' },
+          { id: 'lab', label: 'Laboratório de Intervalos', shortLabel: 'Laboratório' },
         ]}
         activeTabId={academyTab}
         onSelectTab={(id) => setAcademyTab(id as any)}
@@ -212,14 +221,14 @@ export const TheoryStudyAcademy: React.FC = () => {
         rightSlot={
           <button
             onClick={() => handleToggleCompleteLesson(activeLesson.id)}
-            className={`px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
               isCurrentLessonCompleted
                 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
                 : 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-sm'
             }`}
             title="Marcar lição como concluída"
           >
-            <CheckCircle2 className="w-3 h-3" />
+            <CheckCircle2 className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">
               {isCurrentLessonCompleted ? 'Concluída' : 'Concluir'}
             </span>
@@ -227,169 +236,505 @@ export const TheoryStudyAcademy: React.FC = () => {
         }
       />
 
-      {/* 3. CONTEÚDO FULL-WIDTH (100% da Largura Útil sem Sidebar Fixa) */}
-      <div className="flex-1 w-full p-2 sm:p-4 space-y-4 overflow-y-auto">
-        {/* Aba Estudo Completo */}
-        {(academyTab === 'all' || academyTab === 'audio') && (
-          <div className="space-y-4">
-            {/* Ideia Central da Lição */}
-            <div className="p-3.5 sm:p-4 rounded-2xl bg-cyan-950/30 border border-cyan-500/20 space-y-2">
-              <div className="flex items-center gap-2 text-cyan-400 text-xs font-mono font-bold uppercase">
-                <Lightbulb className="w-4 h-4" />
-                <span>Ideia Central da Lição</span>
-              </div>
-              <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-sans">
-                {octaveConfigStore.formatNoteOctavesInText(activeLesson.summary, octaveStandard)}
-              </p>
-              <div className="text-[11px] text-cyan-300 font-mono pt-1">
-                <strong>💡 Conclusão Rápida:</strong>{' '}
-                {octaveConfigStore.formatNoteOctavesInText(activeLesson.keyTakeaway, octaveStandard)}
-              </div>
-            </div>
-
-            {/* Diagrama Ilustrativo */}
-            <LessonIllustration
-              lessonId={activeLesson.id}
-              moduleCode={activeLesson.moduleCode}
-              title={activeLesson.title}
-              instrument="theory"
-            />
-
-            {/* Seções e Explicações */}
-            <div className="space-y-4 text-xs sm:text-sm text-slate-300 leading-relaxed">
-              {activeLesson.sections.map((sec, secIdx) => (
-                <div key={secIdx} className="space-y-2.5 p-3 rounded-2xl bg-white/[0.01] border border-white/5">
-                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                    <span className="w-1.5 h-3.5 bg-cyan-500 rounded-full" />
-                    <span>{octaveConfigStore.formatNoteOctavesInText(sec.heading, octaveStandard)}</span>
-                  </h4>
-
-                  {sec.paragraphs.map((p, pIdx) => (
-                    <p key={pIdx}>{octaveConfigStore.formatNoteOctavesInText(p, octaveStandard)}</p>
-                  ))}
-
-                  {sec.bulletPoints && (
-                    <ul className="space-y-1.5 pl-2 pt-1">
-                      {sec.bulletPoints.map((bp, bpIdx) => (
-                        <li key={bpIdx} className="flex items-start gap-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 mt-1.5 shrink-0" />
-                          <span>{octaveConfigStore.formatNoteOctavesInText(bp, octaveStandard)}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+      {/* 3. CONTEÚDO PRINCIPAL COM SUPORTE A GRID RESPONSIVO (>= 1280px 2 COLUNAS / < 1280px 1 COLUNA) */}
+      <div className="flex-1 w-full p-2.5 sm:p-5 overflow-y-auto">
+        {/* MODO 1: VISÃO INTEGRADA (TEORIA + LABORATÓRIO) */}
+        {academyTab === 'all' && (
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start max-w-[1500px] mx-auto">
+            {/* COLUNA ESQUERDA: TEORIA & EXERCÍCIOS (6 colunas no xl) */}
+            <div className="xl:col-span-6 space-y-4">
+              <div className="p-4 sm:p-5 rounded-3xl bg-black/40 border border-white/10 space-y-4 shadow-xl">
+                {/* Cabeçalho do Card Conforme Wireframe */}
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-lg">📖</span>
+                    <div>
+                      <h3 className="font-black text-sm text-white tracking-wide">
+                        TEORIA &amp; EXERCÍCIOS
+                      </h3>
+                      <span className="text-[10px] font-mono text-cyan-300">
+                        {activeLesson.subtitle || 'Fundamentos Harmônicos'}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-mono px-2.5 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/30 text-cyan-300 font-bold flex items-center gap-1">
+                    <Lightbulb className="w-3 h-3 text-cyan-400" />
+                    <span>LIÇÃO {currentLessonCode}</span>
+                  </span>
                 </div>
-              ))}
-            </div>
 
-            {/* Exemplos Auditivos Interativos */}
-            {activeLesson.audioExamples && activeLesson.audioExamples.length > 0 && (
-              <div className="p-3.5 rounded-2xl bg-black/40 border border-white/5 space-y-3">
-                <span className="text-[11px] font-mono text-cyan-400 uppercase font-bold flex items-center gap-1.5">
-                  <Volume2 className="w-3.5 h-3.5" />
-                  <span>Exemplos Auditivos Desta Lição (Clique para Ouvir):</span>
-                </span>
+                {/* Ideia Central da Lição */}
+                <div className="p-3.5 rounded-2xl bg-cyan-950/30 border border-cyan-500/20 space-y-2">
+                  <div className="flex items-center gap-2 text-cyan-400 text-xs font-mono font-bold uppercase">
+                    <Lightbulb className="w-3.5 h-3.5" />
+                    <span>Ideia Central da Lição</span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-sans">
+                    {octaveConfigStore.formatNoteOctavesInText(activeLesson.summary, octaveStandard)}
+                  </p>
+                  <div className="text-[11px] text-cyan-300 font-mono pt-1">
+                    <strong>💡 Conclusão Rápida:</strong>{' '}
+                    {octaveConfigStore.formatNoteOctavesInText(activeLesson.keyTakeaway, octaveStandard)}
+                  </div>
+                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {activeLesson.audioExamples.map((ex, exIdx) => {
-                    const isPlaying = playingAudioIndex === exIdx;
-                    return (
-                      <button
-                        key={exIdx}
-                        onClick={() => playLessonAudio(ex, exIdx)}
-                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                          isPlaying
-                            ? 'bg-cyan-600/30 border-cyan-400 text-white ring-1 ring-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.3)]'
-                            : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.06] text-slate-300'
+                {/* Diagrama Ilustrativo */}
+                <LessonIllustration
+                  lessonId={activeLesson.id}
+                  moduleCode={activeLesson.moduleCode}
+                  title={activeLesson.title}
+                  instrument="theory"
+                />
+
+                {/* Seções e Explicações */}
+                <div className="space-y-3.5 text-xs sm:text-sm text-slate-300 leading-relaxed">
+                  {activeLesson.sections.map((sec, secIdx) => (
+                    <div key={secIdx} className="space-y-2 p-3 rounded-2xl bg-white/[0.015] border border-white/5">
+                      <h4 className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
+                        <span className="w-1.5 h-3.5 bg-cyan-500 rounded-full" />
+                        <span>{octaveConfigStore.formatNoteOctavesInText(sec.heading, octaveStandard)}</span>
+                      </h4>
+
+                      {sec.paragraphs.map((p, pIdx) => (
+                        <p key={pIdx}>{octaveConfigStore.formatNoteOctavesInText(p, octaveStandard)}</p>
+                      ))}
+
+                      {sec.bulletPoints && (
+                        <ul className="space-y-1 pl-2 pt-1">
+                          {sec.bulletPoints.map((bp, bpIdx) => (
+                            <li key={bpIdx} className="flex items-start gap-2 text-xs">
+                              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 mt-1.5 shrink-0" />
+                              <span>{octaveConfigStore.formatNoteOctavesInText(bp, octaveStandard)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Exemplos Auditivos Interativos */}
+                {activeLesson.audioExamples && activeLesson.audioExamples.length > 0 && (
+                  <div className="p-3.5 rounded-2xl bg-black/50 border border-white/5 space-y-3">
+                    <span className="text-[11px] font-mono text-cyan-400 uppercase font-bold flex items-center gap-1.5">
+                      <Volume2 className="w-3.5 h-3.5" />
+                      <span>🎧 EXEMPLOS AUDITIVOS</span>
+                    </span>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {activeLesson.audioExamples.map((ex, exIdx) => {
+                        const isPlaying = playingAudioIndex === exIdx;
+                        return (
+                          <button
+                            key={exIdx}
+                            onClick={() => playLessonAudio(ex, exIdx)}
+                            className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                              isPlaying
+                                ? 'bg-cyan-600/30 border-cyan-400 text-white ring-1 ring-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.3)]'
+                                : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.06] text-slate-300'
+                            }`}
+                          >
+                            <div className="space-y-1 truncate">
+                              <div className="font-bold text-xs text-white truncate flex items-center gap-1.5">
+                                {isPlaying ? (
+                                  <Volume2 className="w-3.5 h-3.5 text-cyan-400 animate-pulse shrink-0" />
+                                ) : (
+                                  <Play className="w-3 h-3 text-cyan-400 shrink-0 fill-current" />
+                                )}
+                                <span className="truncate">{ex.title}</span>
+                              </div>
+                              <div className="text-[11px] text-slate-400 truncate">
+                                {ex.description}
+                              </div>
+                            </div>
+
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-cyan-300 shrink-0">
+                              {ex.type === 'harmonic' ? 'Harmônico' : ex.type === 'cadence' ? 'Cadência' : 'Melodia'}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Teste de Fixação (Wireframe: Seletores Radio + [Confirmar Resposta]) */}
+                <div className="p-4 rounded-2xl bg-black/50 border border-white/10 space-y-3.5">
+                  <div className="flex items-center gap-2 text-cyan-400 text-xs font-mono font-bold uppercase">
+                    <HelpCircle className="w-4 h-4" />
+                    <span>❓ TESTE DE FIXAÇÃO</span>
+                  </div>
+
+                  <p className="text-xs sm:text-sm font-bold text-white">
+                    {activeLesson.quiz.question}
+                  </p>
+
+                  <div className="space-y-2">
+                    {activeLesson.quiz.options.map((option, optIdx) => {
+                      const isSelected = selectedQuizOption === optIdx;
+                      const isCorrect = optIdx === activeLesson.quiz.correctIndex;
+
+                      let btnStyles = 'bg-white/[0.02] border-white/5 text-slate-300 hover:bg-white/[0.06]';
+                      if (isQuizAnswered) {
+                        if (isCorrect) {
+                          btnStyles = 'bg-emerald-600/30 border-emerald-500 text-emerald-200 font-bold';
+                        } else if (isSelected) {
+                          btnStyles = 'bg-rose-600/30 border-rose-500 text-rose-200';
+                        }
+                      } else if (isSelected) {
+                        btnStyles = 'bg-cyan-600/20 border-cyan-400 text-white font-medium';
+                      }
+
+                      return (
+                        <button
+                          key={optIdx}
+                          disabled={isQuizAnswered}
+                          onClick={() => {
+                            if (!isQuizAnswered) {
+                              setSelectedQuizOption(optIdx);
+                            }
+                          }}
+                          className={`w-full p-3 rounded-xl border text-left text-xs transition-all cursor-pointer flex items-center justify-between gap-3 ${btnStyles}`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            {/* Radio visual ( ) ou (x) */}
+                            <div
+                              className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
+                                isSelected
+                                  ? 'border-cyan-400 bg-cyan-500/20'
+                                  : 'border-slate-500 bg-transparent'
+                              }`}
+                            >
+                              {isSelected && (
+                                <div className="w-2 h-2 rounded-full bg-cyan-400" />
+                              )}
+                            </div>
+                            <span>{option}</span>
+                          </div>
+
+                          {isQuizAnswered && isCorrect && (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Botão de Confirmação da Resposta (Wireframe) */}
+                  {!isQuizAnswered ? (
+                    <button
+                      onClick={() => {
+                        if (selectedQuizOption !== null) {
+                          setIsQuizAnswered(true);
+                        }
+                      }}
+                      disabled={selectedQuizOption === null}
+                      className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 ${
+                        selectedQuizOption !== null
+                          ? 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-md shadow-cyan-600/30 cursor-pointer'
+                          : 'bg-white/5 text-slate-500 border border-white/5 cursor-not-allowed'
+                      }`}
+                    >
+                      <span>[ Confirmar Resposta ]</span>
+                    </button>
+                  ) : (
+                    <div className="space-y-3 pt-1">
+                      <div
+                        className={`p-3 rounded-xl border text-xs leading-relaxed animate-fadeIn ${
+                          selectedQuizOption === activeLesson.quiz.correctIndex
+                            ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-200'
+                            : 'bg-rose-950/40 border-rose-500/30 text-rose-200'
                         }`}
                       >
-                        <div className="space-y-1 truncate">
-                          <div className="font-bold text-xs text-white truncate flex items-center gap-1.5">
-                            {isPlaying ? (
-                              <Volume2 className="w-3.5 h-3.5 text-cyan-400 animate-pulse shrink-0" />
-                            ) : (
-                              <Play className="w-3 h-3 text-cyan-400 shrink-0 fill-current" />
+                        <div className="font-bold mb-1 flex items-center gap-1.5">
+                          {selectedQuizOption === activeLesson.quiz.correctIndex ? (
+                            <>
+                              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                              <span>Resposta Correta! Excelente dedução auditiva.</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-base">⚠️</span>
+                              <span>
+                                Opção incorreta. A resposta certa era a Opção{' '}
+                                {activeLesson.quiz.correctIndex + 1}.
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        <div>
+                          <strong className="text-white">Explicação: </strong>
+                          {activeLesson.quiz.explanation}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          setSelectedQuizOption(null);
+                          setIsQuizAnswered(false);
+                        }}
+                        className="py-1.5 px-3 rounded-lg text-xs font-medium text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer"
+                      >
+                        Refazer Pergunta
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* COLUNA DIREITA: LABORATÓRIO DE INTERVALOS / PRÁTICA (6 colunas no xl, max 650px) */}
+            <div className="xl:col-span-6 w-full flex flex-col items-center">
+              <IntervalLaboratory inTheoryGrid={true} className="w-full max-w-[650px]" />
+            </div>
+          </div>
+        )}
+
+        {/* MODO 2: APENAS TEORIA & EXERCÍCIOS */}
+        {academyTab === 'theory' && (
+          <div className="max-w-[850px] mx-auto space-y-4">
+            <div className="p-4 sm:p-5 rounded-3xl bg-black/40 border border-white/10 space-y-4 shadow-xl">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-lg">📖</span>
+                  <div>
+                    <h3 className="font-black text-sm text-white tracking-wide">
+                      TEORIA &amp; EXERCÍCIOS
+                    </h3>
+                    <span className="text-[10px] font-mono text-cyan-300">
+                      {activeLesson.subtitle || 'Fundamentos Harmônicos'}
+                    </span>
+                  </div>
+                </div>
+                <span className="text-[11px] font-mono px-2.5 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/30 text-cyan-300 font-bold flex items-center gap-1">
+                  <Lightbulb className="w-3 h-3 text-cyan-400" />
+                  <span>LIÇÃO {currentLessonCode}</span>
+                </span>
+              </div>
+
+              {/* Ideia Central da Lição */}
+              <div className="p-3.5 rounded-2xl bg-cyan-950/30 border border-cyan-500/20 space-y-2">
+                <div className="flex items-center gap-2 text-cyan-400 text-xs font-mono font-bold uppercase">
+                  <Lightbulb className="w-3.5 h-3.5" />
+                  <span>Ideia Central da Lição</span>
+                </div>
+                <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-sans">
+                  {octaveConfigStore.formatNoteOctavesInText(activeLesson.summary, octaveStandard)}
+                </p>
+                <div className="text-[11px] text-cyan-300 font-mono pt-1">
+                  <strong>💡 Conclusão Rápida:</strong>{' '}
+                  {octaveConfigStore.formatNoteOctavesInText(activeLesson.keyTakeaway, octaveStandard)}
+                </div>
+              </div>
+
+              {/* Diagrama Ilustrativo */}
+              <LessonIllustration
+                lessonId={activeLesson.id}
+                moduleCode={activeLesson.moduleCode}
+                title={activeLesson.title}
+                instrument="theory"
+              />
+
+              {/* Seções e Explicações */}
+              <div className="space-y-3.5 text-xs sm:text-sm text-slate-300 leading-relaxed">
+                {activeLesson.sections.map((sec, secIdx) => (
+                  <div key={secIdx} className="space-y-2 p-3 rounded-2xl bg-white/[0.015] border border-white/5">
+                    <h4 className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
+                      <span className="w-1.5 h-3.5 bg-cyan-500 rounded-full" />
+                      <span>{octaveConfigStore.formatNoteOctavesInText(sec.heading, octaveStandard)}</span>
+                    </h4>
+
+                    {sec.paragraphs.map((p, pIdx) => (
+                      <p key={pIdx}>{octaveConfigStore.formatNoteOctavesInText(p, octaveStandard)}</p>
+                    ))}
+
+                    {sec.bulletPoints && (
+                      <ul className="space-y-1 pl-2 pt-1">
+                        {sec.bulletPoints.map((bp, bpIdx) => (
+                          <li key={bpIdx} className="flex items-start gap-2 text-xs">
+                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 mt-1.5 shrink-0" />
+                            <span>{octaveConfigStore.formatNoteOctavesInText(bp, octaveStandard)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Exemplos Auditivos Interativos */}
+              {activeLesson.audioExamples && activeLesson.audioExamples.length > 0 && (
+                <div className="p-3.5 rounded-2xl bg-black/50 border border-white/5 space-y-3">
+                  <span className="text-[11px] font-mono text-cyan-400 uppercase font-bold flex items-center gap-1.5">
+                    <Volume2 className="w-3.5 h-3.5" />
+                    <span>🎧 EXEMPLOS AUDITIVOS</span>
+                  </span>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {activeLesson.audioExamples.map((ex, exIdx) => {
+                      const isPlaying = playingAudioIndex === exIdx;
+                      return (
+                        <button
+                          key={exIdx}
+                          onClick={() => playLessonAudio(ex, exIdx)}
+                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                            isPlaying
+                              ? 'bg-cyan-600/30 border-cyan-400 text-white ring-1 ring-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.3)]'
+                              : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.06] text-slate-300'
+                          }`}
+                        >
+                          <div className="space-y-1 truncate">
+                            <div className="font-bold text-xs text-white truncate flex items-center gap-1.5">
+                              {isPlaying ? (
+                                <Volume2 className="w-3.5 h-3.5 text-cyan-400 animate-pulse shrink-0" />
+                              ) : (
+                                <Play className="w-3 h-3 text-cyan-400 shrink-0 fill-current" />
+                              )}
+                              <span className="truncate">{ex.title}</span>
+                            </div>
+                            <div className="text-[11px] text-slate-400 truncate">
+                              {ex.description}
+                            </div>
+                          </div>
+
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-cyan-300 shrink-0">
+                            {ex.type === 'harmonic' ? 'Harmônico' : ex.type === 'cadence' ? 'Cadência' : 'Melodia'}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Quiz */}
+              <div className="p-4 rounded-2xl bg-black/50 border border-white/10 space-y-3.5">
+                <div className="flex items-center gap-2 text-cyan-400 text-xs font-mono font-bold uppercase">
+                  <HelpCircle className="w-4 h-4" />
+                  <span>❓ TESTE DE FIXAÇÃO</span>
+                </div>
+
+                <p className="text-xs sm:text-sm font-bold text-white">
+                  {activeLesson.quiz.question}
+                </p>
+
+                <div className="space-y-2">
+                  {activeLesson.quiz.options.map((option, optIdx) => {
+                    const isSelected = selectedQuizOption === optIdx;
+                    const isCorrect = optIdx === activeLesson.quiz.correctIndex;
+
+                    let btnStyles = 'bg-white/[0.02] border-white/5 text-slate-300 hover:bg-white/[0.06]';
+                    if (isQuizAnswered) {
+                      if (isCorrect) {
+                        btnStyles = 'bg-emerald-600/30 border-emerald-500 text-emerald-200 font-bold';
+                      } else if (isSelected) {
+                        btnStyles = 'bg-rose-600/30 border-rose-500 text-rose-200';
+                      }
+                    } else if (isSelected) {
+                      btnStyles = 'bg-cyan-600/20 border-cyan-400 text-white font-medium';
+                    }
+
+                    return (
+                      <button
+                        key={optIdx}
+                        disabled={isQuizAnswered}
+                        onClick={() => {
+                          if (!isQuizAnswered) {
+                            setSelectedQuizOption(optIdx);
+                          }
+                        }}
+                        className={`w-full p-3 rounded-xl border text-left text-xs transition-all cursor-pointer flex items-center justify-between gap-3 ${btnStyles}`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div
+                            className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
+                              isSelected
+                                ? 'border-cyan-400 bg-cyan-500/20'
+                                : 'border-slate-500 bg-transparent'
+                            }`}
+                          >
+                            {isSelected && (
+                              <div className="w-2 h-2 rounded-full bg-cyan-400" />
                             )}
-                            <span className="truncate">{ex.title}</span>
                           </div>
-                          <div className="text-[11px] text-slate-400 truncate">
-                            {ex.description}
-                          </div>
+                          <span>{option}</span>
                         </div>
 
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-cyan-300 shrink-0">
-                          {ex.type === 'harmonic' ? 'Harmônico' : ex.type === 'cadence' ? 'Cadência' : 'Melodia'}
-                        </span>
+                        {isQuizAnswered && isCorrect && (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        )}
                       </button>
                     );
                   })}
                 </div>
-              </div>
-            )}
-          </div>
-        )}
 
-        {/* Aba Quiz de Fixação */}
-        {(academyTab === 'all' || academyTab === 'quiz') && (
-          <div className="p-4 rounded-2xl bg-black/40 border border-white/5 space-y-4">
-            <div className="flex items-center gap-2 text-cyan-400 text-xs font-mono font-bold uppercase">
-              <HelpCircle className="w-4 h-4" />
-              <span>Teste de Fixação da Lição</span>
-            </div>
-
-            <p className="text-sm font-bold text-white">
-              {activeLesson.quiz.question}
-            </p>
-
-            <div className="space-y-2">
-              {activeLesson.quiz.options.map((option, optIdx) => {
-                const isSelected = selectedQuizOption === optIdx;
-                const isCorrect = optIdx === activeLesson.quiz.correctIndex;
-
-                let btnStyles = 'bg-white/[0.02] border-white/5 text-slate-300 hover:bg-white/[0.06]';
-                if (isQuizAnswered) {
-                  if (isCorrect) {
-                    btnStyles = 'bg-emerald-600/30 border-emerald-500 text-emerald-200 font-bold';
-                  } else if (isSelected) {
-                    btnStyles = 'bg-rose-600/30 border-rose-500 text-rose-200';
-                  }
-                } else if (isSelected) {
-                  btnStyles = 'bg-cyan-600/30 border-cyan-400 text-white';
-                }
-
-                return (
+                {!isQuizAnswered ? (
                   <button
-                    key={optIdx}
                     onClick={() => {
-                      if (!isQuizAnswered) {
-                        setSelectedQuizOption(optIdx);
+                      if (selectedQuizOption !== null) {
                         setIsQuizAnswered(true);
                       }
                     }}
-                    className={`w-full p-3 rounded-xl border text-left text-xs transition-all cursor-pointer flex items-center justify-between gap-3 ${btnStyles}`}
+                    disabled={selectedQuizOption === null}
+                    className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 ${
+                      selectedQuizOption !== null
+                        ? 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-md shadow-cyan-600/30 cursor-pointer'
+                        : 'bg-white/5 text-slate-500 border border-white/5 cursor-not-allowed'
+                    }`}
                   >
-                    <span>{option}</span>
-                    {isQuizAnswered && isCorrect && (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    )}
+                    <span>[ Confirmar Resposta ]</span>
                   </button>
-                );
-              })}
-            </div>
+                ) : (
+                  <div className="space-y-3 pt-1">
+                    <div
+                      className={`p-3 rounded-xl border text-xs leading-relaxed animate-fadeIn ${
+                        selectedQuizOption === activeLesson.quiz.correctIndex
+                          ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-200'
+                          : 'bg-rose-950/40 border-rose-500/30 text-rose-200'
+                      }`}
+                    >
+                      <div className="font-bold mb-1 flex items-center gap-1.5">
+                        {selectedQuizOption === activeLesson.quiz.correctIndex ? (
+                          <>
+                            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                            <span>Resposta Correta! Excelente dedução auditiva.</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-base">⚠️</span>
+                            <span>
+                              Opção incorreta. A resposta certa era a Opção{' '}
+                              {activeLesson.quiz.correctIndex + 1}.
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      <div>
+                        <strong className="text-white">Explicação: </strong>
+                        {activeLesson.quiz.explanation}
+                      </div>
+                    </div>
 
-            {isQuizAnswered && (
-              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 text-xs text-slate-300 animate-fadeIn">
-                <strong className="text-white block mb-0.5">Explicação:</strong>
-                {activeLesson.quiz.explanation}
+                    <button
+                      onClick={() => {
+                        setSelectedQuizOption(null);
+                        setIsQuizAnswered(false);
+                      }}
+                      className="py-1.5 px-3 rounded-lg text-xs font-medium text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-colors cursor-pointer"
+                    >
+                      Refazer Pergunta
+                    </button>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         )}
 
-        {/* Aba Laboratório de Intervalos */}
-        {(academyTab === 'all' || academyTab === 'lab') && (
+        {/* MODO 3: APENAS LABORATÓRIO DE INTERVALOS */}
+        {academyTab === 'lab' && (
           <div className="pt-2">
-            <IntervalLaboratory />
+            <IntervalLaboratory inTheoryGrid={false} className="max-w-[1200px] mx-auto" />
           </div>
         )}
       </div>

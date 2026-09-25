@@ -185,10 +185,21 @@ export const RepertoireView: React.FC = () => {
   const handleToggleMetronome = () => {
     const nextState = !metronome.isPlaying;
     musicalPlaybackEngine.setMetronomeEnabled(nextState);
-    metronomeEngine.toggle({
-      bpm: tempo,
-      timeSignature: activeSong.timeSignature,
-    });
+    if (isPlaying) {
+      if (nextState) {
+        metronomeEngine.setPlaybackDriven(true);
+        metronomeEngine.start({ bpm: tempo, timeSignature: activeSong.timeSignature });
+      } else {
+        metronomeEngine.setPlaybackDriven(false);
+        metronomeEngine.stop();
+      }
+    } else {
+      metronomeEngine.setPlaybackDriven(false);
+      metronomeEngine.toggle({
+        bpm: tempo,
+        timeSignature: activeSong.timeSignature,
+      });
+    }
   };
 
   // Limpeza de timers e metrônomo ao desmontar

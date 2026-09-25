@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { MusicalPlaybackEngine } from '../../src/core/musicalPlaybackEngine';
+import { metronomeEngine } from '../../src/core/metronomeEngine';
 import type { ScoreNote } from '../../src/core/coursesData';
 
 describe('MusicalPlaybackEngine - Single Source of Time & Sync', () => {
@@ -112,5 +113,26 @@ describe('MusicalPlaybackEngine - Single Source of Time & Sync', () => {
     const posHalf = engine.getPosition();
     expect(posHalf.currentMeasure).toBe(2);
     expect(posHalf.beatInMeasure).toBe(2.5);
+  });
+
+  it('coordinates with metronomeEngine as single source of time without dual clocks', () => {
+    // When score metronome is enabled and playback starts
+    engine.setMetronomeEnabled(true);
+    engine.play(0);
+
+    // metronomeEngine must be in playback-driven mode
+    expect(metronomeEngine.getIsPlaybackDriven()).toBe(true);
+
+    // Calling metronomeEngine.start() in playback-driven mode must not launch independent setInterval timer
+    metronomeEngine.start({ bpm: 60, timeSignature: '4/4' });
+    expect(metronomeEngine.getIsPlaybackDriven()).toBe(true);
+
+    // Advance 1 second = 1 beat
+    vi.advanceTimersByTime(1000);
+    expect(engine.getCurrentBeat()).toBeCloseTo(1, 0);
+
+    // Pausing resets playback-driven mode
+    engine.pause();
+    expect(metronomeEngine.getIsPlaybackDriven()).toBe(false);
   });
 });

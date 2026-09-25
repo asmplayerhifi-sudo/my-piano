@@ -87,6 +87,13 @@ export class MusicalPlaybackEngine {
 
   public setMetronomeEnabled(enabled: boolean) {
     this.metronomeEnabled = enabled;
+    if (this.isPlaying) {
+      if (enabled) {
+        metronomeEngine.setPlaybackDriven(true);
+      } else {
+        accompanimentSynthesizer.silenceMetronome();
+      }
+    }
   }
 
   public isMetronomeEnabled(): boolean {
@@ -179,6 +186,14 @@ export class MusicalPlaybackEngine {
     this.lastEvaluatedBeat = this.startBeat - 0.001;
     this.lastTickedIntegerBeat = Math.floor(this.startBeat) - 1;
 
+    // Se o metrônomo estiver ativado (pelo player ou pelo metronomeEngine), coloca
+    // o metronomeEngine em modo playback-driven para evitar emissão simultânea de dois metrônomos
+    const isMetronomeActive = this.metronomeEnabled || metronomeEngine.getSnapshot().isPlaying;
+    this.metronomeEnabled = isMetronomeActive;
+    if (isMetronomeActive) {
+      metronomeEngine.setPlaybackDriven(true);
+    }
+
     // Reconstrói notas já tocadas anteriores ao beat de início
     this.playedNotes.clear();
     this.playedChords.clear();
@@ -201,6 +216,8 @@ export class MusicalPlaybackEngine {
     this.notifyState();
     this.activeNotesListeners.forEach(fn => fn([]));
     soundEngine.stopAllNotes();
+    metronomeEngine.setPlaybackDriven(false);
+    accompanimentSynthesizer.silenceMetronome();
   }
 
   public stop() {

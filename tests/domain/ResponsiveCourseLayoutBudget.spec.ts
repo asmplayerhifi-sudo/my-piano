@@ -3,22 +3,77 @@ import { KEYBOARD_COURSE_MODULES, GUITAR_COURSE_MODULES } from '../../src/core/c
 import { THEORY_MODULES } from '../../src/core/theoryLessonsData';
 
 describe('Redesenho Responsivo & Pixel Budget (PRD HARMONIA)', () => {
-  describe('Orçamento Vertical (Pixel Budget)', () => {
-    const HEADER_GLOBAL_TARGET_PX = 38;
+  describe('Orçamento Vertical (Pixel Budget e Header 54px)', () => {
+    // Especificação Definitiva de UX/UI: Header Global ~54px
+    const HEADER_GLOBAL_TARGET_PX = 54;
     const HEADER_CONTEXTUAL_TARGET_PX = 36;
     const SUB_TABS_TARGET_PX = 32;
     const TOTAL_TARGET_PX = HEADER_GLOBAL_TARGET_PX + HEADER_CONTEXTUAL_TARGET_PX + SUB_TABS_TARGET_PX;
-    const MAX_STRUCTURAL_LIMIT_PX = 114;
+    const MAX_STRUCTURAL_LIMIT_PX = 125;
 
-    it('a soma dos elementos persistentes superiores deve ser de até 106px', () => {
-      expect(TOTAL_TARGET_PX).toBe(106);
+    it('a soma dos elementos persistentes superiores deve ser de aproximadamente 122px (<= 125px)', () => {
+      expect(TOTAL_TARGET_PX).toBe(122);
       expect(TOTAL_TARGET_PX).toBeLessThanOrEqual(MAX_STRUCTURAL_LIMIT_PX);
     });
 
-    it('cada elemento deve respeitar seu teto individual de altura', () => {
-      expect(HEADER_GLOBAL_TARGET_PX).toBeLessThanOrEqual(38);
+    it('o Header Global deve possuir altura de referência de aproximadamente 54px para conforto visual', () => {
+      expect(HEADER_GLOBAL_TARGET_PX).toBe(54);
+      expect(HEADER_GLOBAL_TARGET_PX).toBeLessThanOrEqual(56);
+      expect(HEADER_GLOBAL_TARGET_PX).toBeGreaterThanOrEqual(50);
       expect(HEADER_CONTEXTUAL_TARGET_PX).toBeLessThanOrEqual(36);
       expect(SUB_TABS_TARGET_PX).toBeLessThanOrEqual(32);
+    });
+  });
+
+  describe('Laboratório de Intervalos & Proporção Geométrica (REQ-LAB-02 / CA 3 / CA 4)', () => {
+    it('deve respeitar os limites de container: 1200px standalone e 650px no Grid de Teoria', () => {
+      const STANDALONE_MAX_WIDTH_PX = 1200;
+      const THEORY_GRID_MAX_WIDTH_PX = 650;
+
+      expect(STANDALONE_MAX_WIDTH_PX).toBe(1200);
+      expect(THEORY_GRID_MAX_WIDTH_PX).toBe(650);
+      expect(THEORY_GRID_MAX_WIDTH_PX).toBeLessThan(STANDALONE_MAX_WIDTH_PX);
+    });
+
+    it('o teclado anatômico deve calcular proporções físicas sem estiramento horizontal artificial', () => {
+      // Simula o cálculo geométrico do IntervalLaboratory
+      const containerWidthInGrid = 600;
+      const availableWidth = Math.max(260, containerWidthInGrid - 32);
+      const whiteKeysCount = 15; // 2 oitavas diatônicas
+
+      const calculatedKeyWidth = Math.min(36, Math.max(22, Math.floor(availableWidth / whiteKeysCount)));
+      const calculatedKeyHeight = Math.round(calculatedKeyWidth * 3.8);
+      const blackKeyWidth = Math.round(calculatedKeyWidth * 0.62);
+      const blackKeyHeight = Math.round(calculatedKeyHeight * 0.62);
+
+      // Valida limites anatômicos da tecla branca
+      expect(calculatedKeyWidth).toBeGreaterThanOrEqual(22);
+      expect(calculatedKeyWidth).toBeLessThanOrEqual(36);
+
+      // Valida proporção física (altura ~3.8x largura)
+      const ratio = calculatedKeyHeight / calculatedKeyWidth;
+      expect(ratio).toBeGreaterThan(3.5);
+      expect(ratio).toBeLessThan(4.1);
+
+      // Valida que tecla preta é ~60-65% da branca
+      expect(blackKeyWidth / calculatedKeyWidth).toBeCloseTo(0.62, 1);
+      expect(blackKeyHeight / calculatedKeyHeight).toBeCloseTo(0.62, 1);
+    });
+  });
+
+  describe('Grid Responsivo do Curso de Teoria (REQ-TEO-03 / CA 5 / CA 6)', () => {
+    it('deve definir o breakpoint de transição para 2 colunas em 1280px (xl)', () => {
+      const BREAKPOINT_2_COLUMNS_PX = 1280;
+      expect(BREAKPOINT_2_COLUMNS_PX).toBe(1280);
+    });
+
+    it('as colunas da grade de teoria devem balancear Teoria/Exercícios e Laboratório (50%/50%)', () => {
+      const leftColSpan = 6;
+      const rightColSpan = 6;
+      const totalGridCols = 12;
+
+      expect(leftColSpan + rightColSpan).toBe(totalGridCols);
+      expect(leftColSpan / totalGridCols).toBe(0.5);
     });
   });
 

@@ -53,6 +53,10 @@ class MetronomeEngine {
   private scheduledBeat = 1;
   private visualTimeouts: number[] = [];
 
+  // Flag que indica se o tempo e os cliques do metrônomo estão sendo conduzidos
+  // pelo motor de reprodução da partitura (single source of time).
+  private isPlaybackDriven = false;
+
   private subscribers = new Set<MetronomeListener>();
   private beatTickListeners = new Set<BeatTickListener>();
 
@@ -109,6 +113,31 @@ class MetronomeEngine {
   }
 
   /**
+   * Define se o metrônomo está sendo conduzido pelo motor de partitura (single source of time).
+   * Quando em modo playback-driven, o timer setInterval independente do metronomeEngine é
+   * suspenso/silenciado, garantindo que NÃO ocorram dois metrônomos concorrentes e descompassados.
+   */
+  public setPlaybackDriven(driven: boolean) {
+    this.isPlaybackDriven = driven;
+    if (driven) {
+      if (this.timerId !== null) {
+        if (typeof window !== 'undefined') {
+          window.clearInterval(this.timerId);
+        } else {
+          clearInterval(this.timerId);
+        }
+        this.timerId = null;
+      }
+      this.clearVisualTimeouts();
+      accompanimentSynthesizer.silenceMetronome();
+    }
+  }
+
+  public getIsPlaybackDriven(): boolean {
+    return this.isPlaybackDriven;
+  }
+
+  /**
    * Sincroniza o metrônomo de forma atômica com o compasso e tempo da partitura.
    */
   public syncPlaybackBeat(_measure: number, beat: number, isDownbeat: boolean) {
@@ -118,6 +147,14 @@ class MetronomeEngine {
         isDownbeat,
       });
     }
+
+    this.beatTickListeners.forEach((fn) => {
+      try {
+        fn(beat, isDownbeat);
+      } catch (e) {
+        console.error('Erro em beatTickListener:', e);
+      }
+    });
   }
 
   public async start(initialOptions?: { bpm?: number; timeSignature?: string; soundType?: MetronomeSoundType }) {
@@ -129,6 +166,18 @@ class MetronomeEngine {
     const newTimeSig = initialOptions?.timeSignature || this.state.timeSignature;
     const newBeats = this.updateBeatsPerMeasure(newTimeSig);
     const newSoundType = initialOptions?.soundType || this.state.soundType;
+
+    // Se estiver em modo conduzido pela partitura em reprodução, NÃO inicia timer setInterval concorrente
+    if (this.isPlaybackDriven) {
+      this.updateState({
+        isPlaying: true,
+        bpm: newBpm,
+        timeSignature: newTimeSig,
+        beatsPerMeasure: newBeats,
+        soundType: newSoundType,
+      });
+      return;
+    }
 
     if (this.state.isPlaying) {
       this.updateState({
@@ -147,9 +196,10 @@ class MetronomeEngine {
     const now = ctx ? ctx.currentTime : 0;
     this.nextNoteTime = now + 0.05;
 
-    this.timerId = window.setInterval(() => {
+    const intervalFn = typeof window !== 'undefined' ? window.setInterval : setInterval;
+    this.timerId = intervalFn(() => {
       this.scheduler();
-    }, this.lookaheadMs);
+    }, this.lookaheadMs) as unknown as number;
 
     this.updateState({
       isPlaying: true,
@@ -164,7 +214,11 @@ class MetronomeEngine {
 
   public stop() {
     if (this.timerId !== null) {
-      window.clearInterval(this.timerId);
+      if (typeof window !== 'undefined') {
+        window.clearInterval(this.timerId);
+      } else {
+        clearInterval(this.timerId);
+      }
       this.timerId = null;
     }
     this.clearVisualTimeouts();
@@ -236,11 +290,13 @@ class MetronomeEngine {
   }
 
   private clearVisualTimeouts() {
-    this.visualTimeouts.forEach((t) => window.clearTimeout(t));
+    const clearTimer = typeof window !== 'undefined' ? window.clearTimeout : clearTimeout;
+    this.visualTimeouts.forEach((t) => clearTimer(t));
     this.visualTimeouts = [];
   }
 
   private scheduler() {
+    if (this.isPlaybackDriven) return;
     const ctx = soundEngine.getAudioContext();
     if (!ctx) return;
 
@@ -266,7 +322,8 @@ class MetronomeEngine {
     const ctx = soundEngine.getAudioContext();
     const delayMs = ctx ? Math.max(0, (time - ctx.currentTime) * 1000) : 0;
 
-    const timeout = window.setTimeout(() => {
+    const setTimeoutFn = typeof window !== 'undefined' ? window.setTimeout : setTimeout;
+    const timeout = setTimeoutFn(() => {
       if (!this.state.isPlaying) return;
       this.updateState({
         currentBeat: beatNum,

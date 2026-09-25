@@ -78,11 +78,12 @@ export const CourseContextualHeader: React.FC<CourseContextualHeaderProps> = ({
         <button
           onClick={onOpenTrail}
           className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg border font-mono font-bold text-[10px] sm:text-[11px] transition-all cursor-pointer shadow-sm ${colorStyles.badge}`}
-          title="Abrir mapa completo da Trilha de Aprendizado (Modal)"
+          title="Abrir mapa completo da Trilha de Aprendizado (Modal) [Ctrl+T / Cmd+T]"
           aria-haspopup="dialog"
         >
           <Compass className="w-3 h-3 animate-spin-slow shrink-0" />
-          <span>TRILHA ({currentLessonCode} / {totalLessons})</span>
+          <span className="hidden lg:inline">🗺️ TRILHA DE AULAS — VER TODAS ({currentLessonCode} / {totalLessons})</span>
+          <span className="lg:hidden">🗺️ TRILHA ({currentLessonCode} / {totalLessons})</span>
         </button>
 
         {/* Barra de Progresso Compacta */}

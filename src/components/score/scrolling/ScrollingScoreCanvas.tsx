@@ -52,6 +52,9 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
   const [scoreTheme, setScoreTheme] = useState<ScoreTheme>(initialTheme);
   const [enableAudio, setEnableAudio] = useState<boolean>(autoPlayAudio);
   const metronome = useMetronome();
+  const [isMetronomeActive, setIsMetronomeActive] = useState<boolean>(
+    Boolean(enableMetronomeSound || metronome.isPlaying)
+  );
 
   const [internalSustainMode, setInternalSustainMode] = useState<ScoreSustainMode>(
     propSustainMode ?? (initialSustain ? 'all' : 'off')
@@ -108,8 +111,8 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
     musicalPlaybackEngine.loadScore(notes, timeSignature, playback.tempo);
     musicalPlaybackEngine.setSustainMode(activeSustainMode);
     musicalPlaybackEngine.setInstrument(instrument);
-    musicalPlaybackEngine.setMetronomeEnabled(Boolean(enableMetronomeSound || metronome.isPlaying));
-  }, [notes, timeSignature, activeSustainMode, instrument, enableMetronomeSound, metronome.isPlaying, playback.tempo]);
+    musicalPlaybackEngine.setMetronomeEnabled(isMetronomeActive);
+  }, [notes, timeSignature, activeSustainMode, instrument, isMetronomeActive, playback.tempo]);
 
   // Observa batidas e notas ativas para notificar a UI e componentes pais
   useEffect(() => {
@@ -125,15 +128,22 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
     };
   }, [onActiveNotesChange, onBeatTick]);
 
-  // Sincroniza estado de reprodução
+  // Sincroniza estado de reprodução (single source of time)
   useEffect(() => {
     if (playback.isPlaying && !musicalPlaybackEngine.getIsPlaying()) {
       const currentBeat = playback.scrollOffsetRef.current / pixelsPerBeat;
+      if (isMetronomeActive) {
+        metronomeEngine.setPlaybackDriven(true);
+        musicalPlaybackEngine.setMetronomeEnabled(true);
+      }
       musicalPlaybackEngine.play(currentBeat);
     } else if (!playback.isPlaying && musicalPlaybackEngine.getIsPlaying()) {
       musicalPlaybackEngine.pause();
+      if (metronomeEngine.getSnapshot().isPlaying) {
+        metronomeEngine.stop();
+      }
     }
-  }, [playback.isPlaying, pixelsPerBeat]);
+  }, [playback.isPlaying, pixelsPerBeat, isMetronomeActive]);
 
   const handleTogglePlay = async () => {
     await soundEngine.ensureAudioReady();
@@ -142,9 +152,28 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
 
   const handleToggleMetronome = async () => {
     await soundEngine.ensureAudioReady();
-    const nextState = !metronome.isPlaying;
+    const nextState = !isMetronomeActive;
+    setIsMetronomeActive(nextState);
     musicalPlaybackEngine.setMetronomeEnabled(nextState);
-    metronomeEngine.toggle({ bpm: playback.tempo, timeSignature });
+
+    if (playback.isPlaying) {
+      // Se a partitura já está tocando, musicalPlaybackEngine é a única fonte sonora do metrônomo!
+      if (nextState) {
+        metronomeEngine.setPlaybackDriven(true);
+        metronomeEngine.start({ bpm: playback.tempo, timeSignature });
+      } else {
+        metronomeEngine.setPlaybackDriven(false);
+        metronomeEngine.stop();
+      }
+    } else {
+      // Se a partitura estiver parada, liga/desliga o metrônomo isolado para treino
+      if (nextState) {
+        metronomeEngine.setPlaybackDriven(false);
+        metronomeEngine.start({ bpm: playback.tempo, timeSignature });
+      } else {
+        metronomeEngine.stop();
+      }
+    }
   };
 
   const handleTempoChange = (newTempo: number) => {
@@ -157,16 +186,13 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
   // Sincroniza metronomeEngine se a prop enableMetronomeSound for explicitamente fornecida
   useEffect(() => {
     if (enableMetronomeSound !== undefined) {
+      setIsMetronomeActive(enableMetronomeSound);
       musicalPlaybackEngine.setMetronomeEnabled(enableMetronomeSound);
-      if (enableMetronomeSound && !metronomeEngine.getSnapshot().isPlaying) {
-        soundEngine.ensureAudioReady().then(() => {
-          metronomeEngine.start({ bpm: playback.tempo, timeSignature });
-        });
-      } else if (!enableMetronomeSound && metronomeEngine.getSnapshot().isPlaying) {
+      if (!enableMetronomeSound && metronomeEngine.getSnapshot().isPlaying) {
         metronomeEngine.stop();
       }
     }
-  }, [enableMetronomeSound, playback.tempo, timeSignature]);
+  }, [enableMetronomeSound]);
 
   // Limpeza ao desmontar
   useEffect(() => {
@@ -246,7 +272,7 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
         enableAudio={enableAudio}
         onToggleAudio={() => setEnableAudio(a => !a)}
         showAudioToggle={autoPlayAudio}
-        enableMetronome={metronome.isPlaying}
+        enableMetronome={isMetronomeActive}
         onToggleMetronome={handleToggleMetronome}
         sustainMode={activeSustainMode}
         onSustainModeChange={handleSustainModeChange}
