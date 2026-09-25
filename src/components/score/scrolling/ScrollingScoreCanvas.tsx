@@ -7,6 +7,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { soundEngine } from '../../../core/soundEngine';
 import { parseChord } from '../../../core/musicTheory';
+import { metronomeEngine, useMetronome } from '../../../core/metronomeEngine';
 import type { ScrollingScoreProps, DisplayOptions, ScoreTheme } from './types';
 import { SCORE_GEOMETRY } from './scoreGeometry';
 import { useScoreTimeline } from './useScoreTimeline';
@@ -45,7 +46,7 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
   const [containerWidth, setContainerWidth] = useState<number>(1200);
   const [scoreTheme, setScoreTheme] = useState<ScoreTheme>(initialTheme);
   const [enableAudio, setEnableAudio] = useState<boolean>(autoPlayAudio);
-  const [enableMetronome, setEnableMetronome] = useState<boolean>(initialMetronome);
+  const metronome = useMetronome();
   const [enableSustain, setEnableSustain] = useState<boolean>(initialSustain);
 
   useEffect(() => {
@@ -89,6 +90,30 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
     await soundEngine.ensureAudioReady();
     playback.handlePlayToggle();
   };
+
+  const handleToggleMetronome = async () => {
+    await soundEngine.ensureAudioReady();
+    metronomeEngine.toggle({ bpm: playback.tempo, timeSignature });
+  };
+
+  const handleTempoChange = (newTempo: number) => {
+    playback.handleTempoChange(newTempo);
+    metronomeEngine.setBpm(newTempo);
+  };
+
+  useEffect(() => {
+    if (initialMetronome && !metronomeEngine.getSnapshot().isPlaying) {
+      soundEngine.ensureAudioReady().then(() => {
+        metronomeEngine.start({ bpm: playback.tempo, timeSignature });
+      });
+    }
+    return () => {
+      if (metronomeEngine.getSnapshot().isPlaying) {
+        metronomeEngine.stop();
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -152,14 +177,6 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
             });
           }
         }
-
-        if (enableMetronome) {
-          const beatInt = Math.floor(currentBeat);
-          if (!playback.playedBeatsRef.current.has(beatInt)) {
-            playback.playedBeatsRef.current.add(beatInt);
-            soundEngine.playMetronomeClick(beatInt % beatsPerMeasure === 0, false);
-          }
-        }
       }
 
       const h = canvas.height;
@@ -182,7 +199,7 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
       active = false;
       cancelAnimationFrame(animId);
     };
-  }, [playback, scoreTheme, displayOptions, containerWidth, timeline, restsList, notes, enableAudio, autoPlayAudio, isDemoMode, enableMetronome, instrument, beatsPerMeasure, enableSustain]);
+  }, [playback, scoreTheme, displayOptions, containerWidth, timeline, restsList, notes, enableAudio, autoPlayAudio, isDemoMode, instrument, beatsPerMeasure, enableSustain]);
 
   return (
     <div ref={containerRef} className="w-full flex flex-col rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-[#090814]">
@@ -191,14 +208,14 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
         onTogglePlay={handleTogglePlay}
         onRestart={playback.handleRestart}
         tempo={playback.tempo}
-        onTempoChange={playback.handleTempoChange}
+        onTempoChange={handleTempoChange}
         theme={scoreTheme}
         onToggleTheme={() => setScoreTheme(t => (t === 'traditional' ? 'dark' : 'traditional'))}
         enableAudio={enableAudio}
         onToggleAudio={() => setEnableAudio(a => !a)}
         showAudioToggle={autoPlayAudio}
-        enableMetronome={enableMetronome}
-        onToggleMetronome={() => setEnableMetronome(m => !m)}
+        enableMetronome={metronome.isPlaying}
+        onToggleMetronome={handleToggleMetronome}
         enableSustain={enableSustain}
         onToggleSustain={() => setEnableSustain(s => !s)}
         displayOptions={displayOptions}

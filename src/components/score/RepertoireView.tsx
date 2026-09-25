@@ -10,6 +10,7 @@ import { RepertoireAccuracyModal } from './RepertoireAccuracyModal';
 import { TimbreSelector } from '../audio/TimbreSelector';
 import { soundEngine } from '../../core/soundEngine';
 import { accompanimentSynthesizer, type MetronomeSoundType } from '../../core/accompanimentSynthesizer';
+import { metronomeEngine, useMetronome } from '../../core/metronomeEngine';
 import { useOctaveStandard, octaveConfigStore } from '../../core/octaveConfigStore';
 import {
   Music,
@@ -73,12 +74,8 @@ export const RepertoireView: React.FC = () => {
   // 'off'   = staccato puro sem sustain
   const [sustainOption, setSustainOption] = useState<'note' | 'chord' | 'off'>('chord');
 
-  // Metrônomo Musical com timbre orgânico de instrumento
-  const [enableMetronome, setEnableMetronome] = useState<boolean>(false);
-  const [metronomeVolume, setMetronomeVolume] = useState<number>(75);
-  const [metronomeSound, setMetronomeSound] = useState<MetronomeSoundType>('keyboard-sidestick');
-
-  // Aba ativa nos cartões de contexto didático em telas mobile
+  // Metrônomo Musical Conectado ao Engine Global
+  const metronome = useMetronome();
   const [mobileContextTab, setMobileContextTab] = useState<'context' | 'tips' | 'chords'>('context');
 
   const octaveStandard = useOctaveStandard();
@@ -121,18 +118,12 @@ export const RepertoireView: React.FC = () => {
   const currentNoteIdxRef = useRef<number>(0);
   const playbackEndModeRef = useRef<'end' | 'repeat'>(playbackEndMode);
   const sustainOptionRef = useRef<'note' | 'chord' | 'off'>(sustainOption);
-  const enableMetronomeRef = useRef<boolean>(enableMetronome);
-  const metronomeVolumeRef = useRef<number>(metronomeVolume);
-  const metronomeSoundRef = useRef<MetronomeSoundType>(metronomeSound);
 
   isPlayingRef.current = isPlaying;
   tempoRef.current = tempo;
   currentNoteIdxRef.current = currentNoteIdx;
   playbackEndModeRef.current = playbackEndMode;
   sustainOptionRef.current = sustainOption;
-  enableMetronomeRef.current = enableMetronome;
-  metronomeVolumeRef.current = metronomeVolume;
-  metronomeSoundRef.current = metronomeSound;
 
   // Atualiza tempo recomendado ao trocar de música
   const handleSelectSong = (song: RepertoireSong) => {
@@ -146,6 +137,9 @@ export const RepertoireView: React.FC = () => {
     setCurrentNoteIdx(0);
     setActiveSong(song);
     setTempo(song.recommendedBpm);
+    tempoRef.current = song.recommendedBpm;
+    metronomeEngine.setBpm(song.recommendedBpm);
+    metronomeEngine.setTimeSignature(song.timeSignature);
   };
 
   const handleNoteInput = (midi: number) => {
@@ -241,22 +235,6 @@ export const RepertoireView: React.FC = () => {
     const currentOffset = offsets[noteIndex] ?? 0;
     let nextIndex = noteIndex;
     const currentNotesMidi: number[] = [];
-
-    // Metrônomo Musical Sincronizado por Batida
-    if (enableMetronomeRef.current) {
-      const parts = activeSong.timeSignature.split('/');
-      const num = parseInt(parts[0], 10) || 4;
-      const beatInMeasure = Math.floor(currentOffset % num) + 1;
-      const isDownbeat = beatInMeasure === 1;
-
-      accompanimentSynthesizer.playMetronomeSound(
-        metronomeSoundRef.current,
-        isDownbeat,
-        false,
-        undefined,
-        (metronomeVolumeRef.current / 100) * 0.85
-      );
-    }
 
     // Calcula duração do intervalo até o próximo evento musical
     let nextEventOffset: number | null = null;
@@ -377,16 +355,26 @@ export const RepertoireView: React.FC = () => {
   };
 
   const handleTempoChange = (newTempo: number) => {
-    const clamped = Math.max(30, Math.min(220, newTempo));
+    const clamped = Math.max(30, Math.min(240, newTempo));
     setTempo(clamped);
+    tempoRef.current = clamped;
+    metronomeEngine.setBpm(clamped);
   };
 
-  // Limpeza de timers ao desmontar
+  const handleToggleMetronome = () => {
+    metronomeEngine.toggle({
+      bpm: tempo,
+      timeSignature: activeSong.timeSignature,
+    });
+  };
+
+  // Limpeza de timers e metrônomo ao desmontar
   useEffect(() => {
     return () => {
       if (playbackTimeoutRef.current) {
         window.clearTimeout(playbackTimeoutRef.current);
       }
+      metronomeEngine.stop();
     };
   }, []);
 
@@ -563,42 +551,65 @@ export const RepertoireView: React.FC = () => {
             </button>
           </div>
 
-          {/* Metrônomo Musical Integrado */}
-          <div className="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-2xl border border-white/10 text-xs">
+          {/* Metrônomo Musical Integrado com Visualizador de Pulsos */}
+          <div className="flex flex-wrap items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-2xl border border-white/10 text-xs">
             <button
-              onClick={() => setEnableMetronome(m => !m)}
-              className={`p-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1 font-bold ${
-                enableMetronome
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                  : 'text-slate-400 hover:text-white'
+              onClick={handleToggleMetronome}
+              className={`p-1.5 px-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 font-bold ${
+                metronome.isPlaying
+                  ? 'bg-amber-500 text-slate-950 font-black shadow-[0_0_15px_rgba(245,158,11,0.5)] ring-2 ring-amber-300'
+                  : 'text-slate-400 hover:text-white bg-white/5'
               }`}
-              title={enableMetronome ? 'Metrônomo Musical Ativo' : 'Ativar Metrônomo Musical'}
+              title={metronome.isPlaying ? 'Metrônomo Ativo (Clique para Desligar)' : 'Ligar Metrônomo Sonoro'}
             >
-              {enableMetronome ? <Volume2 className="w-3.5 h-3.5 text-amber-400" /> : <VolumeX className="w-3.5 h-3.5" />}
-              <span className="hidden xl:inline">Metrônomo</span>
+              {metronome.isPlaying ? <Volume2 className="w-3.5 h-3.5 animate-pulse" /> : <VolumeX className="w-3.5 h-3.5" />}
+              <span>{metronome.isPlaying ? 'Metrônomo ON' : 'Metrônomo'}</span>
             </button>
 
-            {enableMetronome && (
+            {/* LEDs de Batidas */}
+            <div className="flex items-center gap-1 px-1">
+              {Array.from({ length: metronome.beatsPerMeasure }, (_, i) => i + 1).map((b) => {
+                const isCurrent = metronome.isPlaying && metronome.currentBeat === b;
+                const isDown = b === 1;
+                return (
+                  <span
+                    key={b}
+                    className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[8px] font-mono font-bold transition-all duration-75 ${
+                      isCurrent
+                        ? isDown
+                          ? 'bg-amber-400 text-slate-950 scale-125 shadow-[0_0_10px_#fbbf24]'
+                          : 'bg-indigo-400 text-slate-950 scale-110 shadow-[0_0_8px_#818cf8]'
+                        : 'bg-white/10 text-slate-500'
+                    }`}
+                  >
+                    {b}
+                  </span>
+                );
+              })}
+            </div>
+
+            {metronome.isPlaying && (
               <>
                 <select
-                  value={metronomeSound}
-                  onChange={(e) => setMetronomeSound(e.target.value as MetronomeSoundType)}
-                  className="bg-black/60 text-[10px] text-amber-200 border border-white/10 rounded-lg px-1.5 py-0.5 font-mono cursor-pointer"
+                  value={metronome.soundType}
+                  onChange={(e) => metronomeEngine.setSoundType(e.target.value as MetronomeSoundType)}
+                  className="bg-black/60 text-[10px] text-amber-200 border border-white/10 rounded-lg px-1.5 py-0.5 font-mono cursor-pointer outline-none"
                   title="Timbre Musical do Metrônomo"
                 >
                   <option value="keyboard-sidestick">Aro Teclado</option>
                   <option value="woodblock">Bloco Madeira</option>
                   <option value="cowbell">Cowbell</option>
+                  <option value="digital">Digital Beep</option>
                 </select>
 
                 <input
                   type="range"
-                  min="10"
+                  min="0"
                   max="100"
-                  value={metronomeVolume}
-                  onChange={(e) => setMetronomeVolume(parseInt(e.target.value, 10))}
+                  value={metronome.volume}
+                  onChange={(e) => metronomeEngine.setVolume(parseInt(e.target.value, 10))}
                   className="w-12 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
-                  title={`Volume: ${metronomeVolume}%`}
+                  title={`Volume: ${metronome.volume}%`}
                 />
               </>
             )}
@@ -779,6 +790,7 @@ export const RepertoireView: React.FC = () => {
           isPlaying={isPlaying}
           isDemoMode={true}
           autoPlayAudio={false}
+          enableMetronomeSound={metronome.isPlaying}
           currentNoteIndex={currentNoteIdx}
           onPlayPauseToggle={(playing) => {
             if (playing && !isPlaying) {
@@ -787,7 +799,7 @@ export const RepertoireView: React.FC = () => {
               handleTogglePlayPause();
             }
           }}
-          onTempoChange={(newBpm) => setTempo(newBpm)}
+          onTempoChange={(newBpm) => handleTempoChange(newBpm)}
           currentMidiPressed={isPlaying ? null : lastMidiEvent}
         />
 

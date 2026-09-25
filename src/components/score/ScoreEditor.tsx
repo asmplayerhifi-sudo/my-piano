@@ -9,10 +9,11 @@ import { soundEngine } from '../../core/soundEngine';
 import { getNoteInfo } from '../../core/musicTheory';
 import { octaveConfigStore, useOctaveStandard, type OctaveStandard } from '../../core/octaveConfigStore';
 import { TimbreSelector } from '../audio/TimbreSelector';
+import { metronomeEngine, useMetronome } from '../../core/metronomeEngine';
 import {
   Play, Pause, Square, Plus, Trash2, Download,
   Music, ChevronLeft, ChevronRight, Save, FileMusic,
-  Undo2, Redo2, SkipBack,
+  Undo2, Redo2, SkipBack, Radio,
 } from 'lucide-react';
 import { FormalScoreSheet } from './editor/FormalScoreSheet';
 
@@ -439,10 +440,38 @@ export const ScoreEditor: React.FC = () => {
   const [viewLayout, setViewLayout] = useState<'both' | 'score' | 'grid'>('both');
   const [isChordMode, setIsChordMode] = useState<boolean>(false);
   const [chordRootBeat, setChordRootBeat] = useState<number | null>(null);
+  const metronome = useMetronome();
 
   const playbackRef = useRef<{ raf: number; startTime: number; startBeat: number } | null>(null);
   const projectRef = useRef(project);
   projectRef.current = project;
+
+  const handleToggleMetronome = useCallback(async () => {
+    await soundEngine.ensureAudioReady();
+    metronomeEngine.toggle({
+      bpm: project.bpm,
+      timeSignature: `${project.timeSignature[0]}/${project.timeSignature[1]}` as any,
+    });
+  }, [project.bpm, project.timeSignature]);
+
+  const handleBpmChange = useCallback((newBpm: number) => {
+    const clamped = Math.max(40, Math.min(240, newBpm));
+    setProject(p => ({ ...p, bpm: clamped }));
+    metronomeEngine.setBpm(clamped);
+  }, []);
+
+  const handleTimeSignatureChange = useCallback((sig: [number, number]) => {
+    setProject(p => ({ ...p, timeSignature: sig }));
+    metronomeEngine.setTimeSignature(`${sig[0]}/${sig[1]}` as any);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (metronomeEngine.getSnapshot().isPlaying) {
+        metronomeEngine.stop();
+      }
+    };
+  }, []);
 
   const totalMeasures = useMemo(() => {
     if (project.notes.length === 0) return 4;
@@ -829,7 +858,7 @@ export const ScoreEditor: React.FC = () => {
         <div className="flex items-center gap-2 bg-black/30 rounded-xl px-3 py-2 border border-white/5">
           <span className="text-[10px] text-slate-400 font-mono uppercase tracking-wider">BPM</span>
           <button
-            onClick={() => setProject(p => ({ ...p, bpm: Math.max(40, p.bpm - 5) }))}
+            onClick={() => handleBpmChange(project.bpm - 5)}
             className="p-0.5 rounded hover:bg-white/10 text-slate-400 hover:text-white cursor-pointer transition-colors"
           >
             <ChevronLeft className="w-3.5 h-3.5" />
@@ -838,11 +867,11 @@ export const ScoreEditor: React.FC = () => {
             type="number"
             min={40} max={240}
             value={project.bpm}
-            onChange={e => setProject(p => ({ ...p, bpm: Math.max(40, Math.min(240, Number(e.target.value))) }))}
+            onChange={e => handleBpmChange(Number(e.target.value))}
             className="w-12 text-center text-sm font-black font-mono text-white bg-transparent outline-none"
           />
           <button
-            onClick={() => setProject(p => ({ ...p, bpm: Math.min(240, p.bpm + 5) }))}
+            onClick={() => handleBpmChange(project.bpm + 5)}
             className="p-0.5 rounded hover:bg-white/10 text-slate-400 hover:text-white cursor-pointer transition-colors"
           >
             <ChevronRight className="w-3.5 h-3.5" />
@@ -857,7 +886,7 @@ export const ScoreEditor: React.FC = () => {
           ] as [number, number][]).map(([n, d]) => (
             <button
               key={`${n}/${d}`}
-              onClick={() => setProject(p => ({ ...p, timeSignature: [n, d] }))}
+              onClick={() => handleTimeSignatureChange([n, d])}
               className={`text-[10px] font-black font-mono px-2 py-0.5 rounded-lg transition-colors cursor-pointer ${
                 project.timeSignature[0] === n && project.timeSignature[1] === d
                   ? 'bg-violet-500/30 text-violet-300 border border-violet-500/40'
@@ -868,6 +897,23 @@ export const ScoreEditor: React.FC = () => {
             </button>
           ))}
         </div>
+
+        {/* Metrônomo Sonoro */}
+        <button
+          onClick={handleToggleMetronome}
+          title={metronome.isPlaying ? 'Metrônomo ativo com som (Clique para desligar)' : 'Metrônomo desligado (Clique para ativar)'}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+            metronome.isPlaying
+              ? 'bg-amber-500/25 border-amber-500/60 text-amber-300 font-bold shadow-[0_0_12px_rgba(245,158,11,0.25)]'
+              : 'bg-black/30 border-white/5 text-slate-400 hover:text-white'
+          }`}
+        >
+          <Radio className={`w-3.5 h-3.5 ${metronome.isPlaying ? 'animate-pulse text-amber-400' : ''}`} />
+          <span>Metrônomo: {metronome.isPlaying ? 'ON' : 'OFF'}</span>
+          {metronome.isPlaying && (
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+          )}
+        </button>
 
         <div className="flex-1" />
 

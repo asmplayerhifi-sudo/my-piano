@@ -122,18 +122,21 @@ export const ScoreCanvasControls: React.FC<ScoreControlsProps> = ({
           </button>
         )}
 
-        {/* Metrônomo Sonoro */}
+        {/* Metrônomo Sonoro com On/Off e Pulso */}
         <button
           onClick={onToggleMetronome}
-          title={enableMetronome ? 'Metrônomo ligado' : 'Metrônomo desligado'}
-          className={`px-2 py-1.5 rounded-lg border flex items-center gap-1.5 text-xs transition-all cursor-pointer ${
+          title={enableMetronome ? 'Metrônomo ativo com som (Clique para desligar)' : 'Metrônomo desligado (Clique para ativar o som)'}
+          className={`px-2.5 py-1.5 rounded-lg border flex items-center gap-1.5 text-xs transition-all cursor-pointer ${
             enableMetronome
-              ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300'
-              : 'bg-white/5 border-white/10 text-slate-500 hover:text-slate-300'
+              ? 'bg-amber-500/25 border-amber-500/60 text-amber-300 font-bold shadow-[0_0_12px_rgba(245,158,11,0.25)]'
+              : 'bg-white/5 border-white/10 text-slate-400 hover:text-slate-200'
           }`}
         >
-          <Radio className="w-3.5 h-3.5" />
-          <span className="hidden md:inline text-[10px] font-bold">Metrônomo</span>
+          <Radio className={`w-3.5 h-3.5 ${enableMetronome ? 'animate-pulse text-amber-400' : ''}`} />
+          <span className="text-[10px] font-bold">Metrônomo: {enableMetronome ? 'ON' : 'OFF'}</span>
+          {enableMetronome && (
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+          )}
         </button>
 
         {/* Pedal de Sustain para Acordes e Harmonia */}

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { FretboardView } from './FretboardView';
 import { CAGEDMapper, CAGED_SHAPES_C_MAJOR } from './CAGEDMapper';
 import { BassInversionCard } from './BassInversionCard';
+import { MetronomeBar } from '../audio/MetronomeBar';
 import type { GuitarChordShape } from '../../core/types';
 import { Guitar, Eye } from 'lucide-react';
 
@@ -75,11 +76,19 @@ export const GuitarModule: React.FC = () => {
           </div>
         </div>
 
-        <FretboardView
-          chordShape={currentShape}
-          fretCount={14}
-          showNoteNames={showNoteNames}
-        />
+        <div className="space-y-4">
+          <MetronomeBar
+            title="Metrônomo do Violão / Viola"
+            initialBpm={90}
+            initialTimeSignature="4/4"
+          />
+
+          <FretboardView
+            chordShape={currentShape}
+            fretCount={14}
+            showNoteNames={showNoteNames}
+          />
+        </div>
       </div>
 
       {/* Grid Inferior: CAGED Mapper + Baixos Invertidos */}

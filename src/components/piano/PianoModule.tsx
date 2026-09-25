@@ -3,6 +3,7 @@ import { PianoKeyboard } from './PianoKeyboard';
 import { ChordSelector } from './ChordSelector';
 import { MicrophonePitchBar } from '../audio/MicrophonePitchBar';
 import { TimbreSelector } from '../audio/TimbreSelector';
+import { MetronomeBar } from '../audio/MetronomeBar';
 import { buildChord, getKeyboardInversions, identifyChordFromMidi } from '../../core/musicTheory';
 import { midiManager, type MidiDevice } from '../../core/midiManager';
 import { activeMidiStore } from '../../core/activeMidiStore';
@@ -181,6 +182,12 @@ export const PianoModule: React.FC = () => {
         </div>
 
         <div className="space-y-4">
+          <MetronomeBar
+            title="Metrônomo do Teclado"
+            initialBpm={100}
+            initialTimeSignature="4/4"
+          />
+
           <MicrophonePitchBar
             onNoteHold={(midi) => setMicActiveMidi(midi)}
             expectedMidi={activeVoicing.midi[0]}
