@@ -62,6 +62,7 @@ export function useScorePlayback({
   const scrollOffsetRef = useRef<number>(0);
   const isPausedWaitingRef = useRef<boolean>(false);
   const playedNotesRef = useRef<Set<number>>(new Set());
+  const playedChordsRef = useRef<Set<number>>(new Set());
   const playedBeatsRef = useRef<Set<number>>(new Set());
   const evaluateStrikeUseCase = useRef(new EvaluateRhythmStrikeUseCase()).current;
 
@@ -122,6 +123,7 @@ export function useScorePlayback({
     setLastError(null);
     lastTargetMidiRef.current = undefined;
     playedNotesRef.current.clear();
+    playedChordsRef.current.clear();
     playedBeatsRef.current.clear();
     isPausedWaitingRef.current = false;
   };
@@ -200,6 +202,7 @@ export function useScorePlayback({
     scrollOffsetRef,
     isPausedWaitingRef,
     playedNotesRef,
+    playedChordsRef,
     playedBeatsRef,
     handlePlayToggle,
     handleTempoChange,

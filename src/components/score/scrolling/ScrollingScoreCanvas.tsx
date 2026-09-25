@@ -6,6 +6,7 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { soundEngine } from '../../../core/soundEngine';
+import { parseChord } from '../../../core/musicTheory';
 import type { ScrollingScoreProps, DisplayOptions, ScoreTheme } from './types';
 import { SCORE_GEOMETRY } from './scoreGeometry';
 import { useScoreTimeline } from './useScoreTimeline';
@@ -37,6 +38,7 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
   currentNoteIndex,
   autoPlayAudio = true,
   enableMetronomeSound: initialMetronome = false,
+  enableSustain: initialSustain = true,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -44,6 +46,7 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
   const [scoreTheme, setScoreTheme] = useState<ScoreTheme>(initialTheme);
   const [enableAudio, setEnableAudio] = useState<boolean>(autoPlayAudio);
   const [enableMetronome, setEnableMetronome] = useState<boolean>(initialMetronome);
+  const [enableSustain, setEnableSustain] = useState<boolean>(initialSustain);
 
   useEffect(() => {
     setEnableAudio(autoPlayAudio);
@@ -114,7 +117,7 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
         playback.scrollOffsetRef.current += (playback.tempo / 60) * pixelsPerBeat * dt;
         const currentBeat = playback.scrollOffsetRef.current / pixelsPerBeat;
 
-        // Dispara áudio APENAS quando autoPlayAudio e enableAudio estiverem ativos
+        // Dispara áudio das notas individuais APENAS quando autoPlayAudio e enableAudio estiverem ativos
         // Em modo de reprodução externa gerenciada pelo pai (ex: RepertoireView), autoPlayAudio é falso e não duplica a faixa!
         if (enableAudio && autoPlayAudio) {
           timeline.noteOffsets.forEach((b, i) => {
@@ -128,6 +131,25 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
               }
             }
           });
+
+          // Reprodução polifônica síncrona dos acordes da partitura ao atingir o beat de início
+          if (displayOptions.showChords) {
+            timeline.chordSpans.forEach((chord, chordIdx) => {
+              if (chord.startBeat <= currentBeat + 0.05 && !playback.playedChordsRef.current.has(chordIdx)) {
+                playback.playedChordsRef.current.add(chordIdx);
+                const parsed = parseChord(chord.chordName);
+                if (parsed && parsed.midiNotes.length > 0) {
+                  const beatSec = 60 / playback.tempo;
+                  const chordDurationSec = chord.duration * beatSec;
+                  // Com sustain: notas ressoam de forma contínua preenchendo o compasso; Sem sustain: staccato curto e seco
+                  const soundDuration = enableSustain
+                    ? Math.max(1.8, chordDurationSec * 0.95)
+                    : Math.min(0.40, beatSec * 0.45);
+                  soundEngine.playChord(parsed.midiNotes, instrument, soundDuration);
+                }
+              }
+            });
+          }
         }
 
         if (enableMetronome) {
@@ -142,7 +164,7 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
       const h = canvas.height;
       drawScoreBackground(ctx, containerWidth, h, scoreTheme, attackLineX, pixelsPerBeat);
       drawScoreStaves({ ctx, width: containerWidth, theme: scoreTheme, displayOptions, measureStartBeats: timeline.measureStartBeats, maxMeasure: timeline.maxMeasure, totalBeats: timeline.totalBeats, beatsPerMeasure, attackLineX, scrollOffset: playback.scrollOffsetRef.current, pixelsPerBeat });
-      drawScoreChords({ ctx, width: containerWidth, theme: scoreTheme, chordSpans: timeline.chordSpans, attackLineX, scrollOffset: playback.scrollOffsetRef.current, pixelsPerBeat });
+      drawScoreChords({ ctx, width: containerWidth, theme: scoreTheme, chordSpans: timeline.chordSpans, attackLineX, scrollOffset: playback.scrollOffsetRef.current, pixelsPerBeat, enableSustain });
       if (displayOptions.showRests) {
         drawScoreRests({ ctx, width: containerWidth, theme: scoreTheme, restsList, attackLineX, scrollOffset: playback.scrollOffsetRef.current, pixelsPerBeat });
       }
@@ -157,7 +179,7 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
       active = false;
       cancelAnimationFrame(animId);
     };
-  }, [playback, scoreTheme, displayOptions, containerWidth, timeline, restsList, notes, enableAudio, autoPlayAudio, isDemoMode, enableMetronome, instrument, beatsPerMeasure]);
+  }, [playback, scoreTheme, displayOptions, containerWidth, timeline, restsList, notes, enableAudio, autoPlayAudio, isDemoMode, enableMetronome, instrument, beatsPerMeasure, enableSustain]);
 
   return (
     <div ref={containerRef} className="w-full flex flex-col rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-[#090814]">
@@ -174,6 +196,8 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
         showAudioToggle={autoPlayAudio}
         enableMetronome={enableMetronome}
         onToggleMetronome={() => setEnableMetronome(m => !m)}
+        enableSustain={enableSustain}
+        onToggleSustain={() => setEnableSustain(s => !s)}
         displayOptions={displayOptions}
         onToggleOption={k => setDisplayOptions(o => ({ ...o, [k]: !o[k] }))}
         score={playback.score}

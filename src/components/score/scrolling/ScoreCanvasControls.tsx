@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { Play, Pause, RotateCcw, Volume2, VolumeX, Sun, Moon, Radio } from 'lucide-react';
+import { Play, Pause, RotateCcw, Volume2, VolumeX, Sun, Moon, Radio, Sparkles } from 'lucide-react';
 import type { DisplayOptions, ScoreTheme } from './types';
 
 interface ScoreControlsProps {
@@ -21,6 +21,8 @@ interface ScoreControlsProps {
   showAudioToggle?: boolean;
   enableMetronome: boolean;
   onToggleMetronome: () => void;
+  enableSustain?: boolean;
+  onToggleSustain?: () => void;
   displayOptions: DisplayOptions;
   onToggleOption: (key: keyof DisplayOptions) => void;
   score: number;
@@ -40,6 +42,8 @@ export const ScoreCanvasControls: React.FC<ScoreControlsProps> = ({
   showAudioToggle = true,
   enableMetronome,
   onToggleMetronome,
+  enableSustain = true,
+  onToggleSustain,
   displayOptions,
   onToggleOption,
   score,
@@ -100,7 +104,7 @@ export const ScoreCanvasControls: React.FC<ScoreControlsProps> = ({
         </div>
       </div>
 
-      {/* 3. Toggles de Áudio, Metrônomo, Tema e Exibição */}
+      {/* 3. Toggles de Áudio, Metrônomo, Sustain, Tema e Exibição */}
       <div className="flex items-center gap-2">
         {/* Áudio do Instrumento / Notas da Partitura */}
         {showAudioToggle && (
@@ -131,6 +135,22 @@ export const ScoreCanvasControls: React.FC<ScoreControlsProps> = ({
           <Radio className="w-3.5 h-3.5" />
           <span className="hidden md:inline text-[10px] font-bold">Metrônomo</span>
         </button>
+
+        {/* Pedal de Sustain para Acordes e Harmonia */}
+        {onToggleSustain && (
+          <button
+            onClick={onToggleSustain}
+            title={enableSustain ? 'Pedal de Sustain: LIGADO (Acordes ressoam com sustentação natural preenchendo o compasso)' : 'Pedal de Sustain: DESLIGADO (Acordes tocam secos em staccato)'}
+            className={`px-2 py-1.5 rounded-lg border flex items-center gap-1.5 text-xs transition-all cursor-pointer ${
+              enableSustain
+                ? 'bg-amber-500/25 border-amber-500/60 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.25)] font-bold'
+                : 'bg-white/5 border-white/10 text-slate-500 hover:text-slate-300'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span className="text-[10px] font-bold">Sustain: {enableSustain ? 'ON' : 'OFF'}</span>
+          </button>
+        )}
 
         {/* Tema Claro / Noturno */}
         <button

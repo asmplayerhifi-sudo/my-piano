@@ -190,6 +190,118 @@ export function buildChord(root: string, quality: ChordQuality, bassNote?: strin
   };
 }
 
+export interface ParsedChord {
+  symbol: string;
+  root: string;
+  quality: ChordQuality;
+  bassNote?: string;
+  notes: string[];
+  notesPt: string[];
+  notesFormatted: string;
+  midiNotes: number[];
+}
+
+/** Converte símbolo de cifra (ex: 'C', 'G/B', 'Am7') em notas musicais e voicings MIDI */
+export function parseChord(chordStr: string): ParsedChord | null {
+  if (!chordStr || typeof chordStr !== 'string') return null;
+  const raw = chordStr.trim();
+  if (!raw) return null;
+
+  let symbolPart = raw;
+  let bassPart: string | undefined;
+
+  if (raw.includes('/')) {
+    const parts = raw.split('/');
+    symbolPart = parts[0].trim();
+    bassPart = parts[1].trim();
+  }
+
+  // Identifica a tônica (Root): notas com acidente ou simples
+  let root = '';
+  let suffix = '';
+
+  if (symbolPart.length >= 2 && (symbolPart[1] === '#' || symbolPart[1] === 'b')) {
+    root = symbolPart.slice(0, 2);
+    suffix = symbolPart.slice(2).trim();
+  } else {
+    root = symbolPart.slice(0, 1);
+    suffix = symbolPart.slice(1).trim();
+  }
+
+  // Normalização e validação da tônica
+  const rootUpper = root.charAt(0).toUpperCase() + root.slice(1).toLowerCase().replace('♯', '#').replace('♭', 'b');
+  const validRoot = CHROMATIC_NOTES_SHARP.find(n => n.toUpperCase() === rootUpper.toUpperCase()) ||
+                    CHROMATIC_NOTES_FLAT.find(n => n.toUpperCase() === rootUpper.toUpperCase());
+  if (!validRoot) return null;
+
+  let validBass: string | undefined;
+  if (bassPart) {
+    const bassUpper = bassPart.charAt(0).toUpperCase() + bassPart.slice(1).toLowerCase().replace('♯', '#').replace('♭', 'b');
+    validBass = CHROMATIC_NOTES_SHARP.find(n => n.toUpperCase() === bassUpper.toUpperCase()) ||
+                CHROMATIC_NOTES_FLAT.find(n => n.toUpperCase() === bassUpper.toUpperCase()) || bassPart;
+  }
+
+  // Identificação da qualidade harmônica
+  let quality: ChordQuality = 'major';
+  const s = suffix.toLowerCase();
+
+  if (s === 'm7b5' || s === 'm7(b5)' || s === 'ø' || s === 'm7(♭5)') {
+    quality = 'm7b5';
+  } else if (s === 'maj7' || s === '7m' || s === 'Δ' || s === '7+' || s === 'm7+') {
+    quality = 'maj7';
+  } else if (s === 'm7' || s === 'min7' || s === '-7') {
+    quality = 'min7';
+  } else if (s === 'dim' || s === '°' || s === 'dim7') {
+    quality = 'diminished';
+  } else if (s === 'aug' || s === '+' || s === 'aug7') {
+    quality = 'augmented';
+  } else if (s === 'm' || s === 'min' || s === '-') {
+    quality = 'minor';
+  } else if (s === '7' || s === 'dom7') {
+    quality = 'dom7';
+  } else {
+    quality = 'major';
+  }
+
+  const chordDef = buildChord(validRoot, quality, validBass);
+  const notesPt = chordDef.notes.map(n => NOTE_NAMES_PT[n] || n);
+  const notesFormatted = notesPt.join(' • ');
+
+  // Montagem das notas MIDI para execução polifônica realista no teclado:
+  // Dó Central (C3) = MIDI 60.
+  const rootIndex = CHROMATIC_NOTES_SHARP.indexOf(validRoot) !== -1
+    ? CHROMATIC_NOTES_SHARP.indexOf(validRoot)
+    : CHROMATIC_NOTES_FLAT.indexOf(validRoot);
+  const safeRootIndex = rootIndex >= 0 ? rootIndex : 0;
+
+  // Baixo (mão esquerda): fundamental ou nota do baixo especificada
+  let bassMidi = 36 + safeRootIndex;
+  if (validBass) {
+    const bassIdx = CHROMATIC_NOTES_SHARP.indexOf(validBass) !== -1
+      ? CHROMATIC_NOTES_SHARP.indexOf(validBass)
+      : CHROMATIC_NOTES_FLAT.indexOf(validBass);
+    if (bassIdx >= 0) bassMidi = 36 + bassIdx;
+  }
+
+  // Harmonia (mão direita/tríade): registro 48..72
+  const config = CHORD_QUALITIES[quality];
+  const harmonyBaseMidi = safeRootIndex <= 4 ? 60 + safeRootIndex : 48 + safeRootIndex;
+  const harmonyMidi = config.intervals.map(semitones => harmonyBaseMidi + semitones);
+
+  const midiNotes = Array.from(new Set([bassMidi, ...harmonyMidi])).sort((a, b) => a - b);
+
+  return {
+    symbol: chordDef.symbol,
+    root: validRoot,
+    quality,
+    bassNote: validBass,
+    notes: chordDef.notes,
+    notesPt,
+    notesFormatted,
+    midiNotes,
+  };
+}
+
 // Inversões de Tríades para o Teclado
 export function getKeyboardInversions(root: string, isMinor = false): {
   fundamental: { notes: string[]; midi: number[]; fingeringRH: number[] };

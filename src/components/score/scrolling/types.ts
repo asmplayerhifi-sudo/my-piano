@@ -60,4 +60,5 @@ export interface ScrollingScoreProps {
   currentNoteIndex?: number;
   autoPlayAudio?: boolean;
   enableMetronomeSound?: boolean;
+  enableSustain?: boolean;
 }

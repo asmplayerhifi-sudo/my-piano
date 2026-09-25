@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Chord } from '../../src/domain/entities/Chord';
 import type { Note } from '../../src/domain/entities/Note';
+import { parseChord } from '../../src/core/musicTheory';
 
 describe('Chord Domain Entity & Inversions', () => {
   it('deve construir a tríade de Dó Maior (C) na posição fundamental corretamente', () => {
@@ -36,4 +37,31 @@ describe('Chord Domain Entity & Inversions', () => {
     const isMatch = cMajor.matchesVoicing(playedKeys);
     expect(isMatch).toBe(true);
   });
+
+  it('deve analisar e decompor cifras corretamente com parseChord (C, G, Am, G/B)', () => {
+    const chordC = parseChord('C');
+    expect(chordC).not.toBeNull();
+    expect(chordC?.root).toBe('C');
+    expect(chordC?.quality).toBe('major');
+    expect(chordC?.notesFormatted).toBe('Dó • Mi • Sol');
+    expect(chordC?.midiNotes).toContain(60); // C3
+
+    const chordG = parseChord('G');
+    expect(chordG).not.toBeNull();
+    expect(chordG?.root).toBe('G');
+    expect(chordG?.notesFormatted).toBe('Sol • Si • Ré');
+
+    const chordAm = parseChord('Am');
+    expect(chordAm).not.toBeNull();
+    expect(chordAm?.root).toBe('A');
+    expect(chordAm?.quality).toBe('minor');
+    expect(chordAm?.notesFormatted).toBe('Lá • Dó • Mi');
+
+    const chordSlash = parseChord('G/B');
+    expect(chordSlash).not.toBeNull();
+    expect(chordSlash?.root).toBe('G');
+    expect(chordSlash?.bassNote).toBe('B');
+    expect(chordSlash?.midiNotes[0]).toBe(47); // B1
+  });
 });
+
