@@ -150,17 +150,19 @@ export const RepertoireView: React.FC = () => {
   const noteOffsetsRef = useRef<number[]>(noteOffsets);
   noteOffsetsRef.current = noteOffsets;
 
-  // Apontamento de dedos para as teclas do piano com base na música atual
-  const highlightedSongKeys = useMemo(() => {
-    return sortedScoreTrack.map(n => ({
-      midi: n.midi,
-      finger: n.fingerRightHand || n.fingerLeftHand,
-      degreeName: n.noteName,
-    }));
-  }, [sortedScoreTrack]);
-
   // Dedo da nota atual em execução na partitura para a tag abaixo do teclado
-  const currentSongTargetNote = sortedScoreTrack[currentNoteIdx];
+  const currentSongTargetNote = sortedScoreTrack[currentNoteIdx] || sortedScoreTrack[0];
+
+  // Apontamento de dedos para as teclas do piano com foco apenas na nota atual da música
+  const highlightedSongKeys = useMemo(() => {
+    if (!currentSongTargetNote) return [];
+    return [{
+      midi: currentSongTargetNote.midi,
+      finger: currentSongTargetNote.fingerRightHand || currentSongTargetNote.fingerLeftHand,
+      color: '#6366f1',
+    }];
+  }, [currentSongTargetNote]);
+
   const activeFingerPrompt = useMemo(() => {
     if (!currentSongTargetNote) return null;
     const fingerNum = currentSongTargetNote.fingerRightHand || currentSongTargetNote.fingerLeftHand;

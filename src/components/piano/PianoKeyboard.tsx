@@ -231,37 +231,27 @@ export const PianoKeyboard: React.FC<Props> = ({
     return highlightedKeys.find(k => k.midi === midi);
   };
 
-  // Cores contextuais padrão para graus harmônicos
-  const getDegreeColor = (degree?: string) => {
+  // Cores contextuais para graus harmônicos de acordes e customColor
+  const getDegreeColor = (degree?: string, customColor?: string) => {
+    if (customColor) return customColor;
     if (!degree) return '#6366f1';
-    if (degree === '1') return '#f43f5e';       // Fundamental: Vermelho/Rosa
-    if (degree.includes('3')) return '#06b6d4'; // Terça: Ciano/Azul
-    if (degree.includes('5')) return '#10b981'; // Quinta: Verde Esmeralda
-    if (degree.includes('7')) return '#a855f7'; // Sétima: Roxo
-    return '#f59e0b';
+    if (degree === '1' || degree === 'T') return '#f43f5e';           // Tônica: Vermelho/Rosa
+    if (/^(3|3M|3m|b3|♭3)$/.test(degree)) return '#06b6d4';         // Terça: Ciano
+    if (/^(5|5J|5dim|#5|♯5|b5|♭5)$/.test(degree)) return '#10b981'; // Quinta: Verde
+    if (/^(7|7M|7m|b7|♭7|dim7)$/.test(degree)) return '#a855f7';     // Sétima: Roxo
+    return '#6366f1';
   };
 
-  // Identificador do dedo correspondente à tecla (Apontamento de Dedo)
-  const getKeyFinger = (midi: number, highlight?: HighlightedKey): number | null => {
+  // Identificador do dedo correspondente à tecla (Apontamento de Dedo dinâmico)
+  const getKeyFinger = (_midi: number, highlight?: HighlightedKey): number | null => {
     if (highlight && highlight.finger) return highlight.finger;
     if (!showFingerGuide) return null;
 
-    // Se a tecla está destacada sem dedo explícito, calcula pelo grau harmônico
+    // Se a tecla é uma nota destacada sem dedo explícito, mapeia pelos graus harmônicos
     if (highlight) {
-      if (highlight.degreeName === '1') return 1;
-      if (highlight.degreeName?.includes('3')) return 3;
-      if (highlight.degreeName?.includes('5')) return 5;
-    }
-
-    // Posição de 5 dedos padrão na mão direita no Dó Central (C3–G3)
-    if (midi >= 60 && midi <= 67) {
-      const map: Record<number, number> = { 60: 1, 62: 2, 64: 3, 65: 4, 67: 5 };
-      if (map[midi]) return map[midi];
-    }
-    // Posição de 5 dedos padrão na mão esquerda (C2–G2)
-    if (midi >= 48 && midi <= 55) {
-      const map: Record<number, number> = { 48: 5, 50: 4, 52: 3, 53: 2, 55: 1 };
-      if (map[midi]) return map[midi];
+      if (highlight.degreeName === '1' || highlight.degreeName === 'T') return 1;
+      if (highlight.degreeName && /^(3|3M|3m)/.test(highlight.degreeName)) return 3;
+      if (highlight.degreeName && /^(5|5J)/.test(highlight.degreeName)) return 5;
     }
     return null;
   };
@@ -384,7 +374,7 @@ export const PianoKeyboard: React.FC<Props> = ({
                   } else if (isPressed) {
                     keyFill = '#ffe4e6'; // Destaque aceso quando pressionada
                   } else if (highlight) {
-                    keyFill = getDegreeColor(highlight.degreeName);
+                    keyFill = getDegreeColor(highlight.degreeName, highlight.color);
                   }
 
                   return (
@@ -563,7 +553,7 @@ export const PianoKeyboard: React.FC<Props> = ({
                   } else if (isPressed) {
                     keyFill = '#f43f5e'; // Tecla preta brilha em coral neon quando tocada
                   } else if (highlight) {
-                    keyFill = getDegreeColor(highlight.degreeName);
+                    keyFill = getDegreeColor(highlight.degreeName, highlight.color);
                   }
 
                   return (
@@ -888,29 +878,31 @@ export const PianoKeyboard: React.FC<Props> = ({
         </button>
       </div>
 
-      {/* 3. Legenda de Cores de Graus Harmônicos & Dó Central */}
-      <div className="flex flex-wrap items-center justify-center gap-4 text-xs pt-0.5">
-        <div className="flex items-center gap-1.5 bg-cyan-950/40 px-2.5 py-0.5 rounded-lg border border-cyan-500/20">
-          <Sparkles className="w-3 h-3 text-cyan-400" />
-          <span className="text-cyan-200 font-bold text-[10px]">C3 = Dó Central (Marcador Ciano)</span>
+      {/* 3. Legenda de Cores de Graus Harmônicos & Dó Central (Apenas no Modo de Acordes/Harmonia) */}
+      {highlightedKeys.some(k => k.degreeName && /^(1|3|5|7|T|b3|♭3|#5|♯5|b7|♭7)/.test(k.degreeName)) && (
+        <div className="flex flex-wrap items-center justify-center gap-4 text-xs pt-0.5">
+          <div className="flex items-center gap-1.5 bg-cyan-950/40 px-2.5 py-0.5 rounded-lg border border-cyan-500/20">
+            <Sparkles className="w-3 h-3 text-cyan-400" />
+            <span className="text-cyan-200 font-bold text-[10px]">C3 = Dó Central (Marcador Ciano)</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm" />
+            <span className="text-slate-300 text-[11px]">Tônica</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-sm" />
+            <span className="text-slate-300 text-[11px]">3ª</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm" />
+            <span className="text-slate-300 text-[11px]">5ª Justa</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-purple-500 shadow-sm" />
+            <span className="text-slate-300 text-[11px]">7ª</span>
+          </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm" />
-          <span className="text-slate-300 text-[11px]">Tônica</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-sm" />
-          <span className="text-slate-300 text-[11px]">3ª</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm" />
-          <span className="text-slate-300 text-[11px]">5ª Justa</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-purple-500 shadow-sm" />
-          <span className="text-slate-300 text-[11px]">7ª</span>
-        </div>
-      </div>
+      )}
     </div>
   );
 };

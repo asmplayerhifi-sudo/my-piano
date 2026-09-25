@@ -155,30 +155,28 @@ export const KeyboardCourseView: React.FC = () => {
     });
   }, []);
 
-  // Teclas destacadas e dedilhado orientativo para a lição ativa
+  // Teclas destacadas e dedilhado orientativo para a lição ativa (foco apenas na nota alvo atual)
   const highlightedLessonKeys = useMemo(() => {
-    if (activeLesson.scoreTrack && activeLesson.scoreTrack.length > 0) {
-      return activeLesson.scoreTrack.map(n => {
-        const nInfo = getNoteInfo(n.midi);
-        return {
-          midi: n.midi,
-          finger: n.fingerRightHand || n.fingerLeftHand,
-          degreeName: `${nInfo.name}${nInfo.octave}`,
-        };
-      });
+    const curNote = targetScoreNote || (activeLesson.scoreTrack && activeLesson.scoreTrack.length > 0 ? activeLesson.scoreTrack[0] : null);
+    if (curNote) {
+      return [{
+        midi: curNote.midi,
+        finger: curNote.fingerRightHand || curNote.fingerLeftHand,
+        color: '#6366f1',
+      }];
     }
     return [];
-  }, [activeLesson]);
+  }, [targetScoreNote, activeLesson]);
 
   const activeFingerPrompt = useMemo(() => {
-    if (activeLesson.scoreTrack && activeLesson.scoreTrack.length > 0) {
-      const firstNote = activeLesson.scoreTrack[0];
-      const fingerNum = firstNote.fingerRightHand || firstNote.fingerLeftHand;
-      const hand = firstNote.clef === 'bass' || firstNote.midi < 60 ? 'ME' : 'MD';
+    const curNote = targetScoreNote || (activeLesson.scoreTrack && activeLesson.scoreTrack.length > 0 ? activeLesson.scoreTrack[0] : null);
+    if (curNote) {
+      const fingerNum = curNote.fingerRightHand || curNote.fingerLeftHand;
+      const hand = curNote.clef === 'bass' || curNote.midi < 60 ? 'ME' : 'MD';
       const names = ['', 'Polegar', 'Indicador', 'Médio', 'Anelar', 'Mínimo'];
       const colors = ['', '#f59e0b', '#38bdf8', '#10b981', '#c084fc', '#f43f5e'];
-      const f = fingerNum || (hand === 'MD' ? (firstNote.midi === 60 ? 1 : 2) : 5);
-      const nInfo = getNoteInfo(firstNote.midi);
+      const f = fingerNum || (hand === 'MD' ? (curNote.midi === 60 ? 1 : 2) : 5);
+      const nInfo = getNoteInfo(curNote.midi);
       return {
         finger: f,
         label: `${f}`,
@@ -188,7 +186,7 @@ export const KeyboardCourseView: React.FC = () => {
       };
     }
     return null;
-  }, [activeLesson]);
+  }, [targetScoreNote, activeLesson]);
 
   const isCurrentCompleted = completedLessonIds.includes(activeLesson.id);
 
