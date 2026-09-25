@@ -168,13 +168,19 @@ export function drawScoreNotes({
     const middleLineMidi = isBass ? 50 : 71; // Linha média: D3 na Clave de Fá, B4 na Clave de Sol
     const isUpStem = note.midi < middleLineMidi; // Abaixo da 3ª linha: haste para cima; na/acima da 3ª linha: para baixo
 
-    if (dur <= 0.75) {
+    // Regra estrita de notação tradicional (Behind Bars / Gardner Read):
+    // Apenas colcheias (dur <= 0.5) e figuras menores admitem agrupamento por barras de ligação (beams).
+    // Semínimas (1.0), mínimas (2.0) e semínimas pontuadas (1.5) recebem haste individual estrita e NUNCA barras de união.
+    const isBeamable = dur <= 0.5 || Math.abs(dur - 0.75) < 0.01;
+
+    if (isBeamable) {
       beamCandidates.push({
         id: `${idx}`,
         x: rx,
         y: ry,
         duration: dur,
-        beat: note.beat ?? noteOffset,
+        beat: note.beat ?? (noteOffset % 4 + 1),
+        measure: note.measure ?? (Math.floor(noteOffset / 4) + 1),
         clef: note.clef || (note.midi < 60 ? 'bass' : 'treble'),
         color: noteColor,
         alpha: noteAlpha,

@@ -364,7 +364,8 @@ export function drawFormalScoreSheet({
   beatGroups.forEach((groupNotes) => {
     const firstNote = groupNotes[0];
     const dur = firstNote.duration;
-    if (dur <= 0.75) {
+    const isBeamable = dur <= 0.5 || Math.abs(dur - 0.75) < 0.01;
+    if (isBeamable) {
       const noteX = START_X + firstNote.beat * pixelsPerBeat - scrollLeft;
       if (noteX < -30 || noteX > width + 40) return;
       const sorted = [...groupNotes].map(n => ({ n, y: getDiatonicY(n.noteName, n.clef) })).sort((a, b) => a.y - b.y);
@@ -374,13 +375,15 @@ export function drawFormalScoreSheet({
       // Para o feixe de ligação, conecta pela ponta da haste
       const anchorY = isUp ? sorted[0].y : sorted[sorted.length - 1].y;
       const isSelected = groupNotes.some(n => n.id === selectedNoteId);
+      const bpmVal = beatsPerMeasure || timeSignature[0] || 4;
 
       beamCandidates.push({
         id: firstNote.id,
         x: noteX,
         y: anchorY,
         duration: dur,
-        beat: firstNote.beat,
+        beat: (firstNote.beat % bpmVal) + 1,
+        measure: Math.floor(firstNote.beat / bpmVal) + 1,
         clef: firstNote.clef,
         color: isSelected ? '#6366f1' : (isPaper ? '#09090b' : '#e2e8f0'),
       });

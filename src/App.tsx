@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Header } from './components/layout/Header';
-import { Navigation } from './components/layout/Navigation';
+import { GlobalHeader } from './components/layout/GlobalHeader';
 import type { TabId } from './components/layout/Navigation';
 import { KeyboardCourseView } from './components/course/KeyboardCourseView';
 import { GuitarCourseView } from './components/course/GuitarCourseView';
@@ -34,8 +33,7 @@ function getInitialTab(): TabId {
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabId>(getInitialTab);
 
-  // Inicialização única e centralizada do gerenciador MIDI ao montar a aplicação.
-  // Evita múltiplas chamadas de requestMIDIAccess() que foram removidas dos módulos individuais.
+  // Inicialização única e centralizada do gerenciador MIDI ao montar a aplicação
   useEffect(() => {
     midiManager.initialize();
   }, []);
@@ -57,43 +55,35 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#080811] text-slate-100 flex flex-col justify-between selection:bg-indigo-500 selection:text-white">
-      {/* 1 e 2. Cabeçalho e Barra de Navegação Unificados e Fixos (Sem sobreposição em telas móveis) */}
-      <div className="sticky top-0 z-40 w-full backdrop-blur-md bg-[#080811]/90 border-b border-white/5 shadow-xl">
-        <Header />
-        <Navigation activeTab={activeTab} onSelectTab={handleSelectTab} />
+    <div className="min-h-screen bg-[#080811] text-slate-100 flex flex-col selection:bg-indigo-500 selection:text-white">
+      {/* 1. Header Global Unificado e Compacto (<= 38px) */}
+      <div className="sticky top-0 z-40 w-full backdrop-blur-md bg-[#080811]/95 border-b border-white/5 shadow-md">
+        <GlobalHeader activeTab={activeTab} onSelectTab={handleSelectTab} />
       </div>
 
-      {/* 3. Área Principal do Conteúdo (Totalmente Fluida e Responsiva para Todos os Monitores) */}
-      <main className="flex-1 px-2 sm:px-4 md:px-6 2xl:px-8 py-3 sm:py-4 w-full">
+      {/* 2. Área Principal do Conteúdo — Canvas Full-Width (100% Largura Útil) */}
+      <main className="flex-1 px-2 sm:px-3 md:px-4 py-2 w-full flex flex-col min-h-0">
         {activeTab === 'course-keyboard' && <KeyboardCourseView />}
         {activeTab === 'course-guitar' && <GuitarCourseView />}
+        {activeTab === 'theory' && <TheoryModule />}
         {activeTab === 'repertoire' && <RepertoireView />}
         {activeTab === 'rhythm' && <RhythmLab />}
         {activeTab === 'piano' && <PianoModule />}
         {activeTab === 'guitar' && <GuitarModule />}
-        {activeTab === 'theory' && <TheoryModule />}
         {activeTab === 'score-editor' && <ScoreEditor />}
         {activeTab === 'arranger' && <RhythmArranger />}
       </main>
 
-      {/* 4. Rodapé Institucional e Tecnológico */}
-      <footer className="w-full border-t border-white/5 bg-[#05050b] py-6 px-4 text-center text-xs text-slate-500 space-y-2">
-        <div className="flex flex-wrap items-center justify-center gap-4 text-slate-400">
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            Motor de Partitura Deslizante Interativa (Grand Staff)
-          </span>
-          <span>•</span>
-          <span>Acelerador de Montagem de Acordes &amp; Dedo Âncora</span>
-          <span>•</span>
-          <span>Cursos de Teclado e Violão do Zero ao Avançado</span>
-          <span>•</span>
-          <span>Web &amp; Android Ready</span>
-        </div>
-        <p className="text-[11px] text-slate-600">
-          Harmonia — Plataforma Interativa de Educação Musical &amp; Ritmo. Desenvolvido para transformar alunos em músicos completos.
-        </p>
+      {/* 3. Rodapé Compacto Institucional */}
+      <footer className="w-full border-t border-white/5 bg-[#05050b] py-2 px-3 text-center text-[10px] text-slate-500 flex flex-wrap items-center justify-center gap-2 sm:gap-4 shrink-0">
+        <span className="flex items-center gap-1 text-slate-400">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+          Harmonia — Plataforma Musical Responsiva
+        </span>
+        <span className="hidden sm:inline">•</span>
+        <span className="text-slate-500">Cursos de Teclado, Violão e Teoria</span>
+        <span className="hidden sm:inline">•</span>
+        <span className="text-slate-500">Layout Horizontal Full-Width</span>
       </footer>
     </div>
   );

@@ -118,6 +118,12 @@ class SoundEngine {
     stopTimeout?: number;
   }> = new Map();
 
+  private scheduledVoices: Set<{
+    nodes: AudioNode[];
+    gainNode: GainNode;
+    stopTimeout?: number;
+  }> = new Set();
+
   // ── Inicialização do contexto com cadeia de efeitos ──────────────────────
 
   private initContext() {
@@ -231,6 +237,8 @@ class SoundEngine {
   }
 
   public setTimbre(id: TimbreId) {
+    // Interrompe imediatamente todas as vozes ativas do timbre anterior (previne acúmulo de notas e sustain infinito)
+    this.stopAllNotes(0.005);
     this.currentTimbre = id;
 
     // Ajusta o nível de reverb por timbre
@@ -891,6 +899,94 @@ class SoundEngine {
     this.activeVoices.delete(midi);
   }
 
+  /**
+   * Para todas as vozes e notas ativas imediatamente (Rotina Global de Limpeza / Panic Function).
+   * Elimina notas presas (stuck notes) e acúmulo de vozes ao trocar de instrumento, pausar ou trocar de lição.
+   */
+  public stopAllNotes(releaseDuration = 0.005) {
+    if (this.ctx) {
+      const now = this.ctx.currentTime;
+
+      // 1. Limpa todas as vozes registradas em activeVoices
+      this.activeVoices.forEach((voice) => {
+        if (voice.stopTimeout) {
+          window.clearTimeout(voice.stopTimeout);
+        }
+        try {
+          const curGain = Math.max(0.0001, voice.gainNode.gain.value);
+          voice.gainNode.gain.cancelScheduledValues(now);
+          voice.gainNode.gain.setValueAtTime(curGain, now);
+          voice.gainNode.gain.linearRampToValueAtTime(0.00001, now + releaseDuration);
+        } catch { /* ignora */ }
+
+        setTimeout(() => {
+          for (const node of voice.nodes) {
+            try {
+              if (node instanceof OscillatorNode || node instanceof AudioBufferSourceNode) {
+                node.stop();
+              }
+              node.disconnect();
+            } catch { /* ignora */ }
+          }
+        }, Math.round(releaseDuration * 1000 + 20));
+      });
+
+      // 2. Limpa todas as vozes agendadas / em reprodução (scheduledVoices)
+      this.scheduledVoices.forEach((voice) => {
+        if (voice.stopTimeout) {
+          window.clearTimeout(voice.stopTimeout);
+        }
+        try {
+          const curGain = Math.max(0.0001, voice.gainNode.gain.value);
+          voice.gainNode.gain.cancelScheduledValues(now);
+          voice.gainNode.gain.setValueAtTime(curGain, now);
+          voice.gainNode.gain.linearRampToValueAtTime(0.00001, now + releaseDuration);
+        } catch { /* ignora */ }
+
+        setTimeout(() => {
+          for (const node of voice.nodes) {
+            try {
+              if (node instanceof OscillatorNode || node instanceof AudioBufferSourceNode) {
+                node.stop();
+              }
+              node.disconnect();
+            } catch { /* ignora */ }
+          }
+        }, Math.round(releaseDuration * 1000 + 20));
+      });
+    }
+
+    this.activeVoices.clear();
+    this.scheduledVoices.clear();
+
+    // 3. Limpa teclado visual global
+    activeMidiStore.clearAll();
+  }
+
+  /** Alias padrão MIDI: allNotesOff */
+  public allNotesOff() {
+    this.stopAllNotes(0.005);
+  }
+
+  /** Rotina Global de Limpeza de Áudio (Panic Function) */
+  public panic() {
+    this.resetAudioEngine();
+  }
+
+  /** Restaura o motor de áudio a zero e reabre sem estalidos */
+  public resetAudioEngine() {
+    this.stopAllNotes(0.005);
+    if (this.masterGain && this.ctx) {
+      try {
+        const now = this.ctx.currentTime;
+        const curVol = this.isMuted ? 0 : this.volume;
+        this.masterGain.gain.cancelScheduledValues(now);
+        this.masterGain.gain.setValueAtTime(0, now);
+        this.masterGain.gain.linearRampToValueAtTime(curVol, now + 0.005);
+      } catch { /* ignora */ }
+    }
+  }
+
   /** Toca uma nota de duração fixa (para partitura, repertório, etc.) */
   public playPianoNote(midi: number, duration = 1.2, time?: number, velocity = 0.8, sustained = false) {
     try {
@@ -900,7 +996,18 @@ class SoundEngine {
       const now = this.ctx.currentTime;
       const startTime = Math.max(now, time ?? now);
 
-      this.synthNote(midi, startTime, duration, velocity, sustained);
+      const synthRes = this.synthNote(midi, startTime, duration, velocity, sustained);
+
+      if (typeof window !== 'undefined' && synthRes) {
+        const voiceEntry = {
+          nodes: synthRes.nodes,
+          gainNode: synthRes.gainNode,
+          stopTimeout: window.setTimeout(() => {
+            this.scheduledVoices.delete(voiceEntry);
+          }, Math.max(500, (duration + 2.0) * 1000)),
+        };
+        this.scheduledVoices.add(voiceEntry);
+      }
 
       // Reflete no teclado global: acende a tecla pela duração sonora da nota
       const delayMs = Math.max(0, (startTime - now) * 1000);

@@ -25,43 +25,61 @@ export interface UseFullscreenReturn {
 }
 
 export function useFullscreen(): UseFullscreenReturn {
-  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(() => {
+    return typeof document !== 'undefined' ? Boolean(document.fullscreenElement) : false;
+  });
 
   const toggleFullscreen = useCallback(() => {
-    if (!isFullscreen) {
-      setIsFullscreen(true);
-      try {
-        if (document.documentElement.requestFullscreen) {
-          document.documentElement.requestFullscreen().catch(() => {});
-        }
-      } catch {
-        // Fallback silencioso: navegadores sem suporte a Fullscreen API
+    if (!document.fullscreenElement) {
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen()
+          .then(() => setIsFullscreen(true))
+          .catch(() => {
+            // Em caso de bloqueio por iframe ou permissão, atualiza estado local
+            setIsFullscreen(true);
+          });
+      } else {
+        setIsFullscreen(true);
       }
     } else {
-      setIsFullscreen(false);
-      try {
-        if (document.fullscreenElement) {
-          document.exitFullscreen().catch(() => {});
-        }
-      } catch {
-        // Fallback silencioso
+      if (document.exitFullscreen) {
+        document.exitFullscreen()
+          .then(() => setIsFullscreen(false))
+          .catch(() => {
+            setIsFullscreen(false);
+          });
+      } else {
+        setIsFullscreen(false);
       }
     }
-  }, [isFullscreen]);
+  }, []);
 
-  // Fecha a tela cheia ao pressionar Escape
+  // Sincroniza com alterações de tela cheia (F11, tecla Esc nativa, botão do browser)
   useEffect(() => {
-    if (!isFullscreen) return;
+    const handleFullscreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && isFullscreen) {
+        if (document.fullscreenElement) {
+          document.exitFullscreen?.().catch(() => {});
+        }
         setIsFullscreen(false);
       }
     };
 
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isFullscreen]);
 
   return { isFullscreen, toggleFullscreen };
 }
+

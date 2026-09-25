@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { GUITAR_COURSE_MODULES } from '../../core/coursesData';
 import type { CourseLesson, CourseModule } from '../../core/coursesData';
 import { FretboardView } from '../guitar/FretboardView';
@@ -7,20 +7,17 @@ import { ScrollingScoreCanvas } from '../score/ScrollingScoreCanvas';
 import { MicrophonePitchBar } from '../audio/MicrophonePitchBar';
 import { LessonIllustration } from './illustrations/LessonIllustration';
 import type { GuitarChordShape } from '../../core/types';
-import { useFullscreen } from '../../hooks/useFullscreen';
+import { soundEngine } from '../../core/soundEngine';
+import { CourseContextualHeader } from './layout/CourseContextualHeader';
+import { CourseSubTabs } from './layout/CourseSubTabs';
+import { CourseLearningTrailModal } from './layout/CourseLearningTrailModal';
+import { CourseStatusBar } from './layout/CourseStatusBar';
 import {
-  Guitar,
-  BookOpen,
-  CheckCircle2,
   Sparkles,
-  ChevronRight,
-  ShieldAlert,
+  CheckCircle2,
   Layers,
   Zap,
-  Maximize2,
-  Minimize2,
-  Expand,
-  Shrink,
+  ShieldAlert,
 } from 'lucide-react';
 
 const COMMON_OPEN_CHORDS: Record<string, GuitarChordShape> = {
@@ -133,13 +130,52 @@ export const GuitarCourseView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'all' | 'theory' | 'score' | 'fretboard' | 'transitions'>('all');
   const [selectedChordKey, setSelectedChordKey] = useState<string>('C');
   const [selectedCagedLetter, setSelectedCagedLetter] = useState<'C' | 'A' | 'G' | 'E' | 'D'>('C');
-  const [isWidescreenStage, setIsWidescreenStage] = useState<boolean>(false);
-  const [isTrailExpanded, setIsTrailExpanded] = useState<boolean>(false);
-  const { isFullscreen: isFullscreenLesson, toggleFullscreen: toggleFullscreenLesson } = useFullscreen();
-  const { isFullscreen: isFullscreenTrail, toggleFullscreen: toggleFullscreenTrail } = useFullscreen();
-  const [mobileCourseTab, setMobileCourseTab] = useState<'stage' | 'trail'>('stage');
+  const [isTrailModalOpen, setIsTrailModalOpen] = useState<boolean>(false);
+  const [isTipOpen, setIsTipOpen] = useState<boolean>(false);
   const [lastMidiEvent, setLastMidiEvent] = useState<{ midi: number; timestamp: number } | null>(null);
 
+  // Limpeza de áudio em transições de lição e desmontagem
+  useEffect(() => {
+    soundEngine.stopAllNotes();
+    return () => {
+      soundEngine.stopAllNotes();
+    };
+  }, [activeLesson.id]);
+
+  // Lista linear de todas as lições do curso para navegação Anterior / Próxima sem recarregar
+  const allLessons = useMemo(() => {
+    return GUITAR_COURSE_MODULES.flatMap((mod) =>
+      mod.lessons.map((lesson) => ({ lesson, module: mod }))
+    );
+  }, []);
+
+  const currentLinearIndex = useMemo(() => {
+    const idx = allLessons.findIndex((item) => item.lesson.id === activeLesson.id);
+    return idx !== -1 ? idx : 0;
+  }, [allLessons, activeLesson.id]);
+
+  const currentLessonCode = useMemo(() => {
+    const match = activeLesson.title.match(/Lição\s+([\d.]+)/i);
+    return match ? match[1] : `${currentLinearIndex + 1}`;
+  }, [activeLesson.title, currentLinearIndex]);
+
+  const handlePrevLesson = () => {
+    if (currentLinearIndex > 0) {
+      const prev = allLessons[currentLinearIndex - 1];
+      setActiveLesson(prev.lesson);
+      setSelectedModule(prev.module);
+      setActiveTab('all');
+    }
+  };
+
+  const handleNextLesson = () => {
+    if (currentLinearIndex < allLessons.length - 1) {
+      const next = allLessons[currentLinearIndex + 1];
+      setActiveLesson(next.lesson);
+      setSelectedModule(next.module);
+      setActiveTab('all');
+    }
+  };
 
   const handleNoteInput = (midi: number) => {
     setLastMidiEvent({ midi, timestamp: performance.now() });
@@ -149,12 +185,11 @@ export const GuitarCourseView: React.FC = () => {
     setSelectedModule(mod);
     setActiveLesson(lesson);
     setActiveTab('all');
-    setMobileCourseTab('stage');
   };
 
   const handleLessonComplete = (lessonId: string) => {
     if (!completedLessonIds.includes(lessonId)) {
-      setCompletedLessonIds(prev => [...prev, lessonId]);
+      setCompletedLessonIds((prev) => [...prev, lessonId]);
     }
   };
 
@@ -166,294 +201,85 @@ export const GuitarCourseView: React.FC = () => {
       : COMMON_OPEN_CHORDS[selectedChordKey] || COMMON_OPEN_CHORDS['C'];
 
   return (
-    <div className="w-full space-y-4">
-      {/* Banner Principal do Curso de Violão (Bordas Sutis & Widescreen) */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-950/70 via-[#22130a]/80 to-[#100804]/90 border border-white/5 p-5 sm:p-6 shadow-2xl backdrop-blur-md">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center text-slate-950 shadow-xl shadow-amber-500/30 shrink-0">
-              <Guitar className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/20">
-                  Do Zero ao Avançado
-                </span>
-                <span className="text-xs text-slate-400 font-mono">
-                  {completedLessonIds.length} lições concluídas
-                </span>
-              </div>
-              <h2 className="text-xl sm:text-2xl font-black font-display text-white">
-                Curso Interativo de Violão &amp; Guitarra
-              </h2>
-            </div>
-          </div>
+    <div className="w-full flex-1 flex flex-col min-h-0 bg-[#0c0906] rounded-2xl border border-white/5 shadow-2xl overflow-hidden">
+      {/* 1. HEADER CONTEXTUAL — até 36px */}
+      <CourseContextualHeader
+        courseTitle="Curso de Violão & Guitarra"
+        courseIcon="🎸"
+        currentLessonCode={currentLessonCode}
+        totalLessons={allLessons.length}
+        completedLessonsCount={completedLessonIds.length}
+        onOpenTrail={() => setIsTrailModalOpen(true)}
+        onPrevLesson={handlePrevLesson}
+        onNextLesson={handleNextLesson}
+        hasPrevLesson={currentLinearIndex > 0}
+        hasNextLesson={currentLinearIndex < allLessons.length - 1}
+        accentColor="amber"
+      />
 
+      {/* 2. SUB-TABS — até 32px */}
+      <CourseSubTabs
+        lessonTitle={activeLesson.title}
+        lessonLevel={activeLesson.level}
+        tabs={[
+          {
+            id: 'all',
+            label: 'Prática Completa',
+            shortLabel: 'Completo',
+            icon: <Sparkles className="w-3 h-3 text-amber-400" />,
+          },
+          { id: 'fretboard', label: 'Braço & Shapes', shortLabel: 'Braço' },
+          ...(activeLesson.scoreTrack
+            ? [{ id: 'score', label: 'Partitura & Tablatura', shortLabel: 'Tab' }]
+            : []),
+          { id: 'transitions', label: 'Dedo Âncora', shortLabel: 'Âncora' },
+          { id: 'theory', label: 'Teoria & Postura', shortLabel: 'Teoria' },
+        ]}
+        activeTabId={activeTab}
+        onSelectTab={(id) => setActiveTab(id as any)}
+        accentColor="amber"
+        rightSlot={
           <button
-            onClick={() => setIsWidescreenStage(!isWidescreenStage)}
-            className="px-4 py-2 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 hover:text-white font-mono text-xs font-bold flex items-center gap-2 border border-white/5 cursor-pointer transition-all self-start md:self-auto"
-          >
-            {isWidescreenStage ? (
-              <>
-                <Minimize2 className="w-3.5 h-3.5 text-amber-400" />
-                <span>Exibir Módulos</span>
-              </>
-            ) : (
-              <>
-                <Maximize2 className="w-3.5 h-3.5 text-amber-400" />
-                <span>Modo Palco Total (100% Largura)</span>
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* Seletor Adaptativo para Celulares e Tablets (< 1024px) */}
-      <div className="lg:hidden flex items-center bg-black/40 p-1 rounded-2xl border border-white/5">
-        <button
-          onClick={() => setMobileCourseTab('stage')}
-          className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-            mobileCourseTab === 'stage'
-              ? 'bg-amber-600 text-white shadow-md'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          <Guitar className="w-3.5 h-3.5" />
-          <span>Lição &amp; Prática</span>
-        </button>
-
-        <button
-          onClick={() => setMobileCourseTab('trail')}
-          className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-            mobileCourseTab === 'trail'
-              ? 'bg-orange-600 text-white shadow-md'
-              : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          <BookOpen className="w-3.5 h-3.5" />
-          <span>Trilha ({completedLessonIds.length}/{GUITAR_COURSE_MODULES.reduce((acc, m) => acc + m.lessons.length, 0)})</span>
-        </button>
-      </div>
-
-      {/* Grid: Grade de Módulos (Esquerda) e Painel de Aula (Direita) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-        {/* Coluna 1: Grade de Lições e Módulos */}
-        {!isWidescreenStage && (
-          <div className={`${isTrailExpanded ? 'lg:col-span-6 xl:col-span-5' : 'lg:col-span-4 xl:col-span-3 2xl:col-span-3'} ${mobileCourseTab === 'trail' ? 'flex' : 'hidden lg:flex'} h-full flex-col`}>
-            <div
-              className={`glass-card rounded-3xl p-4 border border-white/5 space-y-3 flex flex-col flex-1 h-full transition-all ${
-                isFullscreenTrail
-                  ? 'fixed inset-0 z-50 bg-[#080811] p-4 sm:p-8 overflow-y-auto m-0 rounded-none border-none shadow-2xl'
-                  : ''
-              }`}
-            >
-              <div className="flex items-center justify-between pb-2 border-b border-white/5 shrink-0">
-                <h3 className="text-sm font-bold font-display text-white flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-amber-400" />
-                  <span>Trilha do Violão</span>
-                </h3>
-
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-mono text-slate-400 font-bold mr-1">
-                    {GUITAR_COURSE_MODULES.length} Módulos
-                  </span>
-
-                  {/* Botão Expansão da Trilha */}
-                  <button
-                    onClick={() => setIsTrailExpanded(!isTrailExpanded)}
-                    className={`p-1.5 rounded-xl border transition-all cursor-pointer ${
-                      isTrailExpanded
-                        ? 'bg-amber-600/30 text-amber-300 border-amber-500/40'
-                        : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border-white/5'
-                    }`}
-                    title={isTrailExpanded ? 'Reduzir largura da trilha' : 'Expandir largura da trilha'}
-                  >
-                    {isTrailExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-                  </button>
-
-                  {/* Botão Tela Cheia da Trilha */}
-                  <button
-                    onClick={toggleFullscreenTrail}
-                    className={`p-1.5 rounded-xl border transition-all cursor-pointer ${
-                      isFullscreenTrail
-                        ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 ring-1 ring-rose-400'
-                        : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border-white/5'
-                    }`}
-                    title={isFullscreenTrail ? 'Sair da Tela Cheia (Esc)' : 'Tela Cheia na Trilha do Violão'}
-                  >
-                    {isFullscreenTrail ? <Shrink className="w-3.5 h-3.5 text-rose-400" /> : <Expand className="w-3.5 h-3.5 text-amber-400" />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-4 flex-1 min-h-0 overflow-y-auto pr-1 no-scrollbar">
-                {GUITAR_COURSE_MODULES.map((mod) => (
-                  <div key={mod.id} className="space-y-1.5">
-                    <div className="flex items-center justify-between text-[11px] font-mono font-bold text-amber-300 px-2">
-                      <span>{mod.code}: {mod.title}</span>
-                    </div>
-
-                    <div className="space-y-1">
-                      {mod.lessons.map((lesson) => {
-                        const isSelected = activeLesson.id === lesson.id;
-                        const isDone = completedLessonIds.includes(lesson.id);
-
-                        return (
-                          <button
-                            key={lesson.id}
-                            onClick={() => handleSelectLesson(lesson, mod)}
-                            className={`w-full p-2.5 rounded-2xl border text-left transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                              isSelected
-                                ? 'bg-amber-600/30 border-amber-500/40 text-white shadow-md'
-                                : 'bg-white/[0.02] border-white/5 text-slate-400 hover:text-white hover:bg-white/[0.06]'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2.5 truncate">
-                              <span className={`w-2 h-2 rounded-full shrink-0 ${
-                                isDone ? 'bg-emerald-400 shadow-sm shadow-emerald-400/50' : 'bg-slate-600'
-                              }`} />
-                              <div className="truncate">
-                                <div className="text-xs font-bold truncate text-white">
-                                  {lesson.title}
-                                </div>
-                                <div className="text-[10px] text-slate-400 truncate">
-                                  {lesson.subtitle}
-                                </div>
-                              </div>
-                            </div>
-
-                            {isDone ? (
-                              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                            ) : (
-                              <ChevronRight className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Coluna 2 / Palco Total: Painel da Lição Ativa */}
-        <div
-          className={`${
-            isWidescreenStage
-              ? 'lg:col-span-12'
-              : isTrailExpanded
-              ? 'lg:col-span-6 xl:col-span-7'
-              : 'lg:col-span-8 xl:col-span-9 2xl:col-span-9'
-          } ${mobileCourseTab === 'stage' ? 'flex' : 'hidden lg:flex'} h-full flex-col space-y-4`}
-        >
-          <div
-            className={`glass-card rounded-3xl p-4 sm:p-6 border border-white/5 space-y-4 flex-1 flex flex-col transition-all ${
-              isFullscreenLesson
-                ? 'fixed inset-0 z-50 bg-[#080811] p-4 sm:p-8 overflow-y-auto m-0 rounded-none border-none shadow-2xl'
-                : ''
+            onClick={() => handleLessonComplete(activeLesson.id)}
+            className={`px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
+              isCurrentCompleted
+                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                : 'bg-amber-600 hover:bg-amber-500 text-slate-950 font-black shadow-sm'
             }`}
+            title="Marcar lição como concluída"
           >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <span className="text-[10px] font-mono text-amber-400 font-bold uppercase tracking-wider block">
-                  {selectedModule.code} • {activeLesson.level} • {activeLesson.durationMinutes} min
-                </span>
-                <h3 className="text-xl sm:text-2xl font-black font-display text-white mt-1">
-                  {activeLesson.title}
-                </h3>
-                <p className="text-xs text-slate-300 mt-0.5">
-                  {activeLesson.subtitle}
-                </p>
-              </div>
+            <CheckCircle2 className="w-3 h-3" />
+            <span className="hidden sm:inline">{isCurrentCompleted ? 'Concluída' : 'Concluir'}</span>
+          </button>
+        }
+      />
 
-              <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-                {/* Botões de Alternância de Abas */}
-                <div className="flex bg-black/40 p-1 rounded-2xl border border-white/5 text-xs font-bold">
-                  <button
-                    onClick={() => setActiveTab('all')}
-                    className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
-                      activeTab === 'all'
-                        ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-md'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Aula Completa (Tudo)</span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('theory')}
-                    className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                      activeTab === 'theory' ? 'bg-amber-600 text-slate-950 font-black shadow-md' : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    Teoria &amp; Postura
-                  </button>
-
-                  {activeLesson.scoreTrack && (
-                    <button
-                      onClick={() => setActiveTab('score')}
-                      className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                        activeTab === 'score' ? 'bg-cyan-600 text-white font-black shadow-md' : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      Partitura &amp; Tab
-                    </button>
-                  )}
-
-                  <button
-                    onClick={() => setActiveTab('fretboard')}
-                    className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                      activeTab === 'fretboard' ? 'bg-amber-600 text-slate-950 font-black shadow-md' : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    Braço &amp; Shapes
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('transitions')}
-                    className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                      activeTab === 'transitions' ? 'bg-purple-600 text-white font-black shadow-md' : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    Dedo Âncora
-                  </button>
+      {/* 3. SIMULADOR & ÁREA FULL-WIDTH (100% da Largura Útil sem Sidebar Fixa) */}
+      <div className="flex-1 w-full p-2 sm:p-4 space-y-3 sm:space-y-4 overflow-y-auto">
+        {/* Bloco 1: Teoria Didática da Lição */}
+        {(activeTab === 'all' || activeTab === 'theory') && (
+          <div className="space-y-3">
+            {activeTab === 'all' && (
+              <div className="p-3 sm:p-4 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div>
+                  <h4 className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    <span>{activeLesson.instructions.heading}</span>
+                  </h4>
+                  <p className="text-[11px] sm:text-xs text-slate-300 mt-0.5 leading-relaxed max-w-4xl">
+                    {activeLesson.instructions.text}
+                  </p>
                 </div>
-
-                {/* Controles de Janela do Card: Expansão (Modo Palco) e Tela Cheia (Fullscreen) */}
-                <div className="flex items-center gap-1 bg-black/40 p-1 rounded-2xl border border-white/5">
-                  <button
-                    onClick={() => setIsWidescreenStage(!isWidescreenStage)}
-                    className={`p-1.5 rounded-xl border transition-all cursor-pointer ${
-                      isWidescreenStage
-                        ? 'bg-amber-600/30 text-amber-300 border-amber-500/40'
-                        : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border-white/5'
-                    }`}
-                    title={isWidescreenStage ? 'Restaurar layout padrão (2 colunas)' : 'Expandir card para 100% da largura (Modo Palco)'}
-                  >
-                    {isWidescreenStage ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-                  </button>
-
-                  <button
-                    onClick={toggleFullscreenLesson}
-                    className={`p-1.5 rounded-xl border transition-all cursor-pointer ${
-                      isFullscreenLesson
-                        ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 ring-1 ring-rose-400'
-                        : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border-white/5'
-                    }`}
-                    title={isFullscreenLesson ? 'Sair da Tela Cheia (Esc)' : 'Tela Cheia Imersiva no Card da Lição'}
-                  >
-                    {isFullscreenLesson ? <Shrink className="w-4 h-4 text-rose-400" /> : <Expand className="w-4 h-4 text-amber-400" />}
-                  </button>
-                </div>
+                {activeLesson.instructions.fingeringTip && (
+                  <div className="p-2 sm:p-2.5 rounded-xl bg-amber-950/40 border border-amber-500/30 text-[11px] text-amber-200 shrink-0 max-w-md">
+                    <strong className="text-amber-300">Dica:</strong> {activeLesson.instructions.fingeringTip}
+                  </div>
+                )}
               </div>
-            </div>
+            )}
 
-            {/* Bloco 1: Teoria Didática da Lição */}
-            {(activeTab === 'all' || activeTab === 'theory') && (
-              <div className="space-y-4 pt-2 border-t border-white/5 animate-fade-in">
-                {/* Diagrama Ilustrativo da Lição */}
+            {activeTab === 'theory' && (
+              <div className="space-y-4 animate-fadeIn">
                 <LessonIllustration
                   lessonId={activeLesson.id}
                   moduleCode={selectedModule.code}
@@ -499,131 +325,136 @@ export const GuitarCourseView: React.FC = () => {
                 )}
               </div>
             )}
+          </div>
+        )}
 
-            {/* Bloco 2: Motor de Partitura & Tablatura com Detecção por Microfone */}
-            {(activeTab === 'all' || activeTab === 'score') && activeLesson.scoreTrack && (
-              <div className="space-y-4 pt-3 border-t border-white/5 animate-fade-in">
-                <MicrophonePitchBar
-                  onNoteDetected={(midi) => handleNoteInput(midi)}
-                />
+        {/* Bloco 2: Partitura & Tablatura com Detecção Acústica */}
+        {(activeTab === 'all' || activeTab === 'score') && activeLesson.scoreTrack && (
+          <div className="space-y-3">
+            <MicrophonePitchBar onNoteDetected={(midi) => handleNoteInput(midi)} />
 
-                <ScrollingScoreCanvas
-                  notes={activeLesson.scoreTrack}
-                  timeSignature="4/4"
-                  bpm={75}
-                  autoPlayAudio={true}
-                  instrument="guitar"
-                  currentMidiPressed={lastMidiEvent}
-                  onLessonComplete={() => handleLessonComplete(activeLesson.id)}
-                />
-              </div>
-            )}
+            <ScrollingScoreCanvas
+              notes={activeLesson.scoreTrack}
+              timeSignature="4/4"
+              bpm={75}
+              autoPlayAudio={true}
+              instrument="guitar"
+              currentMidiPressed={lastMidiEvent}
+              onLessonComplete={() => handleLessonComplete(activeLesson.id)}
+            />
+          </div>
+        )}
 
-            {/* Bloco 3: Braço do Violão & Mapeamento de Shapes */}
-            {(activeTab === 'all' || activeTab === 'fretboard' || activeTab === 'theory') && (
-              <div className="space-y-4 pt-3 border-t border-white/5 animate-fade-in">
-                {/* Seletor de Shapes / CAGED */}
-                <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-black/40 border border-white/5">
-                  <span className="text-xs font-mono text-amber-400 font-bold flex items-center gap-2">
-                    <Layers className="w-4 h-4" />
-                    <span>{selectedModule.code === 'V5' ? 'Shapes do Sistema CAGED:' : 'Acordes Mais Usados:'}</span>
-                  </span>
-
-                  {selectedModule.code === 'V5' ? (
-                    <div className="flex items-center gap-1.5">
-                      {(['C', 'A', 'G', 'E', 'D'] as const).map((letter) => (
-                        <button
-                          key={letter}
-                          onClick={() => setSelectedCagedLetter(letter)}
-                          className={`w-8 h-8 rounded-xl font-black font-display text-xs cursor-pointer transition-all ${
-                            selectedCagedLetter === letter
-                              ? 'bg-amber-500 text-slate-950 shadow-md scale-105'
-                              : 'bg-white/5 text-slate-400 hover:text-white'
-                          }`}
-                        >
-                          {letter}
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {Object.keys(COMMON_OPEN_CHORDS).map((chordKey) => (
-                        <button
-                          key={chordKey}
-                          onClick={() => setSelectedChordKey(chordKey)}
-                          className={`px-2.5 py-1 rounded-xl font-bold font-display text-xs cursor-pointer transition-all ${
-                            selectedChordKey === chordKey
-                              ? 'bg-amber-500 text-slate-950 shadow-md scale-105'
-                              : 'bg-white/5 text-slate-400 hover:text-white'
-                          }`}
-                        >
-                          {chordKey}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Braço de Violão Interativo para Prática */}
-                <div className="pt-2">
-                  <FretboardView
-                    chordShape={activeChordShape}
-                    fretCount={14}
-                    showNoteNames={true}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Bloco 4: Treino de Trocas com Dedo Âncora */}
-            {(activeTab === 'transitions' || (activeTab === 'all' && (selectedModule.code === 'V4' || activeLesson.id.includes('v4')))) && (
-              <div className="space-y-4 pt-3 border-t border-white/5 animate-fade-in">
-                <div className="p-4 rounded-2xl bg-cyan-950/20 border border-cyan-500/20 space-y-2">
-                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-cyan-400" />
-                    <span>Princípio do Dedo Âncora no Violão</span>
-                  </h4>
-                  <p className="text-xs text-slate-300 leading-relaxed">
-                    Quando dois acordes compartilham cordas e casas idênticas, não retire a mão inteira do braço!
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                    <div className="p-3 rounded-xl bg-black/40 border border-white/5 text-xs">
-                      <strong className="text-cyan-300 block mb-1">Transição C ➔ Am:</strong>
-                      <p className="text-slate-300">
-                        O Dedo 1 (2ª corda casa 1) e o Dedo 2 (4ª corda casa 2) são <strong>âncoras fixas</strong>. Apenas mova o Dedo 3 da 5ª corda para a 3ª corda casa 2!
-                      </p>
-                    </div>
-                    <div className="p-3 rounded-xl bg-black/40 border border-white/5 text-xs">
-                      <strong className="text-amber-300 block mb-1">Transição G ➔ D:</strong>
-                      <p className="text-slate-300">
-                        Mantenha o Dedo 3 pousado na 2ª corda casa 3 como <strong>eixo pivô</strong> enquanto os outros dedos trocam de posição!
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Rodapé da Aula: Botão Concluir Lição */}
-            <div className="flex items-center justify-between pt-4 border-t border-white/5">
-              <span className="text-xs text-slate-400">
-                {isCurrentCompleted ? '✅ Lição Concluída!' : 'Pratique a digitação no violão'}
+        {/* Bloco 3: Braço do Violão Full-Width & Mapeamento de Shapes */}
+        {(activeTab === 'all' || activeTab === 'fretboard' || activeTab === 'theory') && (
+          <div className="space-y-3">
+            {/* Seletor de Shapes / CAGED */}
+            <div className="flex flex-wrap items-center justify-between gap-2 p-2 px-3 rounded-xl bg-black/40 border border-white/5">
+              <span className="text-xs font-mono text-amber-400 font-bold flex items-center gap-1.5">
+                <Layers className="w-4 h-4" />
+                <span>{selectedModule.code === 'V5' ? 'Shapes do Sistema CAGED:' : 'Acordes Mais Usados:'}</span>
               </span>
 
-              <button
-                onClick={() => handleLessonComplete(activeLesson.id)}
-                className={`px-5 py-2.5 rounded-2xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer ${
-                  isCurrentCompleted
-                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                    : 'bg-amber-600 hover:bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-600/30'
-                }`}
-              >
-                {isCurrentCompleted ? 'Concluída' : 'Marcar como Concluída'}
-              </button>
+              {selectedModule.code === 'V5' ? (
+                <div className="flex items-center gap-1.5">
+                  {(['C', 'A', 'G', 'E', 'D'] as const).map((letter) => (
+                    <button
+                      key={letter}
+                      onClick={() => setSelectedCagedLetter(letter)}
+                      className={`w-7 h-7 rounded-lg font-black font-display text-xs cursor-pointer transition-all ${
+                        selectedCagedLetter === letter
+                          ? 'bg-amber-500 text-slate-950 shadow-md scale-105'
+                          : 'bg-white/5 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {letter}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center gap-1">
+                  {Object.keys(COMMON_OPEN_CHORDS).map((chordKey) => (
+                    <button
+                      key={chordKey}
+                      onClick={() => setSelectedChordKey(chordKey)}
+                      className={`px-2 py-0.5 rounded-lg font-bold font-display text-xs cursor-pointer transition-all ${
+                        selectedChordKey === chordKey
+                          ? 'bg-amber-500 text-slate-950 shadow-md scale-105'
+                          : 'bg-white/5 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {chordKey}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Braço do Violão Interativo Full-Width */}
+            <div className="w-full overflow-hidden rounded-2xl border border-white/10 bg-[#120d09] p-1 sm:p-2">
+              <FretboardView
+                chordShape={activeChordShape}
+                fretCount={14}
+                showNoteNames={true}
+              />
             </div>
           </div>
-        </div>
+        )}
+
+        {/* Bloco 4: Dedo Âncora & Trocas de Acordes */}
+        {(activeTab === 'transitions' ||
+          (activeTab === 'all' && (selectedModule.code === 'V4' || activeLesson.id.includes('v4')))) && (
+          <div className="p-3 sm:p-4 rounded-2xl bg-cyan-950/20 border border-cyan-500/20 space-y-2">
+            <h4 className="text-sm font-bold text-white flex items-center gap-2">
+              <Zap className="w-4 h-4 text-cyan-400" />
+              <span>Princípio do Dedo Âncora no Violão</span>
+            </h4>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Quando dois acordes compartilham cordas e casas idênticas, não retire a mão inteira do braço!
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <div className="p-3 rounded-xl bg-black/40 border border-white/5 text-xs">
+                <strong className="text-cyan-300 block mb-1">Transição C ➔ Am:</strong>
+                <p className="text-slate-300">
+                  O Dedo 1 (2ª corda casa 1) e o Dedo 2 (4ª corda casa 2) são <strong>âncoras fixas</strong>. Apenas mova o Dedo 3 da 5ª corda para a 3ª corda casa 2!
+                </p>
+              </div>
+              <div className="p-3 rounded-xl bg-black/40 border border-white/5 text-xs">
+                <strong className="text-amber-300 block mb-1">Transição G ➔ D:</strong>
+                <p className="text-slate-300">
+                  Mantenha o Dedo 3 pousado na 2ª corda casa 3 como <strong>eixo pivô</strong> enquanto os outros dedos trocam de posição!
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* 4. STATUS BAR INFERIOR — até 30px */}
+      <CourseStatusBar
+        pedagogicalTip={
+          activeLesson.instructions.fingeringTip ||
+          activeLesson.instructions.postureAlert ||
+          activeLesson.subtitle
+        }
+        isTipOpen={isTipOpen}
+        onToggleTip={() => setIsTipOpen(!isTipOpen)}
+        audioRecognitionActive={true}
+        midiConnected={false}
+        statusText="Pronto"
+      />
+
+      {/* 5. MODAL DA TRILHA DE APRENDIZADO (Overlay Flutuante) */}
+      <CourseLearningTrailModal
+        isOpen={isTrailModalOpen}
+        onClose={() => setIsTrailModalOpen(false)}
+        courseTitle="Curso de Violão & Guitarra"
+        modules={GUITAR_COURSE_MODULES}
+        activeLessonId={activeLesson.id}
+        completedLessonIds={completedLessonIds}
+        onSelectLesson={(lesson, mod) => handleSelectLesson(lesson as CourseLesson, mod as CourseModule)}
+        accentColor="amber"
+      />
     </div>
   );
 };

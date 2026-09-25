@@ -22,6 +22,40 @@ export const METRONOME_SOUND_OPTIONS: MetronomeSoundOption[] = [
 ];
 
 class AccompanimentSynthesizer {
+  private metronomeBusGain: GainNode | null = null;
+
+  private getMetronomeBusGain(ctx: AudioContext): GainNode {
+    if (!this.metronomeBusGain) {
+      this.metronomeBusGain = ctx.createGain();
+      this.metronomeBusGain.gain.setValueAtTime(1.0, ctx.currentTime);
+      const dest = soundEngine.getMasterGain();
+      if (dest) {
+        this.metronomeBusGain.connect(dest);
+      }
+    }
+    return this.metronomeBusGain;
+  }
+
+  /**
+   * Silencia o barramento do metrônomo instantaneamente com rampa suave de 5ms,
+   * eliminando estalidos, picos de som e cancelando eventos pendentes ao desligar.
+   */
+  public silenceMetronome() {
+    const ctx = soundEngine.getAudioContext();
+    if (!ctx || !this.metronomeBusGain) return;
+    const now = ctx.currentTime;
+    try {
+      this.metronomeBusGain.gain.cancelScheduledValues(now);
+      this.metronomeBusGain.gain.setValueAtTime(this.metronomeBusGain.gain.value, now);
+      this.metronomeBusGain.gain.linearRampToValueAtTime(0.00001, now + 0.005);
+      setTimeout(() => {
+        if (this.metronomeBusGain && ctx) {
+          this.metronomeBusGain.gain.setValueAtTime(1.0, ctx.currentTime);
+        }
+      }, 25);
+    } catch { /* ignora */ }
+  }
+
   /**
    * Toca o clique do metrônomo configurável por tipo de som e função métrica.
    * Síntese procedural de alta definição (Web Audio API) com envelopes seguros e livres de pops/DC offset.
@@ -35,8 +69,8 @@ class AccompanimentSynthesizer {
     destinationNode?: AudioNode
   ) {
     const ctx = soundEngine.getAudioContext();
-    const dest = destinationNode || soundEngine.getMasterGain();
-    if (!ctx || !dest || volume <= 0.001) return;
+    if (!ctx || volume <= 0.001) return;
+    const dest = destinationNode || this.getMetronomeBusGain(ctx);
 
     if (ctx.state === 'suspended') {
       ctx.resume().catch(() => {});
@@ -69,8 +103,9 @@ class AccompanimentSynthesizer {
         const peak = (isDownbeat ? 0.7 : isSubdivision ? 0.35 : 0.55) * volume;
         const decayTime = isDownbeat ? 0.09 : isSubdivision ? 0.05 : 0.075;
 
+        // Rampa suave de 5ms anti-pop na entrada e saída
         gain.gain.setValueAtTime(0.0001, t);
-        gain.gain.linearRampToValueAtTime(peak, t + 0.001);
+        gain.gain.linearRampToValueAtTime(peak, t + 0.005);
         gain.gain.exponentialRampToValueAtTime(0.0001, t + decayTime);
         gain.gain.setValueAtTime(0, t + decayTime + 0.005);
 
@@ -110,8 +145,9 @@ class AccompanimentSynthesizer {
         const peak = (isDownbeat ? 0.9 : isSubdivision ? 0.45 : 0.75) * volume;
         const decayTime = isDownbeat ? 0.06 : isSubdivision ? 0.035 : 0.05;
 
+        // Rampa suave de 5ms anti-pop
         gain.gain.setValueAtTime(0.0001, t);
-        gain.gain.linearRampToValueAtTime(peak, t + 0.001);
+        gain.gain.linearRampToValueAtTime(peak, t + 0.005);
         gain.gain.exponentialRampToValueAtTime(0.0001, t + decayTime);
         gain.gain.setValueAtTime(0, t + decayTime + 0.005);
 
@@ -151,8 +187,9 @@ class AccompanimentSynthesizer {
         const peak = (isDownbeat ? 0.9 : isSubdivision ? 0.4 : 0.75) * volume;
         const decayTime = isDownbeat ? 0.05 : isSubdivision ? 0.03 : 0.04;
 
+        // Rampa suave de 5ms anti-pop
         gain.gain.setValueAtTime(0.0001, t);
-        gain.gain.linearRampToValueAtTime(peak, t + 0.001);
+        gain.gain.linearRampToValueAtTime(peak, t + 0.005);
         gain.gain.exponentialRampToValueAtTime(0.0001, t + decayTime);
         gain.gain.setValueAtTime(0, t + decayTime + 0.005);
 
@@ -187,8 +224,9 @@ class AccompanimentSynthesizer {
         const peak = (isDownbeat ? 0.85 : isSubdivision ? 0.4 : 0.7) * volume;
         const decayTime = isDownbeat ? 0.04 : isSubdivision ? 0.025 : 0.035;
 
+        // Rampa suave de 5ms anti-pop
         gain.gain.setValueAtTime(0.0001, t);
-        gain.gain.linearRampToValueAtTime(peak, t + 0.001);
+        gain.gain.linearRampToValueAtTime(peak, t + 0.005);
         gain.gain.exponentialRampToValueAtTime(0.0001, t + decayTime);
         gain.gain.setValueAtTime(0, t + decayTime + 0.005);
 
@@ -215,8 +253,9 @@ class AccompanimentSynthesizer {
         const peak = (isDownbeat ? 0.7 : isSubdivision ? 0.35 : 0.55) * volume;
         const decayTime = isDownbeat ? 0.045 : isSubdivision ? 0.025 : 0.035;
 
+        // Rampa suave de 5ms anti-pop
         gain.gain.setValueAtTime(0.0001, t);
-        gain.gain.linearRampToValueAtTime(peak, t + 0.001);
+        gain.gain.linearRampToValueAtTime(peak, t + 0.005);
         gain.gain.exponentialRampToValueAtTime(0.0001, t + decayTime);
         gain.gain.setValueAtTime(0, t + decayTime + 0.005);
 

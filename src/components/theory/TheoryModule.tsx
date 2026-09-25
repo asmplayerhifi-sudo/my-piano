@@ -11,53 +11,46 @@ export const TheoryModule: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TheorySubTab>('academy');
 
   return (
-    <div className="w-full space-y-6">
-      {/* 1. Header Oficial do Módulo de Teoria */}
-      <div className="glass-card rounded-3xl p-6 border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-5 shadow-2xl">
-        <div>
-          <div className="flex items-center gap-2 text-indigo-400 font-mono text-xs font-bold uppercase tracking-wider mb-1">
-            <Compass className="w-4 h-4" />
-            <span>Módulo de Teoria &amp; Harmonia Musical</span>
-          </div>
-          <h2 className="text-2xl sm:text-3xl font-black font-display text-white">
-            Teoria Musical Completa
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-4xl leading-relaxed">
-            Ementa estruturada com 7 módulos teóricos, áudios explicativos, testes de fixação e ferramentas acústicas interativas (construtor de escalas, avaliação de performance e círculo das quintas).
-          </p>
+    <div className="w-full flex-1 flex flex-col min-h-0 space-y-2">
+      {/* Barra de Sub-ferramentas de Teoria Compacta (<= 34px) */}
+      <div className="w-full h-[34px] px-3 bg-[#0a0f1d] border border-white/5 rounded-xl flex items-center justify-between gap-2 shrink-0 select-none text-xs">
+        <div className="flex items-center gap-2 min-w-0">
+          <Compass className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+          <span className="font-bold text-white tracking-tight hidden sm:inline text-xs font-display">
+            Teoria Musical
+          </span>
         </div>
 
-        {/* 2. Barra de Navegação de Sub-Abas do Módulo Teoria */}
-        <div className="flex flex-wrap items-center gap-2 p-1.5 rounded-2xl bg-black/40 border border-white/5 self-start md:self-auto">
+        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
           <button
             onClick={() => setActiveTab('academy')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold font-mono transition-all cursor-pointer flex items-center gap-2 ${
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
               activeTab === 'academy'
-                ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30 scale-102 ring-1 ring-purple-400'
+                ? 'bg-cyan-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-white hover:bg-white/5'
             }`}
           >
             <GraduationCap className="w-3.5 h-3.5" />
-            <span>Estudos de Teoria (7 Módulos)</span>
+            <span>Academia (7 Módulos)</span>
           </button>
 
           <button
             onClick={() => setActiveTab('scales')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold font-mono transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
               activeTab === 'scales'
-                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 scale-102 ring-1 ring-indigo-400'
+                ? 'bg-indigo-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-white hover:bg-white/5'
             }`}
           >
             <Music className="w-3.5 h-3.5" />
-            <span>Escalas &amp; Avaliação</span>
+            <span>Escalas</span>
           </button>
 
           <button
             onClick={() => setActiveTab('circle')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold font-mono transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
               activeTab === 'circle'
-                ? 'bg-pink-600 text-white shadow-lg shadow-pink-600/30 scale-102 ring-1 ring-pink-400'
+                ? 'bg-pink-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-white hover:bg-white/5'
             }`}
           >
@@ -67,9 +60,9 @@ export const TheoryModule: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('ruler')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold font-mono transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
               activeTab === 'ruler'
-                ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-600/30 scale-102 ring-1 ring-cyan-400'
+                ? 'bg-cyan-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-white hover:bg-white/5'
             }`}
           >
@@ -79,34 +72,46 @@ export const TheoryModule: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('overview')}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold font-mono transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
               activeTab === 'overview'
-                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 scale-102 ring-1 ring-emerald-400'
+                ? 'bg-emerald-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-white hover:bg-white/5'
             }`}
-            title="Exibir todas as ferramentas e seções em uma página contínua"
+            title="Exibir todas as ferramentas em visão contínua"
           >
             <LayoutGrid className="w-3.5 h-3.5" />
-            <span>Visão Panorâmica</span>
+            <span className="hidden md:inline">Panorâmica</span>
           </button>
         </div>
       </div>
 
-      {/* 3. Renderização Dinâmica de Acordo com a Sub-Aba Ativa */}
-      {activeTab === 'academy' && <TheoryStudyAcademy />}
-      {activeTab === 'scales' && <ScaleBuilder />}
-      {activeTab === 'circle' && <CircleOfFifths />}
-      {activeTab === 'ruler' && <ChromaticRuler />}
-
-      {/* Visão Panorâmica: Exibe tudo empilhado para leitura sequencial */}
-      {activeTab === 'overview' && (
-        <div className="space-y-6">
-          <TheoryStudyAcademy />
-          <ScaleBuilder />
-          <CircleOfFifths />
-          <ChromaticRuler />
-        </div>
-      )}
+      {/* Renderização Dinâmica Full-Width */}
+      <div className="flex-1 w-full min-h-0">
+        {activeTab === 'academy' && <TheoryStudyAcademy />}
+        {activeTab === 'scales' && (
+          <div className="w-full rounded-2xl border border-white/5 bg-[#090b15] p-3 sm:p-4 overflow-y-auto">
+            <ScaleBuilder />
+          </div>
+        )}
+        {activeTab === 'circle' && (
+          <div className="w-full rounded-2xl border border-white/5 bg-[#090b15] p-3 sm:p-4 overflow-y-auto">
+            <CircleOfFifths />
+          </div>
+        )}
+        {activeTab === 'ruler' && (
+          <div className="w-full rounded-2xl border border-white/5 bg-[#090b15] p-3 sm:p-4 overflow-y-auto">
+            <ChromaticRuler />
+          </div>
+        )}
+        {activeTab === 'overview' && (
+          <div className="space-y-4 overflow-y-auto">
+            <TheoryStudyAcademy />
+            <ScaleBuilder />
+            <CircleOfFifths />
+            <ChromaticRuler />
+          </div>
+        )}
+      </div>
     </div>
   );
 };

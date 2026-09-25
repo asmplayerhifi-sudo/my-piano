@@ -51,6 +51,11 @@ class ActiveMidiStore {
     }
   }
 
+  /** Alias para limpeza global de todas as notas */
+  clearAll(): void {
+    this.allNotesOff();
+  }
+
   /**
    * Retorna snapshot imutável em cache das notas ativas.
    * Regra estrita useSyncExternalStore: Pura, sem efeitos colaterais e com referência estável.

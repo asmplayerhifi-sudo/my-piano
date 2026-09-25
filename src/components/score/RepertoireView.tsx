@@ -51,11 +51,11 @@ export const RepertoireView: React.FC = () => {
   const [playbackEndMode, setPlaybackEndMode] = useState<'end' | 'repeat'>('end');
 
   // Sustain Musical Real Exclusivo no Modo Reprodução:
-  // 'all'    = sustenta notas melódicas e acordes simultaneamente (pedal pleno)
+  // 'off'    = staccato puro sem sustain (padrão oficial)
   // 'notes'  = sustenta apenas notas individuais melódicas com legato de pedal
   // 'chords' = sustenta apenas notas da harmonia/acordes até a troca de acorde
-  // 'off'    = staccato puro sem sustain
-  const [sustainOption, setSustainOption] = useState<ScoreSustainMode>('all');
+  // 'all'    = sustenta notas melódicas e acordes simultaneamente (pedal pleno)
+  const [sustainOption, setSustainOption] = useState<ScoreSustainMode>('off');
 
   // Metrônomo Musical Conectado ao Engine Global
   const metronome = useMetronome();
@@ -72,6 +72,7 @@ export const RepertoireView: React.FC = () => {
 
   // Atualiza tempo recomendado ao trocar de música
   const handleSelectSong = (song: RepertoireSong) => {
+    soundEngine.stopAllNotes();
     musicalPlaybackEngine.stop();
     setIsPlaying(false);
     setActiveDemoMidi([]);

@@ -168,6 +168,8 @@ class MetronomeEngine {
       this.timerId = null;
     }
     this.clearVisualTimeouts();
+    // Cancela emissões agendadas pendentes com rampa suave de 5ms anti-clique
+    accompanimentSynthesizer.silenceMetronome();
     this.updateState({
       isPlaying: false,
       currentBeat: 1,

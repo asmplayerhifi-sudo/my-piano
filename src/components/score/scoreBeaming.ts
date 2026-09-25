@@ -10,7 +10,8 @@ export interface BeamCandidate {
   x: number;
   y: number;
   duration: number; // 0.5 = colcheia, 0.25 = semicolcheia
-  beat: number;     // beat position
+  beat: number;     // beat position no compasso (1.0, 2.0...) ou absoluto
+  measure: number;  // número do compasso (inviolável: vigas NUNCA cruzam travessão de compasso)
   clef: 'treble' | 'bass';
   color?: string;
   alpha?: number;
@@ -58,6 +59,11 @@ export interface BeamingOptions {
 
 /**
  * Agrupa notas contíguas que admitem barras de união (beaming).
+ * Regras estritas:
+ * - NUNCA cruza barras de compasso (sameMeasure = note.measure === prev.measure).
+ * - Apenas durações de colcheia ou menores (dur <= 0.5 ou 0.75).
+ * - Não cruza o meio do compasso quaternário (tempos 1-2 vs 3-4).
+ * - Notas isoladas recebem bandeirola tradicional individual.
  */
 export function buildBeamGroups(
   candidates: BeamCandidate[],
@@ -66,8 +72,9 @@ export function buildBeamGroups(
   const beatsPerM = options.beatsPerMeasure || 4;
   const groups: BeamGroup[] = [];
 
-  // Ordena candidatos por beat e posição X
+  // Ordena candidatos estritamente por compasso, depois por beat, depois por X
   const sorted = [...candidates].sort((a, b) => {
+    if (a.measure !== b.measure) return a.measure - b.measure;
     if (Math.abs(a.beat - b.beat) > 0.001) return a.beat - b.beat;
     return a.x - b.x;
   });
@@ -78,7 +85,7 @@ export function buildBeamGroups(
     if (chunk.length === 0) return;
 
     if (chunk.length === 1) {
-      // Nota isolada com bandeirola clássica
+      // Nota isolada com bandeirola clássica (haste + flag anatômica)
       const note = chunk[0];
       const midY = options.getMiddleLineY(note.clef);
       const isUp = note.y >= midY;
@@ -107,7 +114,7 @@ export function buildBeamGroups(
       return;
     }
 
-    // Grupo de 2 ou mais notas agrupadas por Barra de União (Beam)
+    // Grupo de 2 ou mais notas agrupadas por Barra de União (Beam) dentro do mesmo compasso
     const midY = options.getMiddleLineY(chunk[0].clef);
     let maxDist = -1;
     let dominantIsUp = true;
@@ -220,7 +227,7 @@ export function buildBeamGroups(
   for (let i = 0; i < sorted.length; i++) {
     const note = sorted[i];
 
-    // Figuras não agrupáveis (semibreves, mínimas, semínimas) quebram o grupo
+    // Figuras não agrupáveis (mínimas, semínimas, notas maiores que 0.75) quebram o grupo imediatamente
     if (note.duration > 0.75) {
       finalizeChunk(currentChunk);
       currentChunk = [];
@@ -234,22 +241,26 @@ export function buildBeamGroups(
 
     const prev = currentChunk[currentChunk.length - 1];
 
-    // Condições de continuação do grupo:
+    // Condições formais de agrupamento (Gardner Read / Behind Bars):
     // 1. Mesma clave
     const sameClef = note.clef === prev.clef;
-    // 2. Mesmo compasso
-    const sameMeasure = Math.floor(note.beat / beatsPerM) === Math.floor(prev.beat / beatsPerM);
-    // 3. Mesma metade de compasso em métrica quaternária (limite de 2 tempos para não cruzar o meio do compasso)
+    // 2. Mesmo compasso - REGRA INVIOLÁVEL: vigas NUNCA cruzam linhas divisórias de compasso
+    const sameMeasure = note.measure === prev.measure;
+    // 3. Mesma metade métrica dentro do compasso quaternário (evita cruzar o meio do compasso 4/4 entre tempo 2 e 3)
+    const beatInM1 = note.beat;
+    const beatInMPrev = prev.beat;
     const sameBeatGroup = beatsPerM === 4
-      ? Math.floor((note.beat % 4) / 2) === Math.floor((prev.beat % 4) / 2)
-      : (beatsPerM === 3 ? Math.floor(note.beat) === Math.floor(prev.beat) : true);
-    // 4. Máximo de 4 figuras por grupo
+      ? Math.floor((beatInM1 - 1) / 2) === Math.floor((beatInMPrev - 1) / 2)
+      : (beatsPerM === 3 ? Math.floor(beatInM1 - 1) === Math.floor(beatInMPrev - 1) : true);
+    // 4. Máximo de 4 figuras por barra de união
     const withinLimit = currentChunk.length < 4;
-    // 5. Continuidade temporal imediata
+    // 5. Continuidade temporal no mesmo compasso
     const gap = note.beat - (prev.beat + prev.duration);
-    const isContiguous = gap >= -0.05 && gap <= 0.05;
+    const isContiguous = Math.abs(gap) <= 0.08;
+    // 6. Proximidade espacial em pixels no Canvas (máximo 160px entre notas consecutivas)
+    const isCloseInX = Math.abs(note.x - prev.x) < 160;
 
-    if (sameClef && sameMeasure && sameBeatGroup && withinLimit && isContiguous) {
+    if (sameClef && sameMeasure && sameBeatGroup && withinLimit && isContiguous && isCloseInX) {
       currentChunk.push(note);
     } else {
       finalizeChunk(currentChunk);

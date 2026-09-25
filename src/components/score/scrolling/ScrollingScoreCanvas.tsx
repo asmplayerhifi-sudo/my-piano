@@ -41,7 +41,7 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
   enableMetronomeSound,
   sustainMode: propSustainMode,
   onSustainModeChange,
-  enableSustain: initialSustain = true,
+  enableSustain: initialSustain = false,
   hidePlaybackControls = false,
   onActiveNotesChange,
   onBeatTick,

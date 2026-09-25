@@ -51,7 +51,7 @@ export class MusicalPlaybackEngine {
   private animationFrameId: number | null = null;
   private timerId: number | null = null;
 
-  private sustainMode: ScoreSustainMode = 'all';
+  private sustainMode: ScoreSustainMode = 'off';
   private instrument: 'piano' | 'guitar' = 'piano';
   private metronomeEnabled = false;
   private loopMode: 'end' | 'repeat' = 'end';
@@ -66,6 +66,7 @@ export class MusicalPlaybackEngine {
   }
 
   public loadScore(notes: ScoreNote[], timeSignature = '4/4', bpm = 84) {
+    soundEngine.stopAllNotes();
     this.notes = notes;
     this.updateTimeSignature(timeSignature);
     this.bpm = Math.max(30, Math.min(280, Math.round(bpm)));
@@ -78,7 +79,10 @@ export class MusicalPlaybackEngine {
   }
 
   public setInstrument(inst: 'piano' | 'guitar') {
-    this.instrument = inst;
+    if (this.instrument !== inst) {
+      soundEngine.stopAllNotes();
+      this.instrument = inst;
+    }
   }
 
   public setMetronomeEnabled(enabled: boolean) {
@@ -196,6 +200,7 @@ export class MusicalPlaybackEngine {
     this.stopLoop();
     this.notifyState();
     this.activeNotesListeners.forEach(fn => fn([]));
+    soundEngine.stopAllNotes();
   }
 
   public stop() {
