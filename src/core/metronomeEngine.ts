@@ -108,6 +108,18 @@ class MetronomeEngine {
     this.notify();
   }
 
+  /**
+   * Sincroniza o metrônomo de forma atômica com o compasso e tempo da partitura.
+   */
+  public syncPlaybackBeat(_measure: number, beat: number, isDownbeat: boolean) {
+    if (this.state.currentBeat !== beat || this.state.isDownbeat !== isDownbeat) {
+      this.updateState({
+        currentBeat: beat,
+        isDownbeat,
+      });
+    }
+  }
+
   public async start(initialOptions?: { bpm?: number; timeSignature?: string; soundType?: MetronomeSoundType }) {
     await soundEngine.ensureAudioReady();
 

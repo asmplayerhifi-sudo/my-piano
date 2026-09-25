@@ -10,6 +10,7 @@ import { TimbreSelector } from '../audio/TimbreSelector';
 import { soundEngine } from '../../core/soundEngine';
 import { METRONOME_SOUND_OPTIONS, type MetronomeSoundType } from '../../core/accompanimentSynthesizer';
 import { metronomeEngine, useMetronome } from '../../core/metronomeEngine';
+import { musicalPlaybackEngine } from '../../core/musicalPlaybackEngine';
 import { useOctaveStandard, octaveConfigStore } from '../../core/octaveConfigStore';
 import { computeNoteOffsets } from './scrolling/scoreGeometry';
 import { useFullscreen } from '../../hooks/useFullscreen';
@@ -63,38 +64,23 @@ export const RepertoireView: React.FC = () => {
   const octaveStandard = useOctaveStandard();
 
 
-  const playbackTimeoutRef = useRef<number | null>(null);
-  const playbackStartTimeRef = useRef<number>(0);
-  const isPlayingRef = useRef<boolean>(false);
-  const tempoRef = useRef<number>(tempo);
-  const currentNoteIdxRef = useRef<number>(0);
-  const playbackEndModeRef = useRef<'end' | 'repeat'>(playbackEndMode);
-  const sustainOptionRef = useRef<ScoreSustainMode>(sustainOption);
-
-  isPlayingRef.current = isPlaying;
-  tempoRef.current = tempo;
-  currentNoteIdxRef.current = currentNoteIdx;
-  playbackEndModeRef.current = playbackEndMode;
-  sustainOptionRef.current = sustainOption;
+  // Sincroniza sustain com o motor musical unificado
+  const handleSustainOptionChange = (mode: ScoreSustainMode) => {
+    setSustainOption(mode);
+    musicalPlaybackEngine.setSustainMode(mode);
+  };
 
   // Atualiza tempo recomendado ao trocar de música
   const handleSelectSong = (song: RepertoireSong) => {
-    // Para qualquer reprodução anterior
-    if (playbackTimeoutRef.current) {
-      window.clearTimeout(playbackTimeoutRef.current);
-      playbackTimeoutRef.current = null;
-    }
+    musicalPlaybackEngine.stop();
     setIsPlaying(false);
-    isPlayingRef.current = false;
     setActiveDemoMidi([]);
     setCurrentNoteIdx(0);
-    currentNoteIdxRef.current = 0;
-    playbackStartTimeRef.current = 0;
     setActiveSong(song);
     setTempo(song.recommendedBpm);
-    tempoRef.current = song.recommendedBpm;
     metronomeEngine.setBpm(song.recommendedBpm);
     metronomeEngine.setTimeSignature(song.timeSignature);
+    musicalPlaybackEngine.loadScore(song.scoreTrack, song.timeSignature, song.recommendedBpm);
   };
 
   const handleNoteInput = (midi: number) => {
@@ -162,191 +148,42 @@ export const RepertoireView: React.FC = () => {
     };
   }, [currentSongTargetNote, octaveStandard]);
 
-  // Motor de Reprodução em Áudio Fiel à Partitura (Polifonia, Baixo e Melodia Sincronizados)
-  const playNextNote = (noteIndex: number) => {
-    if (!isPlayingRef.current) return;
-
-    const track = sortedScoreTrack;
-    const offsets = noteOffsetsRef.current;
-    if (noteIndex >= track.length) {
-      // Fim da obra: encerra ou reinicia dependendo do modo configurado
-      if (playbackEndModeRef.current === 'repeat') {
-        playbackTimeoutRef.current = window.setTimeout(() => {
-          if (isPlayingRef.current) {
-            setCurrentNoteIdx(0);
-            playNextNote(0);
-          }
-        }, 1200);
-      } else {
-        setIsPlaying(false);
-        isPlayingRef.current = false;
-        setActiveDemoMidi([]);
-        setCurrentNoteIdx(0);
-      }
-      return;
-    }
-
-    // Toca a nota atual e todas as notas simultâneas (mesmo tempo métrico / acordes e ambas as mãos)
-    const currentOffset = offsets[noteIndex] ?? 0;
-    let nextIndex = noteIndex;
-    const currentNotesMidi: number[] = [];
-
-    // Calcula duração do intervalo até o próximo evento musical
-    let nextEventOffset: number | null = null;
-    {
-      let scanIdx = nextIndex;
-      while (scanIdx < track.length && Math.abs((offsets[scanIdx] ?? 0) - currentOffset) < 0.05) scanIdx++;
-      if (scanIdx < track.length) nextEventOffset = offsets[scanIdx] ?? null;
-    }
-
-    // Identifica quando ocorrerá a próxima troca de acorde na partitura (para Sustain Acorde)
-    let nextChordChangeOffset: number | null = null;
-    const currentChordName = track[nextIndex]?.chordName;
-    if (currentChordName) {
-      for (let c = nextIndex + 1; c < track.length; c++) {
-        if (track[c].chordName && track[c].chordName !== currentChordName) {
-          nextChordChangeOffset = offsets[c] ?? null;
-          break;
-        }
-      }
-    }
-
-    const isNotesSustain = sustainOptionRef.current === 'notes' || sustainOptionRef.current === 'all';
-    const isChordsSustain = sustainOptionRef.current === 'chords' || sustainOptionRef.current === 'all';
-
-    while (nextIndex < track.length && Math.abs((offsets[nextIndex] ?? 0) - currentOffset) < 0.05) {
-      const noteToPlay = track[nextIndex];
-      const beatSec = 60 / tempoRef.current;
-      const noteDurSec = (noteToPlay.duration || 1) * beatSec;
-      const isChordTone = noteToPlay.clef === 'bass' || Boolean(noteToPlay.chordName);
-
-      let durSec: number;
-      let noteSustained: boolean;
-
-      if (isChordTone && isChordsSustain) {
-        // Sustain Acorde: mantém a harmonia sustentada até a entrada do novo acorde
-        if (nextChordChangeOffset !== null) {
-          durSec = Math.max(noteDurSec, (nextChordChangeOffset - currentOffset) * beatSec + 0.15);
-        } else if (nextEventOffset !== null) {
-          durSec = Math.max(noteDurSec * 1.5, (nextEventOffset - currentOffset) * beatSec + 0.5);
-        } else {
-          durSec = Math.max(noteDurSec * 1.8, 3.0);
-        }
-        noteSustained = true;
-      } else if (!isChordTone && isNotesSustain) {
-        // Sustain Nota: mantém cada nota melódica soando com legato natural de pedal
-        const intervalSec = nextEventOffset !== null
-          ? Math.max(0.1, (nextEventOffset - currentOffset) * beatSec + 0.15)
-          : noteDurSec * 1.4;
-        durSec = Math.max(noteDurSec * 1.3, intervalSec);
-        noteSustained = true;
-      } else if (isChordTone && !isChordsSustain) {
-        // Acorde sem sustain: staccato articulado
-        durSec = Math.max(0.14, noteDurSec * 0.45);
-        noteSustained = false;
-      } else if (!isChordTone && !isNotesSustain) {
-        // Nota melódica sem sustain: staccato articulado
-        durSec = Math.max(0.14, noteDurSec * 0.55);
-        noteSustained = false;
-      } else {
-        durSec = Math.max(0.14, noteDurSec * 0.8);
-        noteSustained = false;
-      }
-
-      soundEngine.playPianoNote(noteToPlay.midi, durSec, undefined, 0.8, noteSustained);
-      currentNotesMidi.push(noteToPlay.midi);
-      nextIndex++;
-    }
-
-    // Atualiza teclas ativas visualmente no piano durante a demonstração
-    setActiveDemoMidi(currentNotesMidi);
-    setCurrentNoteIdx(nextIndex);
-
-    // Calcula tempo exato até o próximo evento musical com compensação ativa de jitter (zero drift)
-    if (nextIndex < track.length) {
-      const nextOffset = offsets[nextIndex] ?? (currentOffset + 1);
-      const expectedElapsedMs = (nextOffset * (60 / tempoRef.current)) * 1000;
-      const actualElapsedMs = performance.now() - playbackStartTimeRef.current;
-      const delayMs = Math.max(10, expectedElapsedMs - actualElapsedMs);
-
-      playbackTimeoutRef.current = window.setTimeout(() => {
-        playNextNote(nextIndex);
-      }, delayMs);
-    } else {
-      // Última nota da partitura:
-      // Aguarda rigorosamente a execução e o decaimento real de sustain da última nota
-      const lastDur = Math.max(...track.slice(noteIndex).map(n => n.duration || 2));
-      const sustainDecayMs = sustainOptionRef.current !== 'off' ? 850 : 200;
-      const finalWaitMs = (60 / tempoRef.current) * 1000 * lastDur + sustainDecayMs;
-
-      playbackTimeoutRef.current = window.setTimeout(() => {
-        if (isPlayingRef.current) {
-          if (playbackEndModeRef.current === 'repeat') {
-            // Modo Repetição: Retorna ao início e reinicia
-            playbackStartTimeRef.current = performance.now();
-            setCurrentNoteIdx(0);
-            playNextNote(0);
-          } else {
-            // Modo Fim / Normal: Cessa a reprodução exatamente após a última nota
-            setIsPlaying(false);
-            isPlayingRef.current = false;
-            setActiveDemoMidi([]);
-            setCurrentNoteIdx(0);
-          }
-        }
-      }, finalWaitMs);
-    }
-  };
-
+  // Controles de Reprodução Unificados pelo Motor Central (Single Source of Time)
   const handleTogglePlayPause = async () => {
     await soundEngine.ensureAudioReady();
     if (isPlaying) {
-      // Pausar
-      if (playbackTimeoutRef.current) {
-        window.clearTimeout(playbackTimeoutRef.current);
-        playbackTimeoutRef.current = null;
-      }
+      musicalPlaybackEngine.pause();
       setIsPlaying(false);
-      isPlayingRef.current = false;
       setActiveDemoMidi([]);
     } else {
-      // Iniciar demonstração sonora
-      setIsPlaying(true);
-      isPlayingRef.current = true;
+      musicalPlaybackEngine.loadScore(sortedScoreTrack, activeSong.timeSignature, tempo);
+      musicalPlaybackEngine.setSustainMode(sustainOption);
+      musicalPlaybackEngine.setMetronomeEnabled(metronome.isPlaying);
+      musicalPlaybackEngine.setLoopMode(playbackEndMode);
       const startIdx = currentNoteIdx >= sortedScoreTrack.length ? 0 : currentNoteIdx;
-      const startOffset = noteOffsetsRef.current[startIdx] ?? 0;
-      const elapsedBeatsMs = (startOffset * (60 / tempoRef.current)) * 1000;
-      playbackStartTimeRef.current = performance.now() - elapsedBeatsMs;
-      playNextNote(startIdx);
+      const startBeat = noteOffsets[startIdx] ?? 0;
+      musicalPlaybackEngine.play(startBeat);
+      setIsPlaying(true);
     }
   };
 
   const handleResetPlayback = () => {
-    if (playbackTimeoutRef.current) {
-      window.clearTimeout(playbackTimeoutRef.current);
-      playbackTimeoutRef.current = null;
-    }
+    musicalPlaybackEngine.stop();
     setIsPlaying(false);
-    isPlayingRef.current = false;
     setActiveDemoMidi([]);
     setCurrentNoteIdx(0);
-    currentNoteIdxRef.current = 0;
-    playbackStartTimeRef.current = 0;
   };
 
   const handleTempoChange = (newTempo: number) => {
     const clamped = Math.max(30, Math.min(240, newTempo));
-    if (isPlayingRef.current) {
-      const currentOffset = noteOffsetsRef.current[currentNoteIdxRef.current] ?? 0;
-      const newElapsedMs = (currentOffset * (60 / clamped)) * 1000;
-      playbackStartTimeRef.current = performance.now() - newElapsedMs;
-    }
     setTempo(clamped);
-    tempoRef.current = clamped;
+    musicalPlaybackEngine.setBpm(clamped);
     metronomeEngine.setBpm(clamped);
   };
 
   const handleToggleMetronome = () => {
+    const nextState = !metronome.isPlaying;
+    musicalPlaybackEngine.setMetronomeEnabled(nextState);
     metronomeEngine.toggle({
       bpm: tempo,
       timeSignature: activeSong.timeSignature,
@@ -356,9 +193,7 @@ export const RepertoireView: React.FC = () => {
   // Limpeza de timers e metrônomo ao desmontar
   useEffect(() => {
     return () => {
-      if (playbackTimeoutRef.current) {
-        window.clearTimeout(playbackTimeoutRef.current);
-      }
+      musicalPlaybackEngine.stop();
       metronomeEngine.stop();
     };
   }, []);
@@ -500,7 +335,7 @@ export const RepertoireView: React.FC = () => {
           {/* Controle Real de Sustain (Exclusivo na Tela de Repertório / Modo Reprodução) */}
           <div className="flex items-center bg-black/50 p-1 rounded-2xl border border-white/10 text-xs">
             <button
-              onClick={() => setSustainOption('all')}
+              onClick={() => handleSustainOptionChange('all')}
               className={`px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1 ${
                 sustainOption === 'all'
                   ? 'bg-amber-500 text-slate-950 font-black shadow-[0_0_12px_rgba(245,158,11,0.5)] ring-1 ring-amber-300'
@@ -513,7 +348,7 @@ export const RepertoireView: React.FC = () => {
             </button>
 
             <button
-              onClick={() => setSustainOption('notes')}
+              onClick={() => handleSustainOptionChange('notes')}
               className={`px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1 ${
                 sustainOption === 'notes'
                   ? 'bg-indigo-600 text-white shadow-md'
@@ -525,7 +360,7 @@ export const RepertoireView: React.FC = () => {
             </button>
 
             <button
-              onClick={() => setSustainOption('chords')}
+              onClick={() => handleSustainOptionChange('chords')}
               className={`px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1 ${
                 sustainOption === 'chords'
                   ? 'bg-purple-600 text-white shadow-md'
@@ -537,7 +372,7 @@ export const RepertoireView: React.FC = () => {
             </button>
 
             <button
-              onClick={() => setSustainOption('off')}
+              onClick={() => handleSustainOptionChange('off')}
               className={`px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1 ${
                 sustainOption === 'off'
                   ? 'bg-slate-700 text-white shadow-md'
@@ -788,12 +623,18 @@ export const RepertoireView: React.FC = () => {
           bpm={tempo}
           isPlaying={isPlaying}
           isDemoMode={true}
-          autoPlayAudio={false}
+          autoPlayAudio={true}
           enableMetronomeSound={metronome.isPlaying}
           hidePlaybackControls={true}
           currentNoteIndex={currentNoteIdx}
           sustainMode={sustainOption}
-          onSustainModeChange={setSustainOption}
+          onSustainModeChange={handleSustainOptionChange}
+          onActiveNotesChange={(midis) => {
+            setActiveDemoMidi(midis);
+          }}
+          onTargetNoteChange={(_target, idx) => {
+            setCurrentNoteIdx(idx);
+          }}
           onPlayPauseToggle={(playing) => {
             if (playing && !isPlaying) {
               handleTogglePlayPause();

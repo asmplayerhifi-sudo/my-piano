@@ -332,6 +332,22 @@ export function renderBeamGroup(
       ctx.quadraticCurveTo(f.stemX + 8, f.stemYEnd + 16 * dir, f.stemX + 2, f.stemYEnd + 24 * dir);
       ctx.stroke();
     }
+
+    if (f.duration <= 0.125) {
+      // 3ª bandeirola (Fusa: 1/32)
+      ctx.beginPath();
+      ctx.moveTo(f.stemX, f.stemYEnd + 12 * dir);
+      ctx.quadraticCurveTo(f.stemX + 8, f.stemYEnd + 22 * dir, f.stemX + 2, f.stemYEnd + 30 * dir);
+      ctx.stroke();
+    }
+
+    if (f.duration <= 0.0625) {
+      // 4ª bandeirola (Semifusa: 1/64)
+      ctx.beginPath();
+      ctx.moveTo(f.stemX, f.stemYEnd + 18 * dir);
+      ctx.quadraticCurveTo(f.stemX + 8, f.stemYEnd + 28 * dir, f.stemX + 2, f.stemYEnd + 36 * dir);
+      ctx.stroke();
+    }
     ctx.restore();
   }
 }

@@ -43,7 +43,7 @@ export function drawScoreNotes({
   lastError,
 }: DrawNotesParams): void {
   const isTrad = theme === 'traditional';
-  const { middleCY, trebleBaseY, trebleLineStep, trebleNoteNameY, trebleFingerY, bassTopY, bassLineStep, bassNoteNameY, bassFingerY } = SCORE_GEOMETRY;
+  const { middleCY, trebleBaseY, trebleLineStep, trebleNoteNameY, trebleFingerY, bassTopY, bassBaseY, bassLineStep, bassNoteNameY, bassFingerY } = SCORE_GEOMETRY;
   const beamCandidates: BeamCandidate[] = [];
 
   notes.forEach((note, idx) => {
@@ -150,7 +150,24 @@ export function drawScoreNotes({
       ctx.fill();
     }
 
+    // Ponto de Aumento (Augmentation Dot para notas pontuadas: 1.5, 0.75, 3.0, etc.)
+    const isDotted = (dur === 1.5) || (dur === 0.75) || (dur === 3) || (dur === 0.375) || (Math.abs(dur - 1.5) < 0.05) || (Math.abs(dur - 0.75) < 0.05) || (Math.abs(dur - 3.0) < 0.05);
+    if (isDotted) {
+      const isBass = note.clef === 'bass' || (!note.clef && note.midi < 60);
+      const bY = isBass ? bassBaseY : trebleBaseY;
+      const st = isBass ? bassLineStep : trebleLineStep;
+      const isOnLine = Math.abs((ry - bY) % st) < 3.5;
+      const dotY = isOnLine ? ry - 4 : ry;
+      ctx.beginPath();
+      ctx.arc(rx + 15, dotY, 2.3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
     // Coleta para agrupamento ou desenha haste simples
+    const isBass = note.clef === 'bass' || (!note.clef && note.midi < 60);
+    const middleLineMidi = isBass ? 50 : 71; // Linha média: D3 na Clave de Fá, B4 na Clave de Sol
+    const isUpStem = note.midi < middleLineMidi; // Abaixo da 3ª linha: haste para cima; na/acima da 3ª linha: para baixo
+
     if (dur <= 0.75) {
       beamCandidates.push({
         id: `${idx}`,
@@ -163,8 +180,7 @@ export function drawScoreNotes({
         alpha: noteAlpha,
       });
     } else if (!isWhole) {
-      const isUpStem = ry > (trebleBaseY - 2 * trebleLineStep);
-      const stemX = isUpStem ? rx + 10 : rx - 10;
+      const stemX = isUpStem ? rx + 9.5 : rx - 9.5;
       const stemYEnd = isUpStem ? ry - 38 : ry + 38;
       ctx.lineWidth = 2;
       ctx.beginPath();

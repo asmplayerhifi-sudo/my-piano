@@ -69,5 +69,10 @@ export interface ScrollingScoreProps {
   enableSustain?: boolean;
   /** Oculta controles de playback/metrônomo internos caso a tela pai já os forneça (ex: RepertoireView). */
   hidePlaybackControls?: boolean;
+  /** Notifica notas MIDI ativas em execução para iluminação no teclado virtual */
+  onActiveNotesChange?: (activeMidis: number[]) => void;
+  /** Notifica batida rítmica e compasso em tempo real para sincronização de metrônomo */
+  onBeatTick?: (measure: number, beat: number, isDownbeat: boolean) => void;
 }
+
 

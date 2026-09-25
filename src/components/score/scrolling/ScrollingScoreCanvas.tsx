@@ -6,8 +6,8 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { soundEngine } from '../../../core/soundEngine';
-import { parseChord } from '../../../core/musicTheory';
 import { metronomeEngine, useMetronome } from '../../../core/metronomeEngine';
+import { musicalPlaybackEngine } from '../../../core/musicalPlaybackEngine';
 import type { ScrollingScoreProps, DisplayOptions, ScoreTheme, ScoreSustainMode } from './types';
 import { SCORE_GEOMETRY } from './scoreGeometry';
 import { useScoreTimeline } from './useScoreTimeline';
@@ -43,6 +43,8 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
   onSustainModeChange,
   enableSustain: initialSustain = true,
   hidePlaybackControls = false,
+  onActiveNotesChange,
+  onBeatTick,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -61,7 +63,6 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
     onSustainModeChange?.(mode);
   };
 
-  const isNotesSustain = activeSustainMode === 'notes' || activeSustainMode === 'all';
   const isChordsSustain = activeSustainMode === 'chords' || activeSustainMode === 'all';
 
   useEffect(() => {
@@ -102,6 +103,38 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
     sustainMode: activeSustainMode,
   });
 
+  // Carrega e sincroniza o motor universal com as propriedades musicais
+  useEffect(() => {
+    musicalPlaybackEngine.loadScore(notes, timeSignature, playback.tempo);
+    musicalPlaybackEngine.setSustainMode(activeSustainMode);
+    musicalPlaybackEngine.setInstrument(instrument);
+    musicalPlaybackEngine.setMetronomeEnabled(Boolean(enableMetronomeSound || metronome.isPlaying));
+  }, [notes, timeSignature, activeSustainMode, instrument, enableMetronomeSound, metronome.isPlaying, playback.tempo]);
+
+  // Observa batidas e notas ativas para notificar a UI e componentes pais
+  useEffect(() => {
+    const unsubNotes = musicalPlaybackEngine.onActiveNotesChange((midis) => {
+      onActiveNotesChange?.(midis);
+    });
+    const unsubBeats = musicalPlaybackEngine.onBeatTick((m, b, isDownbeat) => {
+      onBeatTick?.(m, b, isDownbeat);
+    });
+    return () => {
+      unsubNotes();
+      unsubBeats();
+    };
+  }, [onActiveNotesChange, onBeatTick]);
+
+  // Sincroniza estado de reprodução
+  useEffect(() => {
+    if (playback.isPlaying && !musicalPlaybackEngine.getIsPlaying()) {
+      const currentBeat = playback.scrollOffsetRef.current / pixelsPerBeat;
+      musicalPlaybackEngine.play(currentBeat);
+    } else if (!playback.isPlaying && musicalPlaybackEngine.getIsPlaying()) {
+      musicalPlaybackEngine.pause();
+    }
+  }, [playback.isPlaying, pixelsPerBeat]);
+
   const handleTogglePlay = async () => {
     await soundEngine.ensureAudioReady();
     playback.handlePlayToggle();
@@ -109,11 +142,14 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
 
   const handleToggleMetronome = async () => {
     await soundEngine.ensureAudioReady();
+    const nextState = !metronome.isPlaying;
+    musicalPlaybackEngine.setMetronomeEnabled(nextState);
     metronomeEngine.toggle({ bpm: playback.tempo, timeSignature });
   };
 
   const handleTempoChange = (newTempo: number) => {
     playback.handleTempoChange(newTempo);
+    musicalPlaybackEngine.setBpm(newTempo);
     metronomeEngine.setBpm(newTempo);
     onTempoChange?.(newTempo);
   };
@@ -121,6 +157,7 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
   // Sincroniza metronomeEngine se a prop enableMetronomeSound for explicitamente fornecida
   useEffect(() => {
     if (enableMetronomeSound !== undefined) {
+      musicalPlaybackEngine.setMetronomeEnabled(enableMetronomeSound);
       if (enableMetronomeSound && !metronomeEngine.getSnapshot().isPlaying) {
         soundEngine.ensureAudioReady().then(() => {
           metronomeEngine.start({ bpm: playback.tempo, timeSignature });
@@ -134,6 +171,7 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
   // Limpeza ao desmontar
   useEffect(() => {
     return () => {
+      musicalPlaybackEngine.pause();
       if (metronomeEngine.getSnapshot().isPlaying) {
         metronomeEngine.stop();
       }
@@ -157,59 +195,19 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
 
     let active = true;
     let animId: number;
-    let lastTime = performance.now();
 
-    const render = (now: number) => {
+    const render = () => {
       if (!active) return;
-      const dt = Math.min(0.1, (now - lastTime) / 1000);
-      lastTime = now;
 
       if (playback.isPlaying && !playback.isPausedWaitingRef.current) {
-        playback.scrollOffsetRef.current += (playback.tempo / 60) * pixelsPerBeat * dt;
-        const currentBeat = playback.scrollOffsetRef.current / pixelsPerBeat;
+        // Posição analítica de alta precisão derivada do motor de tempo universal
+        const currentBeat = musicalPlaybackEngine.getCurrentBeat();
+        playback.scrollOffsetRef.current = currentBeat * pixelsPerBeat;
 
-        // Dispara áudio das notas individuais APENAS quando autoPlayAudio e enableAudio estiverem ativos
-        // Em modo de reprodução externa gerenciada pelo pai (ex: RepertoireView), autoPlayAudio é falso e não duplica a faixa!
-        if (enableAudio && autoPlayAudio) {
-          timeline.noteOffsets.forEach((b, i) => {
-            if (b <= currentBeat && !playback.playedNotesRef.current.has(i)) {
-              playback.playedNotesRef.current.add(i);
-              const n = notes[i];
-              if (n) {
-                const beatSec = 60 / playback.tempo;
-                const noteDurSec = (n.duration || 1) * beatSec;
-                const soundDuration = isNotesSustain
-                  ? Math.max(noteDurSec * 1.6, 2.5)
-                  : Math.max(0.18, noteDurSec * 0.85);
-
-                if (instrument === 'guitar') {
-                  soundEngine.playGuitarPluck(n.midi, soundDuration, undefined, 0.8, isNotesSustain);
-                } else {
-                  soundEngine.playPianoNote(n.midi, soundDuration, undefined, 0.8, isNotesSustain);
-                }
-                playback.setCurrentIndex(i);
-              }
-            }
-          });
-
-          // Reprodução polifônica síncrona dos acordes da partitura ao atingir o beat de início
-          if (displayOptions.showChords) {
-            timeline.chordSpans.forEach((chord, chordIdx) => {
-              if (chord.startBeat <= currentBeat && !playback.playedChordsRef.current.has(chordIdx)) {
-                playback.playedChordsRef.current.add(chordIdx);
-                const parsed = parseChord(chord.chordName);
-                if (parsed && parsed.midiNotes.length > 0) {
-                  const beatSec = 60 / playback.tempo;
-                  const chordDurationSec = chord.duration * beatSec;
-                  // Com sustain: notas ressoam de forma contínua preenchendo o compasso; Sem sustain: staccato curto e seco
-                  const soundDuration = isChordsSustain
-                    ? Math.max(2.4, chordDurationSec * 1.1)
-                    : Math.min(0.35, beatSec * 0.45);
-                  soundEngine.playChord(parsed.midiNotes, instrument, soundDuration, isChordsSustain);
-                }
-              }
-            });
-          }
+        // Atualiza nota alvo atual na partitura
+        const foundIdx = timeline.noteOffsets.findIndex(b => Math.abs(b - currentBeat) <= 0.15 || b > currentBeat);
+        if (foundIdx !== -1 && foundIdx !== playback.currentIndex) {
+          playback.setCurrentIndex(foundIdx);
         }
       }
 
@@ -233,7 +231,7 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
       active = false;
       cancelAnimationFrame(animId);
     };
-  }, [playback, scoreTheme, displayOptions, containerWidth, timeline, restsList, notes, enableAudio, autoPlayAudio, isDemoMode, instrument, beatsPerMeasure, activeSustainMode, isNotesSustain, isChordsSustain]);
+  }, [playback, scoreTheme, displayOptions, containerWidth, timeline, restsList, notes, isDemoMode, instrument, beatsPerMeasure, activeSustainMode, isChordsSustain, pixelsPerBeat, attackLineX]);
 
   return (
     <div ref={containerRef} className="w-full flex flex-col rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-[#090814]">
