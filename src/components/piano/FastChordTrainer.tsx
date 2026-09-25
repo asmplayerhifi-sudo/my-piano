@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { PianoKeyboard } from './PianoKeyboard';
 import { getKeyboardInversions } from '../../core/musicTheory';
 import { soundEngine } from '../../core/soundEngine';
+import { octaveConfigStore, useOctaveStandard } from '../../core/octaveConfigStore';
 import { Zap, CheckCircle2, Clock, Trophy } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -68,6 +69,7 @@ const CHORD_CHALLENGES: ChordChallenge[] = [
 ];
 
 export const FastChordTrainer: React.FC = () => {
+  const octaveStandard = useOctaveStandard();
   const [challengeIndex, setChallengeIndex] = useState<number>(0);
   const [timeLeft, setTimeLeft] = useState<number>(CHORD_CHALLENGES[0].timeLimitSec);
   const [isActive, setIsActive] = useState<boolean>(false);
@@ -163,11 +165,11 @@ export const FastChordTrainer: React.FC = () => {
             {isSuccess && <CheckCircle2 className="w-6 h-6 text-emerald-400 inline" />}
           </div>
           <p className="text-xs text-slate-300 max-w-xl">
-            {currentChallenge.instruction}
+            {octaveConfigStore.formatNoteOctavesInText(currentChallenge.instruction, octaveStandard)}
           </p>
           {currentChallenge.pivotHint && (
             <div className="text-xs font-bold text-cyan-300 bg-cyan-950/40 px-3 py-1 rounded-xl border border-cyan-500/30 inline-block mt-1">
-              {currentChallenge.pivotHint}
+              {octaveConfigStore.formatNoteOctavesInText(currentChallenge.pivotHint, octaveStandard)}
             </div>
           )}
         </div>

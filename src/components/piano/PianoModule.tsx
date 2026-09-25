@@ -3,11 +3,12 @@ import { PianoKeyboard } from './PianoKeyboard';
 import { ChordSelector } from './ChordSelector';
 import { MicrophonePitchBar } from '../audio/MicrophonePitchBar';
 import { TimbreSelector } from '../audio/TimbreSelector';
-import { buildChord, getKeyboardInversions } from '../../core/musicTheory';
+import { buildChord, getKeyboardInversions, identifyChordFromMidi } from '../../core/musicTheory';
 import { midiManager, type MidiDevice } from '../../core/midiManager';
 import { activeMidiStore } from '../../core/activeMidiStore';
+import { useOctaveStandard } from '../../core/octaveConfigStore';
 import type { ChordQuality } from '../../core/types';
-import { Music2, Cable, CheckCircle2, ChevronRight, BookOpen } from 'lucide-react';
+import { Music2, Cable, CheckCircle2, ChevronRight, BookOpen, Radio } from 'lucide-react';
 
 export const PianoModule: React.FC = () => {
   const [selectedRoot, setSelectedRoot] = useState<string>('C');
@@ -64,11 +65,27 @@ export const PianoModule: React.FC = () => {
     });
   }, [activeVoicing, selectedQuality]);
 
+  const octaveStandard = useOctaveStandard();
+
   const activeExternalNotes = useMemo(() => {
     return micActiveMidi !== null
       ? [...globalActiveMidi, micActiveMidi]
       : (globalActiveMidi as number[]);
   }, [globalActiveMidi, micActiveMidi]);
+
+  // Identificação em tempo real do acorde ou nota escutada via microfone/MIDI
+  const liveIdentifiedChord = useMemo(() => {
+    return identifyChordFromMidi(activeExternalNotes, octaveStandard);
+  }, [activeExternalNotes, octaveStandard]);
+
+  // Verifica se o acorde escutado confere com o acorde selecionado
+  const isChordMatching = useMemo(() => {
+    if (!liveIdentifiedChord) return false;
+    return (
+      liveIdentifiedChord.root.toUpperCase() === chord.root.toUpperCase() &&
+      liveIdentifiedChord.quality === chord.quality
+    );
+  }, [liveIdentifiedChord, chord]);
 
   return (
     <div className="w-full space-y-6">
@@ -112,7 +129,7 @@ export const PianoModule: React.FC = () => {
 
       {/* Visualizador de Teclado Interativo */}
       <div className="glass-card rounded-3xl p-6 border border-white/10">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 pb-4 border-b border-white/5">
           <div>
             <span className="text-[11px] font-mono text-indigo-400 uppercase tracking-wider font-bold">
               Acorde em Exibição
@@ -121,21 +138,53 @@ export const PianoModule: React.FC = () => {
               <h3 className="text-2xl font-black font-display text-white">{chord.symbol}</h3>
               <span className="text-xs text-slate-400">({chord.name})</span>
             </div>
+            <div className="text-xs font-mono text-slate-400 mt-1">
+              Notas esperadas: <span className="text-emerald-400 font-bold">{activeVoicing.notes.join(' • ')}</span>
+            </div>
           </div>
 
-          <div className="text-right">
-            <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider block">
-              Notas do Acorde
-            </span>
-            <span className="text-sm font-bold font-mono text-emerald-400">
-              {activeVoicing.notes.join(' • ')}
-            </span>
+          {/* Painel do Acorde / Nota Escutada em Tempo Real */}
+          <div className="p-3 rounded-2xl bg-black/40 border border-white/10 min-w-[240px]">
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
+                <Radio className={`w-3.5 h-3.5 ${liveIdentifiedChord ? 'text-amber-400 animate-pulse' : 'text-slate-500'}`} />
+                <span>Escutado no Momento</span>
+              </span>
+              {isChordMatching && (
+                <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                  <CheckCircle2 className="w-2.5 h-2.5" />
+                  <span>Confere!</span>
+                </span>
+              )}
+            </div>
+
+            {liveIdentifiedChord ? (
+              <div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-xl font-black font-display text-amber-400">
+                    {liveIdentifiedChord.symbol}
+                  </span>
+                  <span className="text-xs text-slate-300 font-medium">
+                    {liveIdentifiedChord.namePt}
+                  </span>
+                </div>
+                <div className="text-[11px] text-slate-400 font-mono mt-0.5">
+                  Notas detectadas: <span className="text-white font-bold">{liveIdentifiedChord.notesPt.join(' • ')}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="text-xs text-slate-500 italic py-1">
+                Toque no teclado ou produza som no instrumento...
+              </div>
+            )}
           </div>
         </div>
 
         <div className="space-y-4">
           <MicrophonePitchBar
             onNoteHold={(midi) => setMicActiveMidi(midi)}
+            expectedMidi={activeVoicing.midi[0]}
+            expectedNoteName={activeVoicing.notes[0]}
           />
 
           <PianoKeyboard

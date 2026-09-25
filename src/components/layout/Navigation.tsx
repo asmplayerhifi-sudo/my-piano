@@ -16,11 +16,11 @@ import {
 export type TabId =
   | 'course-keyboard'
   | 'course-guitar'
+  | 'theory'
   | 'repertoire'
   | 'rhythm'
   | 'piano'
   | 'guitar'
-  | 'theory'
   | 'score-editor'
   | 'arranger';
 
@@ -136,7 +136,7 @@ const TABS: NavTabItem[] = [
   },
   {
     id: 'theory',
-    label: 'Teoria Musical',
+    label: 'Curso Teoria Musical',
     mediumLabel: 'Teoria',
     shortLabel: 'Teoria',
     fullName: 'Laboratório de Teoria & Harmonia',
@@ -199,16 +199,14 @@ export const Navigation: React.FC<Props> = ({ activeTab, onSelectTab }) => {
                     key={tab.id}
                     onClick={() => onSelectTab(tab.id)}
                     title={`${tab.fullName} — ${tab.desc}`}
-                    className={`flex items-center gap-2 px-2.5 py-1.5 sm:px-3 sm:py-1.5 lg:px-3.5 lg:py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 border ${
-                      isActive
-                        ? `${tab.activeBg} ${tab.activeBorder} ${tab.activeText} shadow-md shadow-black/40 ring-1 ring-white/10`
-                        : 'text-slate-400 hover:text-white hover:bg-white/[0.06] border-transparent'
-                    }`}
+                    className={`flex items-center gap-2 px-2.5 py-1.5 sm:px-3 sm:py-1.5 lg:px-3.5 lg:py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 border ${isActive
+                      ? `${tab.activeBg} ${tab.activeBorder} ${tab.activeText} shadow-md shadow-black/40 ring-1 ring-white/10`
+                      : 'text-slate-400 hover:text-white hover:bg-white/[0.06] border-transparent'
+                      }`}
                   >
                     <div
-                      className={`p-1 rounded-lg transition-colors ${
-                        isActive ? tab.iconActiveBg : 'bg-white/5 text-slate-400'
-                      }`}
+                      className={`p-1 rounded-lg transition-colors ${isActive ? tab.iconActiveBg : 'bg-white/5 text-slate-400'
+                        }`}
                     >
                       <Icon className="w-3.5 h-3.5" />
                     </div>
@@ -280,16 +278,14 @@ export const Navigation: React.FC<Props> = ({ activeTab, onSelectTab }) => {
                       onSelectTab(tab.id);
                       setShowGridModal(false);
                     }}
-                    className={`flex items-start gap-3 p-3 rounded-2xl border text-left transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-indigo-600/20 border-indigo-500 text-white shadow-lg shadow-indigo-600/10'
-                        : 'bg-white/[0.03] hover:bg-white/[0.07] border-white/5 text-slate-300 hover:text-white'
-                    }`}
+                    className={`flex items-start gap-3 p-3 rounded-2xl border text-left transition-all cursor-pointer ${isSelected
+                      ? 'bg-indigo-600/20 border-indigo-500 text-white shadow-lg shadow-indigo-600/10'
+                      : 'bg-white/[0.03] hover:bg-white/[0.07] border-white/5 text-slate-300 hover:text-white'
+                      }`}
                   >
                     <div
-                      className={`p-2 rounded-xl shrink-0 mt-0.5 ${
-                        isSelected ? tab.iconActiveBg : 'bg-white/5 text-slate-400'
-                      }`}
+                      className={`p-2 rounded-xl shrink-0 mt-0.5 ${isSelected ? tab.iconActiveBg : 'bg-white/5 text-slate-400'
+                        }`}
                     >
                       <Icon className="w-4 h-4" />
                     </div>

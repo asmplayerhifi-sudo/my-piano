@@ -365,3 +365,131 @@ export function getGuitarFretNote(stringNum: number, fret: number): NoteInfo {
   const midi = openString.midi + fret;
   return getNoteInfo(midi);
 }
+
+export interface IdentifiedChord {
+  symbol: string;        // ex: 'C', 'Am', 'G/B', 'Cmaj7', 'G7'
+  namePt: string;        // ex: 'Dó Maior', 'Lá Menor', 'Sol Maior com baixo em Si'
+  root: string;          // ex: 'C'
+  quality: ChordQuality | 'sus4' | 'sus2' | 'add9' | 'dim7';
+  bass?: string;         // ex: 'B'
+  bassPt?: string;       // ex: 'Si'
+  notesPt: string[];     // ['Dó', 'Mi', 'Sol']
+  isInversion: boolean;
+}
+
+/**
+ * Identifica acorde em tempo real a partir de conjunto de notas MIDI tocadas ou detectadas pelo microfone/áudio.
+ * Reconhece Tríades, Tétrades, Inversões (Slash Chords) e Díades de intervalo.
+ */
+export function identifyChordFromMidi(midiNotes: number[], octaveStandard?: OctaveStandard): IdentifiedChord | null {
+  if (!midiNotes || midiNotes.length === 0) return null;
+
+  // Ordena notas do grave para o agudo
+  const sortedMidi = [...midiNotes].sort((a, b) => a - b);
+  const lowestMidi = sortedMidi[0];
+  const lowestInfo = getNoteInfo(lowestMidi, false, octaveStandard);
+  const bassPitchClass = ((lowestMidi % 12) + 12) % 12;
+
+  // Extrai classes de altura únicas (0 a 11)
+  const pitchClasses = Array.from(new Set(sortedMidi.map(m => ((m % 12) + 12) % 12)));
+
+  // Se apenas 1 nota
+  if (pitchClasses.length === 1) {
+    const ptName = lowestInfo.namePt || lowestInfo.fullName;
+    return {
+      symbol: lowestInfo.fullName,
+      namePt: `Nota ${ptName}`,
+      root: lowestInfo.name,
+      quality: 'major',
+      notesPt: [ptName],
+      isInversion: false,
+    };
+  }
+
+  // Tabela de assinaturas intervalares a testar
+  const patterns: Array<{
+    intervals: number[];
+    quality: ChordQuality | 'sus4' | 'sus2' | 'add9' | 'dim7';
+    suffix: string;
+    nameSuffixPt: string;
+  }> = [
+    // Tétrades (4 notas)
+    { intervals: [0, 4, 7, 11], quality: 'maj7', suffix: 'maj7', nameSuffixPt: 'Maior com Sétima Maior' },
+    { intervals: [0, 4, 7, 10], quality: 'dom7', suffix: '7', nameSuffixPt: 'com Sétima' },
+    { intervals: [0, 3, 7, 10], quality: 'min7', suffix: 'm7', nameSuffixPt: 'Menor com Sétima' },
+    { intervals: [0, 3, 6, 10], quality: 'm7b5', suffix: 'm7(b5)', nameSuffixPt: 'Meio-Diminuto' },
+    { intervals: [0, 3, 6, 9], quality: 'dim7', suffix: 'dim7', nameSuffixPt: 'Diminuto com Sétima' },
+    { intervals: [0, 2, 4, 7], quality: 'add9', suffix: 'add9', nameSuffixPt: 'Maior com Nona Adicionada' },
+    // Tríades (3 notas)
+    { intervals: [0, 4, 7], quality: 'major', suffix: '', nameSuffixPt: 'Maior' },
+    { intervals: [0, 3, 7], quality: 'minor', suffix: 'm', nameSuffixPt: 'Menor' },
+    { intervals: [0, 3, 6], quality: 'diminished', suffix: 'dim', nameSuffixPt: 'Diminuto' },
+    { intervals: [0, 4, 8], quality: 'augmented', suffix: 'aug', nameSuffixPt: 'Aumentado' },
+    { intervals: [0, 5, 7], quality: 'sus4', suffix: 'sus4', nameSuffixPt: 'Suspenso 4' },
+    { intervals: [0, 2, 7], quality: 'sus2', suffix: 'sus2', nameSuffixPt: 'Suspenso 2' },
+  ];
+
+  // Testa cada pitch class presente como raiz potencial
+  for (const rootPc of pitchClasses) {
+    // Normaliza os intervalos relativos à raiz candidata
+    const relIntervals = pitchClasses.map(pc => (pc - rootPc + 12) % 12).sort((a, b) => a - b);
+
+    for (const pat of patterns) {
+      if (pat.intervals.length === relIntervals.length &&
+          pat.intervals.every((v, i) => v === relIntervals[i])) {
+        const rootName = CHROMATIC_NOTES_SHARP[rootPc];
+        const rootPt = NOTE_NAMES_PT[rootName] || rootName;
+        const isInversion = bassPitchClass !== rootPc;
+        const bassName = isInversion ? CHROMATIC_NOTES_SHARP[bassPitchClass] : undefined;
+        const bassPt = bassName ? (NOTE_NAMES_PT[bassName] || bassName) : undefined;
+
+        const symbol = `${rootName}${pat.suffix}${isInversion ? `/${bassName}` : ''}`;
+        const namePt = `${rootPt} ${pat.nameSuffixPt}${isInversion ? ` com baixo em ${bassPt}` : ''}`;
+
+        const notesPt = relIntervals.map(interval => {
+          const notePc = (rootPc + interval) % 12;
+          const nName = CHROMATIC_NOTES_SHARP[notePc];
+          return NOTE_NAMES_PT[nName] || nName;
+        });
+
+        return {
+          symbol,
+          namePt,
+          root: rootName,
+          quality: pat.quality,
+          bass: bassName,
+          bassPt,
+          notesPt,
+          isInversion,
+        };
+      }
+    }
+  }
+
+  // Se não bater com padrão exato de 3 ou 4 notas, mas tiver 2 notas (díade/intervalo)
+  if (pitchClasses.length === 2) {
+    const semitones = ((pitchClasses[1] - pitchClasses[0] + 12) % 12);
+    const intervalNames: Record<number, string> = {
+      1: 'Segunda Menor', 2: 'Segunda Maior',
+      3: 'Terça Menor', 4: 'Terça Maior',
+      5: 'Quarta Justa', 6: 'Trítono',
+      7: 'Quinta Justa', 8: 'Sexta Menor',
+      9: 'Sexta Maior', 10: 'Sétima Menor',
+      11: 'Sétima Maior',
+    };
+    const rootName = CHROMATIC_NOTES_SHARP[pitchClasses[0]];
+    const otherName = CHROMATIC_NOTES_SHARP[pitchClasses[1]];
+    const intName = intervalNames[semitones] || `${semitones} semitons`;
+    return {
+      symbol: `${rootName}-${otherName}`,
+      namePt: `Intervalo de ${intName} (${NOTE_NAMES_PT[rootName]} - ${NOTE_NAMES_PT[otherName]})`,
+      root: rootName,
+      quality: 'major',
+      notesPt: [NOTE_NAMES_PT[rootName] || rootName, NOTE_NAMES_PT[otherName] || otherName],
+      isInversion: false,
+    };
+  }
+
+  return null;
+}
+

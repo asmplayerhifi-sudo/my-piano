@@ -25,7 +25,7 @@ export function midiToNoteName(midi: number, standard?: OctaveStandard): string 
   return `${NOTE_NAMES[noteIndex]}${octave}`;
 }
 
-// Algoritmo de Autocorrelação com Interpolação Parabólica
+// Algoritmo de Autocorrelação Normalizada com Supressão de Sub-harmônicos e Interpolação Parabólica
 export function detectPitchFromBuffer(
   buf: Float32Array<ArrayBufferLike>,
   sampleRate: number,
@@ -41,43 +41,77 @@ export function detectPitchFromBuffer(
     return null; // Silêncio ou ruído de fundo
   }
 
-  // 2. Limita busca para frequências musicais do piano (50 Hz a 2200 Hz)
-  const minPeriod = Math.floor(sampleRate / 2200);
-  const maxPeriod = Math.floor(sampleRate / 55);
+  // 2. Limita busca para frequências musicais (50 Hz a 2100 Hz)
+  const minPeriod = Math.floor(sampleRate / 2100);
+  const maxPeriod = Math.min(Math.floor(sampleRate / 50), Math.floor(buf.length / 2));
 
-  let bestPeriod = 0;
-  let bestCorrelation = -1;
+  const correlations = new Float32Array(maxPeriod + 2);
+  let globalMax = -1;
+  let globalMaxPeriod = 0;
 
   for (let period = minPeriod; period <= maxPeriod; period++) {
     let correlation = 0;
     let norm1 = 0;
     let norm2 = 0;
 
-    for (let i = 0; i < buf.length - period; i++) {
-      const sample1 = buf[i];
-      const sample2 = buf[i + period];
-      correlation += sample1 * sample2;
-      norm1 += sample1 * sample1;
-      norm2 += sample2 * sample2;
+    const len = buf.length - period;
+    for (let i = 0; i < len; i++) {
+      const s1 = buf[i];
+      const s2 = buf[i + period];
+      correlation += s1 * s2;
+      norm1 += s1 * s1;
+      norm2 += s2 * s2;
     }
 
     const norm = Math.sqrt(norm1 * norm2);
     if (norm > 0) {
       const normalizedCorr = correlation / norm;
-      if (normalizedCorr > bestCorrelation) {
-        bestCorrelation = normalizedCorr;
-        bestPeriod = period;
+      correlations[period] = normalizedCorr;
+      if (normalizedCorr > globalMax) {
+        globalMax = normalizedCorr;
+        globalMaxPeriod = period;
       }
     }
   }
 
-  if (bestCorrelation < 0.70 || bestPeriod === 0) {
+  if (globalMax < 0.65 || globalMaxPeriod === 0) {
     return null; // Clareza insuficiente
   }
 
-  // 3. Interpolação parabólica para ajuste sub-amostra
-  const freq = sampleRate / bestPeriod;
-  return { freq, clarity: bestCorrelation, rms };
+  // 3. Supressão de Erro de Oitava / Sub-harmônicos (Octave Drop Protection)
+  // Procura o primeiro pico local que atinja o limiar de aceitação (82% do globalMax)
+  let chosenPeriod = globalMaxPeriod;
+  const peakThreshold = Math.max(0.60, globalMax * 0.82);
+
+  for (let p = minPeriod + 1; p < maxPeriod; p++) {
+    if (correlations[p] > correlations[p - 1] && correlations[p] >= correlations[p + 1]) {
+      if (correlations[p] >= peakThreshold) {
+        const ratio = globalMaxPeriod / p;
+        const nearestInt = Math.round(ratio);
+        if (nearestInt >= 1 && Math.abs(ratio - nearestInt) < 0.15) {
+          chosenPeriod = p;
+          break; // O primeiro pico local representativo é a frequência fundamental verdadeira!
+        }
+      }
+    }
+  }
+
+  // 4. Interpolação parabólica refinada em torno de chosenPeriod para frequência precisa
+  let refinedPeriod = chosenPeriod;
+  if (chosenPeriod > minPeriod && chosenPeriod < maxPeriod) {
+    const alpha = correlations[chosenPeriod - 1];
+    const beta = correlations[chosenPeriod];
+    const gamma = correlations[chosenPeriod + 1];
+    const denom = 2 * (2 * beta - alpha - gamma);
+    if (Math.abs(denom) > 1e-6) {
+      const delta = (gamma - alpha) / denom;
+      refinedPeriod = chosenPeriod + delta;
+    }
+  }
+
+  const freq = sampleRate / refinedPeriod;
+  const clarity = correlations[chosenPeriod];
+  return { freq, clarity, rms };
 }
 
 export class MicrophonePitchDetector {

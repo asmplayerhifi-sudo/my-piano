@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { KEYBOARD_COURSE_MODULES } from '../../core/coursesData';
-import type { CourseLesson, CourseModule, ScoreNote } from '../../core/coursesData';
+import type { CourseLesson, CourseModule, ScoreNote, CourseExercise } from '../../core/coursesData';
 import { getNoteInfo } from '../../core/musicTheory';
 import { octaveConfigStore, useOctaveStandard } from '../../core/octaveConfigStore';
 import { ScrollingScoreCanvas } from '../score/ScrollingScoreCanvas';
@@ -8,6 +8,7 @@ import { FastChordTrainer } from '../piano/FastChordTrainer';
 import { PianoKeyboard } from '../piano/PianoKeyboard';
 import { MicrophonePitchBar } from '../audio/MicrophonePitchBar';
 import { LessonIllustration } from './illustrations/LessonIllustration';
+import { accompanimentStore } from '../../core/accompanimentStore';
 import {
   GraduationCap,
   BookOpen,
@@ -19,13 +20,36 @@ import {
   Minimize2,
   Expand,
   Shrink,
-  Music,
+  Target,
+  Award,
+  RotateCcw,
+  Volume2,
+  VolumeX,
+  Play,
+  Pause,
+  AlertCircle,
 } from 'lucide-react';
+
+interface PerformanceReport {
+  exerciseId: string;
+  exerciseTitle: string;
+  hits: number;
+  errors: number;
+  totalNotes: number;
+  accuracyPercent: number;
+  averageJitterMs: number;
+  averageCents: number;
+  passed: boolean;
+  feedbackMessage: string;
+  pedagogicalTip: string;
+}
 
 export const KeyboardCourseView: React.FC = () => {
   const [selectedModule, setSelectedModule] = useState<CourseModule>(KEYBOARD_COURSE_MODULES[0]);
   const [activeLesson, setActiveLesson] = useState<CourseLesson>(KEYBOARD_COURSE_MODULES[0].lessons[0]);
   const [completedLessonIds, setCompletedLessonIds] = useState<string[]>([]);
+  const [completedExerciseIds, setCompletedExerciseIds] = useState<string[]>([]);
+  const [selectedExerciseIndex, setSelectedExerciseIndex] = useState<number>(0);
   const [practiceTab, setPracticeTab] = useState<'all' | 'theory' | 'score' | 'chords'>('all');
   const [lastMidiEvent, setLastMidiEvent] = useState<{ midi: number; timestamp: number } | null>(null);
   const [micHearingMidi, setMicHearingMidi] = useState<number | null>(null);
@@ -38,6 +62,47 @@ export const KeyboardCourseView: React.FC = () => {
   const [isFullscreenLesson, setIsFullscreenLesson] = useState<boolean>(false);
   const [isFullscreenTrail, setIsFullscreenTrail] = useState<boolean>(false);
 
+  // Parâmetros de Treino: Andamento customizável, metrônomo e acompanhamento
+  const [customBpm, setCustomBpm] = useState<number | null>(null);
+  const [enableMetronomeSound, setEnableMetronomeSound] = useState<boolean>(true);
+  const [isAccompanimentPlaying, setIsAccompanimentPlaying] = useState<boolean>(false);
+  const [scoreResetKey, setScoreResetKey] = useState<number>(0);
+
+  // Relatório de Desempenho e Feedback da Execução Real
+  const [performanceReport, setPerformanceReport] = useState<PerformanceReport | null>(null);
+
+  // Rastreamento estrito de notas, ritmo (diffMs) e desvio de afinação (cents)
+  const sessionHitsRef = useRef<number>(0);
+  const sessionErrorsRef = useRef<number>(0);
+  const sessionTimingDeltasRef = useRef<number[]>([]);
+  const sessionCentsRef = useRef<number[]>([]);
+
+  // Carrega exercícios da lição atual (ou gera fallback se ausente)
+  const exercises = useMemo<CourseExercise[]>(() => {
+    if (activeLesson.exercises && activeLesson.exercises.length > 0) {
+      return activeLesson.exercises;
+    }
+    return [{
+      id: `${activeLesson.id}-ex1`,
+      title: 'Exercício 1: Execução da Lição',
+      goal: 'Executar as notas da partitura com precisão e fluidez.',
+      type: 'phrase',
+      bpm: 75,
+      timeSignature: '4/4',
+      scoreTrack: activeLesson.scoreTrack,
+      targetChords: activeLesson.targetChords,
+      evaluationCriteria: {
+        minAccuracyPercent: 80,
+        targetPrecisionMs: 150,
+        description: 'Acertar ao menos 80% das notas com precisão temporal adequada.',
+      },
+    }];
+  }, [activeLesson]);
+
+  const currentExercise = exercises[selectedExerciseIndex] || exercises[0];
+  const activeBpm = customBpm ?? currentExercise.bpm;
+  const activeScoreTrack = currentExercise.scoreTrack || activeLesson.scoreTrack;
+
   const toggleFullscreenLesson = () => {
     if (!isFullscreenLesson) {
       setIsFullscreenLesson(true);
@@ -46,7 +111,7 @@ export const KeyboardCourseView: React.FC = () => {
           document.documentElement.requestFullscreen().catch(() => {});
         }
       } catch {
-        // Fallback CSS
+        // Fallback
       }
     } else {
       setIsFullscreenLesson(false);
@@ -68,7 +133,7 @@ export const KeyboardCourseView: React.FC = () => {
           document.documentElement.requestFullscreen().catch(() => {});
         }
       } catch {
-        // Fallback CSS
+        // Fallback
       }
     } else {
       setIsFullscreenTrail(false);
@@ -93,6 +158,13 @@ export const KeyboardCourseView: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isFullscreenLesson, isFullscreenTrail]);
 
+  // Para acompanhamento ao desmontar componente
+  useEffect(() => {
+    return () => {
+      accompanimentStore.stop();
+    };
+  }, []);
+
   const handleNoteInput = useCallback((midi: number) => {
     setLastMidiEvent({ midi, timestamp: performance.now() });
     if (targetScoreNote) {
@@ -115,16 +187,141 @@ export const KeyboardCourseView: React.FC = () => {
     });
   }, []);
 
-  const handleNoteHit = useCallback((note: ScoreNote) => {
+  const handleNoteHit = useCallback((note: ScoreNote, diffMs?: number) => {
+    sessionHitsRef.current += 1;
+    if (diffMs !== undefined && !isNaN(diffMs)) {
+      sessionTimingDeltasRef.current.push(Math.abs(diffMs));
+    }
     setCorrectMidiNotes([note.midi]);
     setErrorMidiNotes([]);
     setTimeout(() => setCorrectMidiNotes([]), 600);
   }, []);
 
   const handleNoteError = useCallback((err: { playedMidi: number }) => {
+    sessionErrorsRef.current += 1;
     setErrorMidiNotes([err.playedMidi]);
     setTimeout(() => setErrorMidiNotes([]), 1400);
   }, []);
+
+  const handleMicNoteHold = useCallback((midi: number | null, cents?: number) => {
+    setMicHearingMidi(midi);
+    if (cents !== undefined && !isNaN(cents)) {
+      sessionCentsRef.current.push(Math.abs(cents));
+    }
+  }, []);
+
+  const resetSessionStats = useCallback(() => {
+    sessionHitsRef.current = 0;
+    sessionErrorsRef.current = 0;
+    sessionTimingDeltasRef.current = [];
+    sessionCentsRef.current = [];
+    setPerformanceReport(null);
+    setScoreResetKey(k => k + 1);
+  }, []);
+
+  const handleSelectLesson = (lesson: CourseLesson, mod: CourseModule) => {
+    setSelectedModule(mod);
+    setActiveLesson(lesson);
+    setSelectedExerciseIndex(0);
+    setCustomBpm(null);
+    resetSessionStats();
+    if (isAccompanimentPlaying) {
+      accompanimentStore.stop();
+      setIsAccompanimentPlaying(false);
+    }
+    setPracticeTab('all');
+  };
+
+  const handleSelectExercise = (idx: number) => {
+    setSelectedExerciseIndex(idx);
+    setCustomBpm(null);
+    resetSessionStats();
+    if (isAccompanimentPlaying) {
+      accompanimentStore.stop();
+      setIsAccompanimentPlaying(false);
+    }
+  };
+
+  const handleLessonComplete = useCallback((lessonId: string) => {
+    setCompletedLessonIds(prev => (prev.includes(lessonId) ? prev : [...prev, lessonId]));
+  }, []);
+
+  // Avaliação rigorosa da execução prática ao término do exercício
+  const handleExerciseComplete = useCallback(() => {
+    const totalNotes = currentExercise.scoreTrack?.length || 1;
+    const hits = sessionHitsRef.current;
+    const errors = sessionErrorsRef.current;
+    const accuracyPercent = Math.min(100, Math.round((hits / totalNotes) * 100));
+
+    const jitters = sessionTimingDeltasRef.current;
+    const avgJitter = jitters.length > 0
+      ? Math.round(jitters.reduce((a, b) => a + b, 0) / jitters.length)
+      : 0;
+
+    const centsArr = sessionCentsRef.current;
+    const avgCents = centsArr.length > 0
+      ? Math.round(centsArr.reduce((a, b) => a + b, 0) / centsArr.length)
+      : 0;
+
+    const passed = accuracyPercent >= currentExercise.evaluationCriteria.minAccuracyPercent;
+
+    let feedbackMessage = '';
+    let pedagogicalTip = '';
+
+    if (passed && accuracyPercent >= 90 && avgJitter <= 80) {
+      feedbackMessage = 'Execução Primorosa! Pulso rítmico estável e firmeza mecânica exemplar.';
+      pedagogicalTip = 'Você dominou o padrão deste exercício. Sinta-se à vontade para avançar ao próximo nível ou subir o andamento em +5 BPM.';
+    } else if (passed) {
+      feedbackMessage = 'Exercício Aprovado! Meta de acertos e tempo atingida com sucesso.';
+      pedagogicalTip = avgJitter > 100
+        ? 'Dica de Ritmo: mantenha a contagem mental "1, 2, 3, 4" sincronizada com o clique do metrônomo para diminuir a oscilação.'
+        : 'Boa estabilidade! Lembre-se de manter os ombros e punhos livres de tensão.';
+    } else {
+      feedbackMessage = 'Abaixo da meta de precisão. Pratique novamente com andamento calmo!';
+      pedagogicalTip = hits < totalNotes * 0.7
+        ? 'Dica do Método: reduza o BPM em 10 ou 15 pontos e toque observando atentamente a numeração dos dedos recomendada.'
+        : 'Atenção aos tempos fracos: respire e prepare o próximo dedo antes do ataque na tecla.';
+    }
+
+    setPerformanceReport({
+      exerciseId: currentExercise.id,
+      exerciseTitle: currentExercise.title,
+      hits,
+      errors,
+      totalNotes,
+      accuracyPercent,
+      averageJitterMs: avgJitter,
+      averageCents: avgCents,
+      passed,
+      feedbackMessage,
+      pedagogicalTip,
+    });
+
+    if (passed) {
+      setCompletedExerciseIds(prev => (prev.includes(currentExercise.id) ? prev : [...prev, currentExercise.id]));
+
+      // Verifica se todos os exercícios da lição foram concluídos
+      const allDone = exercises.every(ex => ex.id === currentExercise.id || completedExerciseIds.includes(ex.id));
+      if (allDone) {
+        handleLessonComplete(activeLesson.id);
+      }
+    }
+  }, [currentExercise, exercises, completedExerciseIds, activeLesson.id, handleLessonComplete]);
+
+  // Alterna acompanhamento com auto-arranjador
+  const toggleAccompaniment = () => {
+    if (isAccompanimentPlaying) {
+      accompanimentStore.stop();
+      setIsAccompanimentPlaying(false);
+    } else {
+      const styleId = (currentExercise.accompanimentStyleId as any) || 'pop-ballad';
+      accompanimentStore.setStyle(styleId);
+      accompanimentStore.setBpm(activeBpm);
+      accompanimentStore.setTimeSignature((currentExercise.timeSignature as any) || '4/4');
+      accompanimentStore.start();
+      setIsAccompanimentPlaying(true);
+    }
+  };
 
   // Teclas ativas com erro (vermelho vivo no teclado virtual e partitura)
   const activeErrors = useMemo(() => {
@@ -144,22 +341,9 @@ export const KeyboardCourseView: React.FC = () => {
     return list;
   }, [correctMidiNotes, micHearingMidi, targetScoreNote]);
 
-  const handleSelectLesson = (lesson: CourseLesson, mod: CourseModule) => {
-    setSelectedModule(mod);
-    setActiveLesson(lesson);
-    setPracticeTab('all');
-  };
-
-  const handleLessonComplete = useCallback((lessonId: string) => {
-    setCompletedLessonIds(prev => {
-      if (prev.includes(lessonId)) return prev;
-      return [...prev, lessonId];
-    });
-  }, []);
-
   // Teclas destacadas e dedilhado orientativo para a lição ativa (foco apenas na nota alvo atual)
   const highlightedLessonKeys = useMemo(() => {
-    const curNote = targetScoreNote || (activeLesson.scoreTrack && activeLesson.scoreTrack.length > 0 ? activeLesson.scoreTrack[0] : null);
+    const curNote = targetScoreNote || (activeScoreTrack && activeScoreTrack.length > 0 ? activeScoreTrack[0] : null);
     if (curNote) {
       return [{
         midi: curNote.midi,
@@ -168,10 +352,10 @@ export const KeyboardCourseView: React.FC = () => {
       }];
     }
     return [];
-  }, [targetScoreNote, activeLesson]);
+  }, [targetScoreNote, activeScoreTrack]);
 
   const activeFingerPrompt = useMemo(() => {
-    const curNote = targetScoreNote || (activeLesson.scoreTrack && activeLesson.scoreTrack.length > 0 ? activeLesson.scoreTrack[0] : null);
+    const curNote = targetScoreNote || (activeScoreTrack && activeScoreTrack.length > 0 ? activeScoreTrack[0] : null);
     if (curNote) {
       const fingerNum = curNote.fingerRightHand || curNote.fingerLeftHand;
       const hand = curNote.clef === 'bass' || curNote.midi < 60 ? 'ME' : 'MD';
@@ -188,13 +372,13 @@ export const KeyboardCourseView: React.FC = () => {
       };
     }
     return null;
-  }, [targetScoreNote, activeLesson, octaveStandard]);
+  }, [targetScoreNote, activeScoreTrack, octaveStandard]);
 
   const isCurrentCompleted = completedLessonIds.includes(activeLesson.id);
 
   return (
     <div className="w-full space-y-4">
-      {/* Banner Principal do Curso de Teclado (Bordas Sutis & Widescreen) */}
+      {/* Banner Principal do Curso de Teclado */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-indigo-950/70 via-[#140e2b]/80 to-[#0a0718]/90 border border-white/5 p-5 sm:p-6 shadow-2xl backdrop-blur-md">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
           <div className="flex items-center gap-4">
@@ -207,7 +391,7 @@ export const KeyboardCourseView: React.FC = () => {
                   Do Zero ao Avançado
                 </span>
                 <span className="text-xs text-slate-400 font-mono">
-                  {completedLessonIds.length} lições concluídas
+                  {completedLessonIds.length} lições • {completedExerciseIds.length} exercícios concluídos
                 </span>
               </div>
               <h2 className="text-xl sm:text-2xl font-black font-display text-white">
@@ -258,7 +442,6 @@ export const KeyboardCourseView: React.FC = () => {
                     {KEYBOARD_COURSE_MODULES.length} Módulos
                   </span>
 
-                  {/* Botão Expansão da Trilha */}
                   <button
                     onClick={() => setIsTrailExpanded(!isTrailExpanded)}
                     className={`p-1.5 rounded-xl border transition-all cursor-pointer ${
@@ -271,7 +454,6 @@ export const KeyboardCourseView: React.FC = () => {
                     {isTrailExpanded ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
                   </button>
 
-                  {/* Botão Tela Cheia da Trilha */}
                   <button
                     onClick={toggleFullscreenTrail}
                     className={`p-1.5 rounded-xl border transition-all cursor-pointer ${
@@ -358,7 +540,7 @@ export const KeyboardCourseView: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <span className="text-[10px] font-mono text-indigo-400 font-bold uppercase tracking-wider block">
-                  {selectedModule.code} • {activeLesson.level} • {activeLesson.durationMinutes} min
+                  {selectedModule.code} • {activeLesson.level} • {activeLesson.durationMinutes} min • {exercises.length} Exercícios Práticos
                 </span>
                 <h3 className="text-xl sm:text-2xl font-black font-display text-white mt-1">
                   {activeLesson.title}
@@ -392,14 +574,14 @@ export const KeyboardCourseView: React.FC = () => {
                     Teoria &amp; Postura
                   </button>
 
-                  {activeLesson.scoreTrack && (
+                  {activeScoreTrack && (
                     <button
                       onClick={() => setPracticeTab('score')}
                       className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
                         practiceTab === 'score' ? 'bg-cyan-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
                       }`}
                     >
-                      Partitura Deslizante
+                      Exercícios na Partitura
                     </button>
                   )}
 
@@ -415,7 +597,7 @@ export const KeyboardCourseView: React.FC = () => {
                   )}
                 </div>
 
-                {/* Controles de Janela do Card: Expansão (Modo Palco) e Tela Cheia (Fullscreen) */}
+                {/* Controles de Janela do Card */}
                 <div className="flex items-center gap-1 bg-black/40 p-1 rounded-2xl border border-white/5">
                   <button
                     onClick={() => setIsWidescreenStage(!isWidescreenStage)}
@@ -424,7 +606,7 @@ export const KeyboardCourseView: React.FC = () => {
                         ? 'bg-indigo-600/30 text-indigo-300 border-indigo-500/40'
                         : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border-white/5'
                     }`}
-                    title={isWidescreenStage ? 'Restaurar layout padrão (2 colunas)' : 'Expandir card para 100% da largura (Modo Palco)'}
+                    title={isWidescreenStage ? 'Restaurar layout padrão' : 'Expandir para 100% da largura'}
                   >
                     {isWidescreenStage ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
                   </button>
@@ -436,7 +618,7 @@ export const KeyboardCourseView: React.FC = () => {
                         ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 ring-1 ring-rose-400'
                         : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border-white/5'
                     }`}
-                    title={isFullscreenLesson ? 'Sair da Tela Cheia (Esc)' : 'Tela Cheia Imersiva no Card da Lição'}
+                    title={isFullscreenLesson ? 'Sair da Tela Cheia' : 'Tela Cheia Imersiva'}
                   >
                     {isFullscreenLesson ? <Shrink className="w-4 h-4 text-rose-400" /> : <Expand className="w-4 h-4 text-indigo-400" />}
                   </button>
@@ -447,13 +629,12 @@ export const KeyboardCourseView: React.FC = () => {
             {/* Bloco 1: Teoria Didática, Biomecânica & Postura */}
             {(practiceTab === 'all' || practiceTab === 'theory') && (
               <div className="space-y-4 pt-2 border-t border-white/5 animate-fade-in">
-                {/* Figura Explicativa / Diagrama Vetorial da Tríade Pedagógica */}
                 <LessonIllustration
                   lessonId={activeLesson.id}
                   moduleCode={selectedModule.code}
                   title={activeLesson.title}
                   instrument="keyboard"
-                  targetNotes={activeLesson.scoreTrack?.map(n => getNoteInfo(n.midi, false, octaveStandard).fullName)}
+                  targetNotes={activeScoreTrack?.map(n => getNoteInfo(n.midi, false, octaveStandard).fullName)}
                   fingeringTip={octaveConfigStore.formatNoteOctavesInText(activeLesson.instructions.fingeringTip || '', octaveStandard)}
                 />
 
@@ -496,51 +677,234 @@ export const KeyboardCourseView: React.FC = () => {
               </div>
             )}
 
-            {/* Bloco 2: Partitura Deslizante Interativa (se a lição possuir scoreTrack) */}
-            {/* Bloco 2: Partitura Deslizante com Grand Staff (Clave de Sol + Fá) */}
-            {(practiceTab === 'all' || practiceTab === 'score') && activeLesson.scoreTrack && (
-              <div className="space-y-2 pt-3 border-t border-white/5 animate-fade-in">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-mono font-bold uppercase text-cyan-400 flex items-center gap-1.5">
-                    <Music className="w-3.5 h-3.5" />
-                    <span>Partitura Deslizante Interativa (Grand Staff)</span>
-                  </span>
-                  <span className="text-[11px] text-slate-400 font-mono">
-                    {activeLesson.scoreTrack.length} notas no compasso
-                  </span>
+            {/* Bloco 2: Múltiplos Exercícios Práticos & Partitura Deslizante com Escuta Real */}
+            {(practiceTab === 'all' || practiceTab === 'score') && activeScoreTrack && (
+              <div className="space-y-3 pt-3 border-t border-white/5 animate-fade-in">
+                {/* Seletor de Exercícios da Lição (Tabs) */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-mono font-bold uppercase text-cyan-400 flex items-center gap-1.5">
+                      <Target className="w-3.5 h-3.5" />
+                      <span>Exercícios Práticos do Módulo</span>
+                    </span>
+                    <span className="text-[11px] text-slate-400 font-mono">
+                      Exercício {selectedExerciseIndex + 1} de {exercises.length}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+                    {exercises.map((ex, idx) => {
+                      const isSel = idx === selectedExerciseIndex;
+                      const isDone = completedExerciseIds.includes(ex.id);
+                      return (
+                        <button
+                          key={ex.id}
+                          onClick={() => handleSelectExercise(idx)}
+                          className={`px-3 py-2 rounded-2xl text-xs font-bold border transition-all shrink-0 flex items-center gap-2 cursor-pointer ${
+                            isSel
+                              ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-indigo-400 shadow-md'
+                              : 'bg-white/[0.03] hover:bg-white/[0.08] text-slate-400 hover:text-white border-white/5'
+                          }`}
+                        >
+                          <span className={`w-2 h-2 rounded-full ${isDone ? 'bg-emerald-400 shadow-sm shadow-emerald-400/50' : 'bg-slate-600'}`} />
+                          <span>{ex.title}</span>
+                          {isDone && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
+
+                {/* Banner de Metas & Recursos de Treino (Metrônomo + Acompanhamento Musical) */}
+                <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                        {currentExercise.type.toUpperCase()}
+                      </span>
+                      <strong className="text-white">{currentExercise.title}</strong>
+                    </div>
+                    <p className="text-slate-300 text-[11px]">
+                      🎯 <strong>Objetivo:</strong> {octaveConfigStore.formatNoteOctavesInText(currentExercise.goal, octaveStandard)}
+                    </p>
+                    <p className="text-slate-400 text-[10px] font-mono">
+                      Critério: Meta &ge; {currentExercise.evaluationCriteria.minAccuracyPercent}% • Precisão alvo &plusmn;{currentExercise.evaluationCriteria.targetPrecisionMs}ms
+                    </p>
+                  </div>
+
+                  {/* Controles de Metrônomo & Acompanhamento */}
+                  <div className="flex flex-wrap items-center gap-2 self-start md:self-auto shrink-0">
+                    {/* Controle de BPM */}
+                    <div className="flex items-center bg-black/40 rounded-xl border border-white/5 p-1 font-mono text-xs">
+                      <button
+                        onClick={() => setCustomBpm(Math.max(40, activeBpm - 5))}
+                        className="px-2 py-1 text-slate-400 hover:text-white hover:bg-white/10 rounded cursor-pointer font-bold"
+                        title="Diminuir andamento (-5 BPM)"
+                      >
+                        -
+                      </button>
+                      <span className="px-2 text-white font-bold">{activeBpm} BPM</span>
+                      <button
+                        onClick={() => setCustomBpm(Math.min(180, activeBpm + 5))}
+                        className="px-2 py-1 text-slate-400 hover:text-white hover:bg-white/10 rounded cursor-pointer font-bold"
+                        title="Aumentar andamento (+5 BPM)"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    {/* Metrônomo Sonoro */}
+                    <button
+                      onClick={() => setEnableMetronomeSound(!enableMetronomeSound)}
+                      className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                        enableMetronomeSound
+                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                          : 'bg-white/5 text-slate-400 hover:text-white border-white/5'
+                      }`}
+                      title={enableMetronomeSound ? 'Metrônomo Sonoro Ativo' : 'Metrônomo Sonoro Desativado'}
+                    >
+                      {enableMetronomeSound ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+                      <span>Metrônomo</span>
+                    </button>
+
+                    {/* Acompanhamento Estilo Musical */}
+                    {currentExercise.accompanimentStyleId && (
+                      <button
+                        onClick={toggleAccompaniment}
+                        className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                          isAccompanimentPlaying
+                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 animate-pulse'
+                            : 'bg-white/5 text-slate-400 hover:text-white border-white/5'
+                        }`}
+                        title="Tocar com banda/estilo rítmico automático de acompanhamento"
+                      >
+                        {isAccompanimentPlaying ? <Pause className="w-3.5 h-3.5 text-emerald-400" /> : <Play className="w-3.5 h-3.5 text-indigo-400" />}
+                        <span>Acompanhamento</span>
+                      </button>
+                    )}
+
+                    {/* Reiniciar Exercício */}
+                    <button
+                      onClick={resetSessionStats}
+                      className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5 cursor-pointer"
+                      title="Reiniciar estatísticas e partitura"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Card de Avaliação / Relatório de Desempenho Real (sem simulação) */}
+                {performanceReport && (
+                  <div className={`p-4 rounded-2xl border animate-fade-in ${
+                    performanceReport.passed
+                      ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
+                      : 'bg-amber-950/40 border-amber-500/40 text-amber-200'
+                  }`}>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+                      <div className="flex items-center gap-2.5">
+                        <Award className={`w-5 h-5 ${performanceReport.passed ? 'text-emerald-400' : 'text-amber-400'}`} />
+                        <div>
+                          <div className="font-bold text-sm text-white">
+                            {performanceReport.passed ? '🎉 Exercício Aprovado!' : '⚠️ Necessita Praticar Mais'}
+                          </div>
+                          <div className="text-xs text-slate-300">
+                            {performanceReport.feedbackMessage}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={resetSessionStats}
+                          className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all cursor-pointer"
+                        >
+                          Repetir Exercício
+                        </button>
+                        {selectedExerciseIndex + 1 < exercises.length && performanceReport.passed && (
+                          <button
+                            onClick={() => handleSelectExercise(selectedExerciseIndex + 1)}
+                            className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold transition-all cursor-pointer shadow-md"
+                          >
+                            Próximo Exercício &rarr;
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Estatísticas Detalhadas da Execução Real */}
+                    <div className="grid grid-cols-3 gap-2 pt-3 text-center">
+                      <div className="p-2 rounded-xl bg-black/30 border border-white/5">
+                        <span className="text-[10px] text-slate-400 uppercase font-mono block">Acerto de Notas</span>
+                        <span className="text-base font-black text-white">
+                          {performanceReport.accuracyPercent}%
+                        </span>
+                        <span className="text-[10px] text-slate-400 block font-mono">
+                          {performanceReport.hits} de {performanceReport.totalNotes} notas
+                        </span>
+                      </div>
+
+                      <div className="p-2 rounded-xl bg-black/30 border border-white/5">
+                        <span className="text-[10px] text-slate-400 uppercase font-mono block">Precisão de Ritmo</span>
+                        <span className="text-base font-black text-cyan-300 font-mono">
+                          &plusmn;{performanceReport.averageJitterMs} ms
+                        </span>
+                        <span className="text-[10px] text-slate-400 block font-mono">
+                          {performanceReport.averageJitterMs <= 80 ? 'Excelente timing' : 'Oscilação moderada'}
+                        </span>
+                      </div>
+
+                      <div className="p-2 rounded-xl bg-black/30 border border-white/5">
+                        <span className="text-[10px] text-slate-400 uppercase font-mono block">Afinação / Áudio</span>
+                        <span className="text-base font-black text-amber-300 font-mono">
+                          {performanceReport.averageCents > 0 ? `±${performanceReport.averageCents}¢` : 'Direto (MIDI)'}
+                        </span>
+                        <span className="text-[10px] text-slate-400 block font-mono">
+                          {performanceReport.averageCents > 0 ? 'Microfone ativo' : 'Precisão tonal 100%'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 text-xs text-slate-300 pt-2 border-t border-white/5 flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                      <span>{performanceReport.pedagogicalTip}</span>
+                    </div>
+                  </div>
+                )}
 
                 {/* Escuta Acústica (Microfone / Cabo Aux / USB) posicionada acima da partitura */}
                 <MicrophonePitchBar
                   onNoteDetected={(midi) => handleNoteInput(midi)}
-                  onNoteHold={(midi) => setMicHearingMidi(midi)}
+                  onNoteHold={(midi) => handleMicNoteHold(midi)}
                   expectedMidi={targetScoreNote?.midi ?? null}
                   expectedNoteName={targetScoreNote ? getNoteInfo(targetScoreNote.midi, false, octaveStandard).fullName : undefined}
                   isErrorActive={activeErrors.length > 0}
                 />
 
                 <ScrollingScoreCanvas
-                  notes={activeLesson.scoreTrack}
-                  timeSignature="4/4"
-                  bpm={75}
+                  key={`${currentExercise.id}-${scoreResetKey}`}
+                  notes={activeScoreTrack}
+                  timeSignature={currentExercise.timeSignature}
+                  bpm={activeBpm}
                   autoPlayAudio={true}
+                  enableMetronomeSound={enableMetronomeSound}
                   currentMidiPressed={lastMidiEvent}
                   onTargetNoteChange={handleTargetNoteChange}
                   onNoteHit={handleNoteHit}
                   onNoteError={handleNoteError}
-                  onLessonComplete={() => handleLessonComplete(activeLesson.id)}
+                  onLessonComplete={handleExerciseComplete}
                 />
               </div>
             )}
 
             {/* Bloco 3: Teclado Virtual colado imediatamente abaixo da Partitura */}
             {(practiceTab === 'all' || practiceTab === 'theory' || practiceTab === 'score') && (
-              <div className={activeLesson.scoreTrack && (practiceTab === 'all' || practiceTab === 'score') ? 'pt-1.5 animate-fade-in' : 'pt-3 space-y-3 border-t border-white/5 animate-fade-in'}>
-                {(!activeLesson.scoreTrack || practiceTab === 'theory') && (
+              <div className={activeScoreTrack && (practiceTab === 'all' || practiceTab === 'score') ? 'pt-1.5 animate-fade-in' : 'pt-3 space-y-3 border-t border-white/5 animate-fade-in'}>
+                {(!activeScoreTrack || practiceTab === 'theory') && (
                   <>
                     <MicrophonePitchBar
                       onNoteDetected={(midi) => handleNoteInput(midi)}
-                      onNoteHold={(midi) => setMicHearingMidi(midi)}
+                      onNoteHold={(midi) => handleMicNoteHold(midi)}
                       expectedMidi={targetScoreNote?.midi ?? null}
                       expectedNoteName={targetScoreNote?.noteName}
                       isErrorActive={activeErrors.length > 0}
@@ -576,7 +940,7 @@ export const KeyboardCourseView: React.FC = () => {
             {/* Rodapé da Aula: Botão Concluir Lição */}
             <div className="flex items-center justify-between pt-4 border-t border-white/5">
               <span className="text-xs text-slate-400">
-                {isCurrentCompleted ? '✅ Lição Concluída!' : 'Pratique até fixar os movimentos'}
+                {isCurrentCompleted ? '✅ Lição Concluída!' : 'Conclua os exercícios da aula para registrar o avanço'}
               </span>
 
               <button
@@ -587,7 +951,7 @@ export const KeyboardCourseView: React.FC = () => {
                     : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30'
                 }`}
               >
-                {isCurrentCompleted ? 'Concluída' : 'Marcar como Concluída'}
+                {isCurrentCompleted ? 'Concluída' : 'Marcar Lição como Concluída'}
               </button>
             </div>
           </div>
