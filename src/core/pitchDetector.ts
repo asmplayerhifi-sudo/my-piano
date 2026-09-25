@@ -156,6 +156,59 @@ export class MicrophonePitchDetector {
     }
   }
 
+  constructor() {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const saved = localStorage.getItem('harmonia_mic_sensitivity_percent');
+        if (saved !== null) {
+          const val = Number(saved);
+          if (!isNaN(val) && val >= 0 && val <= 100) {
+            this.sensitivityThreshold = MicrophonePitchDetector.percentToThreshold(val);
+          }
+        }
+      }
+    } catch {
+      // fallback
+    }
+  }
+
+  public static percentToThreshold(percent: number): number {
+    const clamped = Math.max(0, Math.min(100, percent));
+    return 0.055 - (clamped / 100) * (0.055 - 0.005);
+  }
+
+  public static thresholdToPercent(threshold: number): number {
+    const percent = ((0.055 - threshold) / (0.055 - 0.005)) * 100;
+    return Math.round(Math.max(0, Math.min(100, percent)));
+  }
+
+  public setSensitivityPercent(percent: number) {
+    const thresh = MicrophonePitchDetector.percentToThreshold(percent);
+    this.setSensitivity(thresh);
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem('harmonia_mic_sensitivity_percent', String(Math.round(percent)));
+      }
+    } catch {
+      // fallback
+    }
+  }
+
+  public getSensitivityPercent(): number {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const saved = localStorage.getItem('harmonia_mic_sensitivity_percent');
+        if (saved !== null) {
+          const val = Number(saved);
+          if (!isNaN(val) && val >= 0 && val <= 100) return val;
+        }
+      }
+    } catch {
+      // fallback
+    }
+    return MicrophonePitchDetector.thresholdToPercent(this.sensitivityThreshold);
+  }
+
   public setSensitivity(threshold: number) {
     this.sensitivityThreshold = Math.max(0.005, Math.min(0.08, threshold));
   }

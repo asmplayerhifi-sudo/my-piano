@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { micPitchDetector, MicrophonePitchDetector } from '../../core/pitchDetector';
 import type { DetectedPitch } from '../../core/pitchDetector';
-import { Mic, MicOff, Activity, Radio, Volume2, ShieldAlert, Cable } from 'lucide-react';
+import { Mic, MicOff, Activity, Radio, ShieldAlert, Cable, Sliders } from 'lucide-react';
 
 interface Props {
   onNoteDetected?: (midi: number, noteName: string) => void;
@@ -28,7 +28,7 @@ export const MicrophonePitchBar: React.FC<Props> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [currentPitch, setCurrentPitch] = useState<DetectedPitch | null>(null);
   const [volumeLevel, setVolumeLevel] = useState<number>(0);
-  const [sensitivity, setSensitivity] = useState<'high' | 'normal' | 'low'>('normal');
+  const [sensitivityPercent, setSensitivityPercent] = useState<number>(() => micPitchDetector.getSensitivityPercent());
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
 
@@ -88,15 +88,17 @@ export const MicrophonePitchBar: React.FC<Props> = ({
     }
   };
 
-  const handleSensitivityChange = (level: 'high' | 'normal' | 'low') => {
-    setSensitivity(level);
-    if (level === 'high') {
-      micPitchDetector.setSensitivity(0.010);
-    } else if (level === 'normal') {
-      micPitchDetector.setSensitivity(0.018);
-    } else {
-      micPitchDetector.setSensitivity(0.035);
-    }
+  const handleSensitivityPercentChange = (val: number) => {
+    const clamped = Math.max(5, Math.min(100, val));
+    setSensitivityPercent(clamped);
+    micPitchDetector.setSensitivityPercent(clamped);
+  };
+
+  const handleSensitivityPreset = (preset: 'low' | 'normal' | 'high') => {
+    let p = 55;
+    if (preset === 'low') p = 25;
+    if (preset === 'high') p = 85;
+    handleSensitivityPercentChange(p);
   };
 
   useEffect(() => {
@@ -190,35 +192,62 @@ export const MicrophonePitchBar: React.FC<Props> = ({
             </div>
           )}
 
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-mono text-slate-400 flex items-center gap-1">
-              <Volume2 className="w-3.5 h-3.5" />
-              <span>Filtro de Ruído:</span>
-            </span>
-            <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 text-[10px] font-bold">
+          {/* Ajuste de Sensibilidade do Microfone */}
+          <div className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-2xl border border-white/5">
+            <div className="flex items-center gap-1.5 text-slate-300">
+              <Sliders className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+              <span className="text-[11px] font-mono font-bold whitespace-nowrap">Sensibilidade:</span>
+              <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md ${
+                sensitivityPercent >= 70
+                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                  : sensitivityPercent <= 35
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                  : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+              }`}>
+                {sensitivityPercent}%
+              </span>
+            </div>
+
+            {/* Slider de Sensibilidade */}
+            <input
+              type="range"
+              min="10"
+              max="100"
+              step="1"
+              value={sensitivityPercent}
+              onChange={(e) => handleSensitivityPercentChange(Number(e.target.value))}
+              className="w-20 sm:w-28 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+              title={`Ajuste de sensibilidade: ${sensitivityPercent}%`}
+            />
+
+            {/* Presets Rápidos */}
+            <div className="flex bg-black/60 p-0.5 rounded-xl border border-white/10 text-[9px] font-bold">
               <button
-                onClick={() => handleSensitivityChange('high')}
-                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                  sensitivity === 'high' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'
+                onClick={() => handleSensitivityPreset('high')}
+                className={`px-2 py-0.5 rounded-lg transition-all cursor-pointer ${
+                  sensitivityPercent >= 70 ? 'bg-cyan-600 text-white shadow' : 'text-slate-400 hover:text-white'
                 }`}
+                title="Alta Sensibilidade: detecta sons suaves e toques delicados"
               >
-                Sensível
+                Alta
               </button>
               <button
-                onClick={() => handleSensitivityChange('normal')}
-                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                  sensitivity === 'normal' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+                onClick={() => handleSensitivityPreset('normal')}
+                className={`px-2 py-0.5 rounded-lg transition-all cursor-pointer ${
+                  sensitivityPercent > 35 && sensitivityPercent < 70 ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
                 }`}
+                title="Sensibilidade Normal: uso recomendado"
               >
                 Normal
               </button>
               <button
-                onClick={() => handleSensitivityChange('low')}
-                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                  sensitivity === 'low' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'
+                onClick={() => handleSensitivityPreset('low')}
+                className={`px-2 py-0.5 rounded-lg transition-all cursor-pointer ${
+                  sensitivityPercent <= 35 ? 'bg-amber-600 text-white shadow' : 'text-slate-400 hover:text-white'
                 }`}
+                title="Baixa Sensibilidade: para ambientes barulhentos"
               >
-                Ambiente Barulhento
+                Baixa
               </button>
             </div>
           </div>

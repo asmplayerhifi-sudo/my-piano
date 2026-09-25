@@ -47,7 +47,7 @@ export const ScalePerformanceEvaluator: React.FC<Props> = ({
   const [micError, setMicError] = useState<string | null>(null);
   const [currentPitch, setCurrentPitch] = useState<DetectedPitch | null>(null);
   const [volumeLevel, setVolumeLevel] = useState<number>(0);
-  const [sensitivity, setSensitivity] = useState<'high' | 'normal' | 'low'>('normal');
+  const [sensitivityPercent, setSensitivityPercent] = useState<number>(() => micPitchDetector.getSensitivityPercent());
 
   // Modo de Avaliação
   const [mode, setMode] = useState<PracticeMode>('sequence');
@@ -278,11 +278,17 @@ export const ScalePerformanceEvaluator: React.FC<Props> = ({
   };
 
   // Ajuste de Sensibilidade
-  const handleSensitivity = (level: 'high' | 'normal' | 'low') => {
-    setSensitivity(level);
-    if (level === 'high') micPitchDetector.setSensitivity(0.010);
-    else if (level === 'normal') micPitchDetector.setSensitivity(0.018);
-    else micPitchDetector.setSensitivity(0.035);
+  const handleSensitivityPercentChange = (val: number) => {
+    const clamped = Math.max(5, Math.min(100, val));
+    setSensitivityPercent(clamped);
+    micPitchDetector.setSensitivityPercent(clamped);
+  };
+
+  const handleSensitivityPreset = (preset: 'low' | 'normal' | 'high') => {
+    let p = 55;
+    if (preset === 'low') p = 25;
+    if (preset === 'high') p = 85;
+    handleSensitivityPercentChange(p);
   };
 
   // Reinicia a avaliação da escala atual
@@ -409,10 +415,10 @@ export const ScalePerformanceEvaluator: React.FC<Props> = ({
         </div>
 
         {/* Medidor de Volume RMS & Sensibilidade */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-slate-500 uppercase font-mono font-bold">Nível:</span>
-            <div className="w-24 h-2 rounded-full bg-slate-800 overflow-hidden">
+            <div className="w-20 sm:w-24 h-2 rounded-full bg-slate-800 overflow-hidden">
               <div
                 className={`h-full transition-all duration-75 ${
                   volumeLevel > 60 ? 'bg-amber-400' : 'bg-emerald-400'
@@ -420,24 +426,60 @@ export const ScalePerformanceEvaluator: React.FC<Props> = ({
                 style={{ width: `${volumeLevel}%` }}
               />
             </div>
+            <span className="text-[10px] font-mono text-slate-400 w-7">{volumeLevel}%</span>
           </div>
 
-          <div className="flex items-center gap-1">
-            <Sliders className="w-3 h-3 text-slate-500" />
-            <div className="flex rounded-lg overflow-hidden border border-white/10 text-[10px] font-mono">
-              {(['low', 'normal', 'high'] as const).map((lvl) => (
-                <button
-                  key={lvl}
-                  onClick={() => handleSensitivity(lvl)}
-                  className={`px-2 py-0.5 font-bold cursor-pointer transition-colors ${
-                    sensitivity === lvl
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-white/5 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  {lvl === 'low' ? 'Baixa' : lvl === 'normal' ? 'Média' : 'Alta'}
-                </button>
-              ))}
+          {/* Ajuste de Sensibilidade do Microfone */}
+          <div className="flex items-center gap-2 bg-black/40 px-2.5 py-1 rounded-xl border border-white/5">
+            <Sliders className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+            <span className="text-[11px] font-mono font-bold text-slate-300">Sensibilidade:</span>
+            <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md ${
+              sensitivityPercent >= 70
+                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                : sensitivityPercent <= 35
+                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+            }`}>
+              {sensitivityPercent}%
+            </span>
+            <input
+              type="range"
+              min="10"
+              max="100"
+              step="1"
+              value={sensitivityPercent}
+              onChange={(e) => handleSensitivityPercentChange(Number(e.target.value))}
+              className="w-16 sm:w-20 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+              title={`Ajuste de sensibilidade: ${sensitivityPercent}%`}
+            />
+            <div className="flex bg-black/60 p-0.5 rounded-lg border border-white/10 text-[9px] font-bold">
+              <button
+                onClick={() => handleSensitivityPreset('high')}
+                className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${
+                  sensitivityPercent >= 70 ? 'bg-cyan-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                }`}
+                title="Alta Sensibilidade: detecta notas suaves"
+              >
+                Alta
+              </button>
+              <button
+                onClick={() => handleSensitivityPreset('normal')}
+                className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${
+                  sensitivityPercent > 35 && sensitivityPercent < 70 ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                }`}
+                title="Sensibilidade Média / Normal"
+              >
+                Média
+              </button>
+              <button
+                onClick={() => handleSensitivityPreset('low')}
+                className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${
+                  sensitivityPercent <= 35 ? 'bg-amber-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                }`}
+                title="Baixa Sensibilidade: para locais com ruído"
+              >
+                Baixa
+              </button>
             </div>
           </div>
         </div>
