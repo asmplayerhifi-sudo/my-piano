@@ -92,9 +92,11 @@ export class MicrophonePitchDetector {
   private onPitchCallback: ((pitch: DetectedPitch) => void) | null = null;
   private onVolumeCallback: ((rms: number) => void) | null = null;
   private onActiveNoteCallback: ((midi: number | null, noteName: string | null) => void) | null = null;
+  private onOnsetCallback: ((rms: number) => void) | null = null;
   private lastDetectedMidi: number | null = null;
   private lastEmittedMidi: number | null = null;
   private lastEmittedTime = 0;
+  private lastClapTime = 0;
   private prevRms = 0;
   private noteReleased = true;
   private stableCount = 0;
@@ -104,7 +106,8 @@ export class MicrophonePitchDetector {
     onPitch: (pitch: DetectedPitch) => void,
     onVolume?: (rms: number) => void,
     onActiveNote?: (midi: number | null, noteName: string | null) => void,
-    deviceId?: string
+    deviceId?: string,
+    onOnset?: (rms: number) => void
   ): Promise<boolean> {
     if (this.isListening) return true;
 
@@ -135,10 +138,12 @@ export class MicrophonePitchDetector {
       this.onPitchCallback = onPitch;
       this.onVolumeCallback = onVolume || null;
       this.onActiveNoteCallback = onActiveNote || null;
+      this.onOnsetCallback = onOnset || null;
       this.isListening = true;
       this.noteReleased = true;
       this.lastEmittedMidi = null;
       this.silenceFrameCount = 0;
+      this.lastClapTime = 0;
 
       this.loop();
       return true;
@@ -324,6 +329,20 @@ export class MicrophonePitchDetector {
           sum += this.buffer[i] * this.buffer[i];
         }
         const rms = Math.sqrt(sum / 256);
+
+        // Detecção de palmas e ataques percussivos acústicos (transiente súbito sem afinação tonal)
+        const clapThreshold = Math.max(0.02, this.sensitivityThreshold * 1.4);
+        if (
+          rms > clapThreshold &&
+          rms > (this.prevRms * 2.2 + 0.012) &&
+          (now - this.lastClapTime > 150)
+        ) {
+          this.lastClapTime = now;
+          if (this.onOnsetCallback) {
+            this.onOnsetCallback(rms);
+          }
+        }
+
         this.prevRms = rms;
         this.onVolumeCallback(rms);
       }

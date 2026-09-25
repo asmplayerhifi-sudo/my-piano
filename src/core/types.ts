@@ -60,7 +60,7 @@ export interface GuitarChordShape {
   bassNote: string;
 }
 
-export type TimeSignature = '2/4' | '3/4' | '4/4' | '6/8';
+export type TimeSignature = '2/4' | '3/4' | '4/4' | '5/4' | '6/8';
 
 export interface RhythmTarget {
   id: string;

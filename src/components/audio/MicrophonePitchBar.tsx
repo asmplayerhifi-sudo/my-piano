@@ -8,23 +8,29 @@ import { Mic, MicOff, Activity, Radio, ShieldAlert, Cable, Sliders } from 'lucid
 interface Props {
   onNoteDetected?: (midi: number, noteName: string) => void;
   onNoteHold?: (midi: number | null, noteName?: string) => void;
+  onClapDetected?: () => void;
+  onOnsetDetected?: (rms: number) => void;
   className?: string;
   disabled?: boolean;
   disabledMessage?: string;
   expectedMidi?: number | null;
   expectedNoteName?: string;
   isErrorActive?: boolean;
+  customLabel?: string;
 }
 
 export const MicrophonePitchBar: React.FC<Props> = ({
   onNoteDetected,
   onNoteHold,
+  onClapDetected,
+  onOnsetDetected,
   className = '',
   disabled = false,
   disabledMessage,
   expectedMidi,
   expectedNoteName,
   isErrorActive = false,
+  customLabel,
 }) => {
   const octaveStandard = useOctaveStandard();
   const [isActive, setIsActive] = useState<boolean>(false);
@@ -40,6 +46,12 @@ export const MicrophonePitchBar: React.FC<Props> = ({
 
   const onNoteHoldRef = useRef(onNoteHold);
   onNoteHoldRef.current = onNoteHold;
+
+  const onClapDetectedRef = useRef(onClapDetected);
+  onClapDetectedRef.current = onClapDetected;
+
+  const onOnsetDetectedRef = useRef(onOnsetDetected);
+  onOnsetDetectedRef.current = onOnsetDetected;
 
   // Carrega dispositivos de entrada de áudio (microfone integrado, cabo auxiliar ou interface USB)
   useEffect(() => {
@@ -78,7 +90,15 @@ export const MicrophonePitchBar: React.FC<Props> = ({
             onNoteHoldRef.current(activeMidi, noteName || undefined);
           }
         },
-        selectedDeviceId || undefined
+        selectedDeviceId || undefined,
+        (rms) => {
+          if (onClapDetectedRef.current) {
+            onClapDetectedRef.current();
+          }
+          if (onOnsetDetectedRef.current) {
+            onOnsetDetectedRef.current(rms);
+          }
+        }
       );
 
       if (success) {
@@ -157,7 +177,7 @@ export const MicrophonePitchBar: React.FC<Props> = ({
             ) : (
               <>
                 <Mic className="w-4 h-4" />
-                <span>Ouvir Meu Teclado Real (Microfone)</span>
+                <span>{customLabel || 'Ouvir Meu Teclado Real (Microfone)'}</span>
               </>
             )}
           </button>

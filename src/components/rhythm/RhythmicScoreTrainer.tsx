@@ -3,6 +3,10 @@ import { RHYTHM_EXERCISES } from '../../core/rhythmExercisesData';
 import { ScrollingScoreCanvas } from '../score/ScrollingScoreCanvas';
 import { soundEngine } from '../../core/soundEngine';
 import { latencyManager } from '../../core/latencyManager';
+import { midiManager } from '../../core/midiManager';
+import { getNoteInfo } from '../../core/musicTheory';
+import { MicrophonePitchBar } from '../audio/MicrophonePitchBar';
+import type { ScoreNote } from '../../core/coursesData';
 import { useOctaveStandard, octaveConfigStore } from '../../core/octaveConfigStore';
 import {
   Volume2,
@@ -95,6 +99,28 @@ export const RhythmicScoreTrainer: React.FC<Props> = ({
   const [bestCombo, setBestCombo] = useState<number>(0);
   const [recentHits, setRecentHits] = useState<Array<{ label: string; color: string; diffMs: number }>>([]);
   const [simulatedMidiPress, setSimulatedMidiPress] = useState<{ midi: number; timestamp: number } | null>(null);
+  const [targetScoreNote, setTargetScoreNote] = useState<ScoreNote | null>(null);
+
+  // Escuta entradas de Teclados MIDI USB / Bluetooth
+  useEffect(() => {
+    const unsub = midiManager.subscribe((payload) => {
+      if (payload.isDown) {
+        soundEngine.ensureAudioReady();
+        setSimulatedMidiPress({ midi: payload.midi, timestamp: Date.now() });
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  const handleAcousticNote = useCallback((midi: number) => {
+    soundEngine.ensureAudioReady();
+    setSimulatedMidiPress({ midi, timestamp: Date.now() });
+  }, []);
+
+  const handleAcousticClap = useCallback(() => {
+    soundEngine.ensureAudioReady();
+    setSimulatedMidiPress({ midi: -1, timestamp: Date.now() });
+  }, []);
 
   const handleNoteHit = useCallback((_note: unknown, diffMs: number) => {
     const absDiff = Math.abs(diffMs);
@@ -430,6 +456,15 @@ export const RhythmicScoreTrainer: React.FC<Props> = ({
           </div>
         </div>
 
+        {/* Escuta Acústica (Microfone / Cabo Aux / USB / Palmas / Voz) */}
+        <MicrophonePitchBar
+          onNoteDetected={handleAcousticNote}
+          onClapDetected={handleAcousticClap}
+          expectedMidi={targetScoreNote?.midi ?? null}
+          expectedNoteName={targetScoreNote ? getNoteInfo(targetScoreNote.midi, false, octaveStandard).fullName : undefined}
+          customLabel="Ouvir Meu Instrumento / Palmas / Voz (Microfone)"
+        />
+
         {/* Canvas da Partitura Deslizante com Grand Staff */}
         <div className="w-full">
           <ScrollingScoreCanvas
@@ -441,6 +476,7 @@ export const RhythmicScoreTrainer: React.FC<Props> = ({
             instrument={instrument === 'guitar' ? 'guitar' : 'piano'}
             toleranceMs={toleranceMs}
             onNoteHit={handleNoteHit}
+            onTargetNoteChange={setTargetScoreNote}
             currentMidiPressed={simulatedMidiPress}
             isPlaying={isPlaying || isAuditionPlaying}
             isDemoMode={isAuditionPlaying}

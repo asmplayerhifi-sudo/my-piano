@@ -7,6 +7,7 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
 import type { ScoreNote } from '../../../core/coursesData';
 import { getNoteInfo } from '../../../core/musicTheory';
+import { soundEngine } from '../../../core/soundEngine';
 import { EvaluateRhythmStrikeUseCase } from '../../../application/use-cases/EvaluateRhythmStrikeUseCase';
 import type { ChordSpan, ScoreErrorEvent } from './types';
 
@@ -32,6 +33,7 @@ interface UseScorePlaybackProps {
   currentNoteIndex?: number;
   timeline: PlaybackTimeline;
   pixelsPerBeat: number;
+  instrument?: 'piano' | 'guitar';
 }
 
 export function useScorePlayback({
@@ -50,6 +52,7 @@ export function useScorePlayback({
   currentNoteIndex,
   timeline,
   pixelsPerBeat,
+  instrument = 'piano',
 }: UseScorePlaybackProps) {
   const [internalIsPlaying, setInternalIsPlaying] = useState<boolean>(false);
   const isPlaying = controlledIsPlaying !== undefined ? controlledIsPlaying : internalIsPlaying;
@@ -167,12 +170,20 @@ export function useScorePlayback({
     const targetNote = notes[currentIndex];
     if (!targetNote) return;
 
-    if (targetNote.midi === rawMidi) {
+    // Se for toque rítmico genérico (-1) ou a nota correta
+    if (rawMidi === -1 || targetNote.midi === rawMidi) {
       setLastError(null);
       const noteOffset = timeline.noteOffsets[currentIndex] ?? 0;
       const currentBeat = scrollOffsetRef.current / pixelsPerBeat;
       const diffMs = (currentBeat - noteOffset) * ((60 / tempo) * 1000);
       processStrike(diffMs, currentIndex);
+
+      // Emite o som da nota acertada
+      if (instrument === 'guitar') {
+        soundEngine.playGuitarPluck(targetNote.midi, 1.2);
+      } else {
+        soundEngine.playPianoNote(targetNote.midi, 1.2);
+      }
     } else {
       // ✕ Nota tocada incorreta: registra o erro, marca em vermelho e notifica
       const err: ScoreErrorEvent = {
@@ -189,7 +200,7 @@ export function useScorePlayback({
       });
       onNoteErrorRef.current?.(err);
     }
-  }, [currentMidiPressed, currentIndex, notes, timeline, tempo, isDemoMode, processStrike, pixelsPerBeat]);
+  }, [currentMidiPressed, currentIndex, notes, timeline, tempo, isDemoMode, processStrike, pixelsPerBeat, instrument]);
 
   return {
     isPlaying,

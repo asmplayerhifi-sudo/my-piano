@@ -82,6 +82,7 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
     currentNoteIndex,
     timeline,
     pixelsPerBeat,
+    instrument,
   });
 
   const handleTogglePlay = async () => {
@@ -164,7 +165,9 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
       const h = canvas.height;
       drawScoreBackground(ctx, containerWidth, h, scoreTheme, attackLineX, pixelsPerBeat);
       drawScoreStaves({ ctx, width: containerWidth, theme: scoreTheme, displayOptions, measureStartBeats: timeline.measureStartBeats, maxMeasure: timeline.maxMeasure, totalBeats: timeline.totalBeats, beatsPerMeasure, attackLineX, scrollOffset: playback.scrollOffsetRef.current, pixelsPerBeat });
-      drawScoreChords({ ctx, width: containerWidth, theme: scoreTheme, chordSpans: timeline.chordSpans, attackLineX, scrollOffset: playback.scrollOffsetRef.current, pixelsPerBeat, enableSustain });
+      if (displayOptions.showChords) {
+        drawScoreChords({ ctx, width: containerWidth, theme: scoreTheme, chordSpans: timeline.chordSpans, attackLineX, scrollOffset: playback.scrollOffsetRef.current, pixelsPerBeat, enableSustain });
+      }
       if (displayOptions.showRests) {
         drawScoreRests({ ctx, width: containerWidth, theme: scoreTheme, restsList, attackLineX, scrollOffset: playback.scrollOffsetRef.current, pixelsPerBeat });
       }

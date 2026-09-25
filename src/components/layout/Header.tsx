@@ -1,19 +1,23 @@
 import React, { useState } from 'react';
-import { Volume2, VolumeX, Sliders, Smartphone, Globe, Sparkles } from 'lucide-react';
+import { Volume2, VolumeX, Sliders, Smartphone, Globe, Sparkles, Radio } from 'lucide-react';
 import { soundEngine } from '../../core/soundEngine';
 import { latencyManager } from '../../core/latencyManager';
 import { LatencyWizardModal } from '../rhythm/LatencyWizardModal';
 
 import { useOctaveStandard } from '../../core/octaveConfigStore';
 import { OctaveStandardModal } from './OctaveStandardModal';
+import { useAccompaniment } from '../../core/accompanimentStore';
+import { MetronomeAccompanimentModal } from '../rhythm/MetronomeAccompanimentModal';
 
 export const Header: React.FC = () => {
   const [volume, setVolume] = useState<number>(soundEngine.getVolume());
   const [isMuted, setIsMuted] = useState<boolean>(soundEngine.isSoundMuted());
   const [showLatencyModal, setShowLatencyModal] = useState<boolean>(false);
   const [showOctaveModal, setShowOctaveModal] = useState<boolean>(false);
+  const [showAccompanimentModal, setShowAccompanimentModal] = useState<boolean>(false);
   const [currentOffset, setCurrentOffset] = useState<number>(latencyManager.getOffsetMs());
   const octaveStandard = useOctaveStandard();
+  const accState = useAccompaniment();
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value);
@@ -65,6 +69,27 @@ export const Header: React.FC = () => {
             }`}>
               {octaveStandard === 'C3' ? 'C3 (Brasil)' : 'C4 (Intl)'}
             </span>
+          </button>
+
+          {/* Botão de Acesso Rápido ao Metrônomo & Acompanhamento Musical */}
+          <button
+            onClick={() => setShowAccompanimentModal(true)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+              accState.isPlaying
+                ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 ring-1 ring-emerald-400'
+                : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-200 hover:text-white'
+            }`}
+            title="Abrir Metrônomo & Estúdio de Acompanhamento Musical"
+          >
+            <Radio className={`w-3.5 h-3.5 ${accState.isPlaying ? 'text-emerald-400 animate-pulse' : 'text-indigo-400'}`} />
+            <span className="hidden sm:inline">Metrônomo:</span>
+            <span className="font-mono font-bold text-white">{accState.bpm} BPM</span>
+            <span className="text-[10px] font-mono text-indigo-300">{accState.timeSignature}</span>
+            {accState.accompanimentEnabled && (
+              <span className="hidden md:inline text-[9px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                + Banda
+              </span>
+            )}
           </button>
 
           {/* Latency Calibration Button */}
@@ -120,6 +145,12 @@ export const Header: React.FC = () => {
       <OctaveStandardModal
         isOpen={showOctaveModal}
         onClose={() => setShowOctaveModal(false)}
+      />
+
+      {/* Metronome & Accompaniment Studio Modal */}
+      <MetronomeAccompanimentModal
+        isOpen={showAccompanimentModal}
+        onClose={() => setShowAccompanimentModal(false)}
       />
     </>
   );

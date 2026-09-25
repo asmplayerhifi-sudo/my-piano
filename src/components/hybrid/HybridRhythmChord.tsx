@@ -225,6 +225,8 @@ export const HybridRhythmChord: React.FC<Props> = ({ embedded = false }) => {
             bpm={bpm}
             timeSignature="4/4"
             chordName={currentChordSymbol}
+            inputMode="instrument"
+            instrument={instrument}
           />
         </div>
       </div>

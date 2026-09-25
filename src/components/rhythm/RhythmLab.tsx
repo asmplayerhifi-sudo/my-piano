@@ -1,18 +1,52 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { MetronomeView } from './MetronomeView';
-import { RhythmTrackCanvas } from './RhythmTrackCanvas';
+import { RhythmTrackCanvas, type ExternalRhythmTrigger } from './RhythmTrackCanvas';
 import { RhythmicScoreTrainer } from './RhythmicScoreTrainer';
 import { HybridRhythmChord } from '../hybrid/HybridRhythmChord';
+import { MicrophonePitchBar } from '../audio/MicrophonePitchBar';
 import { metronomeScheduler } from '../../core/metronomeScheduler';
 import { latencyManager } from '../../core/latencyManager';
+import { midiManager } from '../../core/midiManager';
+import { soundEngine } from '../../core/soundEngine';
 import { Activity, Mic, Volume2, ShieldCheck, HelpCircle, Music, Radar, Sliders, Layers } from 'lucide-react';
 
 export const RhythmLab: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState<boolean>(metronomeScheduler.getIsPlaying());
   const [bpm, setBpm] = useState<number>(metronomeScheduler.getBpm());
-  const [activeStep, setActiveStep] = useState<1 | 2 | 3>(3); // 1 = Vocal, 2 = Palmas, 3 = Instrumento
-  const [trainingMode, setTrainingMode] = useState<'score' | 'radar' | 'hybrid'>('score'); // Modo Partitura por padrão
+  const [activeStep, setActiveStep] = useState<1 | 2 | 3>(2); // 1 = Vocal, 2 = Palmas, 3 = Instrumento
+  const [trainingMode, setTrainingMode] = useState<'score' | 'radar' | 'hybrid'>('radar');
   const [radarToleranceMs, setRadarToleranceMs] = useState<number>(latencyManager.getToleranceMs());
+  const [externalTrigger, setExternalTrigger] = useState<ExternalRhythmTrigger | null>(null);
+
+  // Escuta entradas MIDI de teclados externos USB/Bluetooth
+  useEffect(() => {
+    const unsub = midiManager.subscribe((payload) => {
+      if (payload.isDown) {
+        soundEngine.ensureAudioReady();
+        setExternalTrigger({ timestamp: Date.now(), midi: payload.midi, type: 'midi' });
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  const handleMicNote = useCallback((midi: number) => {
+    soundEngine.ensureAudioReady();
+    setExternalTrigger({ timestamp: Date.now(), midi, type: 'midi' });
+  }, []);
+
+  const handleMicClap = useCallback(() => {
+    soundEngine.ensureAudioReady();
+    setExternalTrigger({ timestamp: Date.now(), type: 'clap' });
+  }, []);
+
+  const handleMicAttack = useCallback((_rms: number) => {
+    soundEngine.ensureAudioReady();
+    if (activeStep === 1) {
+      setExternalTrigger({ timestamp: Date.now(), type: 'voice' });
+    } else if (activeStep === 2) {
+      setExternalTrigger({ timestamp: Date.now(), type: 'clap' });
+    }
+  }, [activeStep]);
 
   return (
     <div className="w-full space-y-6">
@@ -74,19 +108,16 @@ export const RhythmLab: React.FC = () => {
           {/* 3 Etapas do Protocolo Cinestésico */}
           <div className="hidden sm:flex items-center gap-1 bg-black/40 p-1 rounded-2xl border border-white/5">
             {[
-              { step: 1 as const, label: '1. Vocalizar', desc: 'TA-CA-TE-CA', icon: Mic },
-              { step: 2 as const, label: '2. Palmas', desc: 'Na tela', icon: Volume2 },
-              { step: 3 as const, label: '3. Instrumento', desc: 'Teclado/Violão', icon: ShieldCheck },
+              { step: 1 as const, label: '1. Vocalizar', desc: 'Voz / Sílabas', icon: Mic },
+              { step: 2 as const, label: '2. Palmas', desc: 'Palmas / Tela', icon: Volume2 },
+              { step: 3 as const, label: '3. Instrumento', desc: 'Piano / Violão', icon: ShieldCheck },
             ].map((item) => {
               const Icon = item.icon;
               const isCurrent = activeStep === item.step;
               return (
                 <button
                   key={item.step}
-                  onClick={() => {
-                    setActiveStep(item.step);
-                    if (item.step === 3) setTrainingMode('score');
-                  }}
+                  onClick={() => setActiveStep(item.step)}
                   className={`px-3 py-2 rounded-xl text-left transition-all cursor-pointer ${
                     isCurrent
                       ? 'bg-indigo-600 text-white shadow-lg'
@@ -146,6 +177,20 @@ export const RhythmLab: React.FC = () => {
             </div>
           </div>
 
+          {/* Barra de Microfone Acústico / Palmas / Voz / Teclado Real */}
+          <MicrophonePitchBar
+            onNoteDetected={handleMicNote}
+            onClapDetected={handleMicClap}
+            onOnsetDetected={handleMicAttack}
+            customLabel={
+              activeStep === 1
+                ? 'Ouvir Voz no Microfone (Vocalizar TA-CA-TE-CA)'
+                : activeStep === 2
+                ? 'Ouvir Palmas no Microfone (Ataque Acústico)'
+                : 'Ouvir Meu Teclado / Violão (Microfone ou USB)'
+            }
+          />
+
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Coluna do Metrônomo (5 colunas no desktop) */}
             <div className="lg:col-span-5 space-y-4">
@@ -176,6 +221,9 @@ export const RhythmLab: React.FC = () => {
                 bpm={bpm}
                 timeSignature={metronomeScheduler.getTimeSignature()}
                 toleranceMs={radarToleranceMs}
+                inputMode={activeStep === 1 ? 'vocal' : activeStep === 2 ? 'claps' : 'instrument'}
+                externalTrigger={externalTrigger}
+                soundFeedback={true}
               />
             </div>
           </div>

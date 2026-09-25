@@ -1,7 +1,15 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { latencyManager } from '../../core/latencyManager';
+import { soundEngine } from '../../core/soundEngine';
+import { drumSynthesizer } from '../../core/drumSynthesizer';
 import type { RhythmTarget } from '../../core/types';
 import { Sparkles, Trophy, Flame } from 'lucide-react';
+
+export interface ExternalRhythmTrigger {
+  timestamp: number;
+  midi?: number;
+  type?: 'clap' | 'voice' | 'midi' | 'tap';
+}
 
 interface Props {
   isPlaying: boolean;
@@ -10,14 +18,23 @@ interface Props {
   onBeatHit?: (diffMs: number, result: string) => void;
   chordName?: string;
   toleranceMs?: number;
+  inputMode?: 'vocal' | 'claps' | 'instrument';
+  instrument?: 'piano' | 'guitar';
+  externalTrigger?: ExternalRhythmTrigger | null;
+  soundFeedback?: boolean;
 }
 
 export const RhythmTrackCanvas: React.FC<Props> = ({
   isPlaying,
   bpm,
+  timeSignature,
   onBeatHit,
   chordName,
   toleranceMs,
+  inputMode = 'claps',
+  instrument = 'piano',
+  externalTrigger,
+  soundFeedback = true,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const targetsRef = useRef<RhythmTarget[]>([]);
@@ -43,9 +60,28 @@ export const RhythmTrackCanvas: React.FC<Props> = ({
     lastTargetTimeRef.current = performance.now();
   }, [isPlaying, bpm]);
 
-  // Handler de toque / teclado
-  const handleUserTap = useCallback(() => {
+  // Handler de toque / teclado / disparo acústico ou MIDI
+  const handleUserTap = useCallback((triggerOptions?: { midi?: number; type?: 'clap' | 'voice' | 'midi' | 'tap' }) => {
     if (!isPlaying) return;
+
+    soundEngine.ensureAudioReady();
+
+    // Emissão de som correspondente ao modo e ao golpe executado
+    if (soundFeedback) {
+      const mode = triggerOptions?.type || (inputMode === 'vocal' ? 'voice' : inputMode === 'instrument' ? 'midi' : 'clap');
+      if (mode === 'clap') {
+        drumSynthesizer.playClap();
+      } else if (mode === 'voice') {
+        drumSynthesizer.playRimshot(undefined, 0.7);
+      } else {
+        const midiToPlay = triggerOptions?.midi ?? 60;
+        if (instrument === 'guitar') {
+          soundEngine.playGuitarPluck(midiToPlay, 1.2);
+        } else {
+          soundEngine.playPianoNote(midiToPlay, 1.2);
+        }
+      }
+    }
 
     const now = performance.now();
     const targets = targetsRef.current;
@@ -101,19 +137,26 @@ export const RhythmTrackCanvas: React.FC<Props> = ({
         onBeatHit(evaluation.diffMs, evaluation.result);
       }
     }
-  }, [isPlaying, bestStreak, onBeatHit, toleranceMs]);
+  }, [isPlaying, bestStreak, onBeatHit, toleranceMs, soundFeedback, inputMode, instrument]);
+
+  // Disparo por gatilho externo (Microfone / Palmas / Voz / Teclado MIDI)
+  useEffect(() => {
+    if (externalTrigger && externalTrigger.timestamp > 0) {
+      handleUserTap({ midi: externalTrigger.midi, type: externalTrigger.type });
+    }
+  }, [externalTrigger, handleUserTap]);
 
   // Listener para barra de espaço
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space') {
+      if (e.code === 'Space' && (e.target as HTMLElement).tagName !== 'INPUT') {
         e.preventDefault();
-        handleUserTap();
+        handleUserTap({ type: inputMode === 'vocal' ? 'voice' : inputMode === 'instrument' ? 'midi' : 'clap' });
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleUserTap]);
+  }, [handleUserTap, inputMode]);
 
   // Loop de renderização Canvas a 60fps
   useEffect(() => {
@@ -145,7 +188,8 @@ export const RhythmTrackCanvas: React.FC<Props> = ({
             chord: chordName,
           });
 
-          beatCounter = beatCounter >= 4 ? 1 : beatCounter + 1;
+          const beatsPerMeasure = timeSignature === '3/4' ? 3 : timeSignature === '2/4' ? 2 : timeSignature === '6/8' ? 6 : timeSignature === '5/4' ? 5 : 4;
+          beatCounter = beatCounter >= beatsPerMeasure ? 1 : beatCounter + 1;
         }
       }
 
@@ -309,7 +353,7 @@ export const RhythmTrackCanvas: React.FC<Props> = ({
           width={400}
           height={320}
           className="w-full h-full block cursor-pointer"
-          onClick={handleUserTap}
+          onClick={() => handleUserTap({ type: inputMode === 'vocal' ? 'voice' : inputMode === 'instrument' ? 'midi' : 'clap' })}
         />
 
         {/* Instrução overlay no canvas */}
@@ -326,7 +370,7 @@ export const RhythmTrackCanvas: React.FC<Props> = ({
 
       {/* Botão Gigante de Toque (Mobile / Touch Friendly) */}
       <button
-        onClick={handleUserTap}
+        onClick={() => handleUserTap({ type: inputMode === 'vocal' ? 'voice' : inputMode === 'instrument' ? 'midi' : 'clap' })}
         disabled={!isPlaying}
         className={`w-full max-w-md mt-3 py-4 rounded-3xl font-black font-display text-base uppercase tracking-wider shadow-xl transition-all cursor-pointer select-none no-select active:scale-95 ${
           isPlaying

@@ -190,6 +190,16 @@ class SoundEngine {
     return this.ctx ? this.ctx.currentTime : performance.now() / 1000;
   }
 
+  public getAudioContext(): AudioContext | null {
+    this.initContext();
+    return this.ctx;
+  }
+
+  public getMasterGain(): GainNode | null {
+    this.initContext();
+    return this.masterGain;
+  }
+
   public setVolume(vol: number) {
     this.volume = Math.max(0, Math.min(1, vol));
     if (this.masterGain && this.ctx) {
