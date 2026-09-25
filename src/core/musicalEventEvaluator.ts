@@ -12,6 +12,30 @@
 import { MusicalEvent, type MusicalEventType, type MusicalGrade } from '../domain/entities/MusicalEvent';
 import { identifyChordFromMidi, parseChord, getNoteInfo, CHROMATIC_NOTES_SHARP, CHROMATIC_NOTES_FLAT, type IdentifiedChord } from './musicTheory';
 
+/**
+ * Normaliza qualidades harmônicas de fontes distintas para um conjunto canônico comparável.
+ * Unifica 'dim7' → 'diminished', 'min7' → 'minor' (para comparações de qualidade base),
+ * e preserva distinções essenciais (major, minor, diminished, augmented, dom7, maj7).
+ */
+function normalizeChordQuality(q: string): string {
+  switch (q) {
+    case 'dim7': return 'diminished';
+    case 'min7': return 'minor';
+    case 'm7b5': return 'm7b5';
+    case 'maj7': return 'maj7';
+    case 'dom7': return 'dom7';
+    case 'augmented': return 'augmented';
+    case 'aug': return 'augmented';
+    case 'minor': return 'minor';
+    case 'major': return 'major';
+    case 'diminished': return 'diminished';
+    case 'sus4': return 'sus4';
+    case 'sus2': return 'sus2';
+    case 'add9': return 'major'; // add9 é tratado como major para fins de avaliação de exercício
+    default: return q;
+  }
+}
+
 export interface MusicalTarget {
   midi?: number;
   noteName?: string;
@@ -34,8 +58,8 @@ export interface MusicalEventEvaluatorConfig {
 }
 
 export const DEFAULT_EVALUATOR_CONFIG: MusicalEventEvaluatorConfig = {
-  chordWindowMs: 320,
-  silenceReleaseThresholdMs: 240,
+  chordWindowMs: 200,
+  silenceReleaseThresholdMs: 180,
   sustainDecayWindowMs: 650,
   perfectWindowMs: 40,
   goodWindowMs: 90,
@@ -226,16 +250,21 @@ export class MusicalEventEvaluator {
 
     if (target) {
       if (target.chordName) {
-        // Comparação de Acorde
+        // Comparação de Acorde: verifica raiz (classe de altura) e qualidade harmônica
         const expectedChord = parseChord(target.chordName);
         if (identifiedChord && expectedChord) {
-          // Se identificou um acorde completo, compara a raiz e a qualidade básica (desconsiderando baixo de inversão)
-          const baseSymbol = identifiedChord.symbol.replace(/\/.+$/, '').trim().toUpperCase();
-          const targetBase = target.chordName.replace(/\/.+$/, '').trim().toUpperCase();
-          const rootMatches = identifiedChord.root.trim().toUpperCase() === expectedChord.root.trim().toUpperCase();
-          isPitchOrChordMatch = rootMatches && baseSymbol === targetBase;
+          // Raiz por pitch class (tolera enarmonias: C# === Db)
+          const identifiedRootPc = CHROMATIC_NOTES_SHARP.indexOf(identifiedChord.root);
+          const expectedRootPc = CHROMATIC_NOTES_SHARP.indexOf(expectedChord.root) !== -1
+            ? CHROMATIC_NOTES_SHARP.indexOf(expectedChord.root)
+            : CHROMATIC_NOTES_FLAT.indexOf(expectedChord.root);
+          const rootMatches = identifiedRootPc !== -1 && identifiedRootPc === expectedRootPc;
+
+          // Qualidade harmônica normalizada — tolera 'dim7'='diminished', 'min7'='minor', etc.
+          const qualityMatches = normalizeChordQuality(identifiedChord.quality) === normalizeChordQuality(expectedChord.quality);
+          isPitchOrChordMatch = rootMatches && qualityMatches;
         } else if (expectedChord) {
-          // Fallback para conjunto de notas dispersas
+          // Fallback: verifica se todas as notas do acorde esperado estão presentes
           const playedPitchClasses = new Set(playedMidis.map(m => ((m % 12) + 12) % 12));
           const expectedPitchClasses = expectedChord.notes.map(n => {
             const idx = CHROMATIC_NOTES_SHARP.indexOf(n);

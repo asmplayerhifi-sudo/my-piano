@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { MetronomeView } from './MetronomeView';
+import { MetronomeAccompanimentStudio } from './MetronomeAccompanimentStudio';
 import { RhythmTrackCanvas, type ExternalRhythmTrigger } from './RhythmTrackCanvas';
 import { RhythmicScoreTrainer } from './RhythmicScoreTrainer';
 import { HybridRhythmChord } from '../hybrid/HybridRhythmChord';
@@ -8,15 +9,29 @@ import { metronomeScheduler } from '../../core/metronomeScheduler';
 import { latencyManager } from '../../core/latencyManager';
 import { midiManager } from '../../core/midiManager';
 import { soundEngine } from '../../core/soundEngine';
-import { Activity, Mic, Volume2, ShieldCheck, HelpCircle, Music, Radar, Sliders, Layers } from 'lucide-react';
+import { Activity, Mic, Volume2, ShieldCheck, HelpCircle, Music, Radar, Sliders, Layers, Radio } from 'lucide-react';
+
+export type RhythmTrainingMode = 'studio' | 'radar' | 'score' | 'hybrid';
 
 export const RhythmLab: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState<boolean>(metronomeScheduler.getIsPlaying());
   const [bpm, setBpm] = useState<number>(metronomeScheduler.getBpm());
   const [activeStep, setActiveStep] = useState<1 | 2 | 3>(2); // 1 = Vocal, 2 = Palmas, 3 = Instrumento
-  const [trainingMode, setTrainingMode] = useState<'score' | 'radar' | 'hybrid'>('radar');
+  const [trainingMode, setTrainingMode] = useState<RhythmTrainingMode>('studio');
   const [radarToleranceMs, setRadarToleranceMs] = useState<number>(latencyManager.getToleranceMs());
   const [externalTrigger, setExternalTrigger] = useState<ExternalRhythmTrigger | null>(null);
+
+  // Permite que botões globais (como no Header) mudem o modo para o estúdio na tela
+  useEffect(() => {
+    const handleNavMode = (e: Event) => {
+      const customEvent = e as CustomEvent<RhythmTrainingMode>;
+      if (customEvent.detail) {
+        setTrainingMode(customEvent.detail);
+      }
+    };
+    window.addEventListener('nav-rhythm-mode', handleNavMode);
+    return () => window.removeEventListener('nav-rhythm-mode', handleNavMode);
+  }, []);
 
   // Escuta entradas MIDI de teclados externos USB/Bluetooth
   useEffect(() => {
@@ -69,15 +84,15 @@ export const RhythmLab: React.FC = () => {
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1.5 bg-black/50 p-1.5 rounded-2xl border border-white/10 shadow-lg">
             <button
-              onClick={() => setTrainingMode('score')}
+              onClick={() => setTrainingMode('studio')}
               className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer flex items-center gap-2 ${
-                trainingMode === 'score'
-                  ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-600/30'
+                trainingMode === 'studio'
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-600/30 ring-1 ring-purple-400'
                   : 'text-slate-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              <Music className="w-4 h-4" />
-              <span>🎼 Treino Partiturado</span>
+              <Radio className="w-4 h-4" />
+              <span>🎛️ Metrônomo &amp; Banda</span>
             </button>
 
             <button
@@ -90,6 +105,18 @@ export const RhythmLab: React.FC = () => {
             >
               <Radar className="w-4 h-4" />
               <span>🎯 Radar Temporal</span>
+            </button>
+
+            <button
+              onClick={() => setTrainingMode('score')}
+              className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer flex items-center gap-2 ${
+                trainingMode === 'score'
+                  ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-600/30'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Music className="w-4 h-4" />
+              <span>🎼 Treino Partiturado</span>
             </button>
 
             <button
@@ -136,7 +163,23 @@ export const RhythmLab: React.FC = () => {
       </div>
 
       {/* RENDERIZAÇÃO DO MODO SELECIONADO */}
-      {trainingMode === 'score' ? (
+      {trainingMode === 'studio' ? (
+        /* MODO 0: ESTÚDIO COMPLETO DE METRÔNOMO & ACOMPANHAMENTO (DIRETO NA TELA) */
+        <div className="space-y-6">
+          {/* Barra de Microfone Acústico / Palmas / Voz / Teclado Real */}
+          <MicrophonePitchBar
+            onNoteDetected={handleMicNote}
+            onClapDetected={handleMicClap}
+            onOnsetDetected={handleMicAttack}
+            customLabel="Ouvir Meu Teclado / Violão (Microfone ou USB) com o Metrônomo"
+          />
+
+          <MetronomeAccompanimentStudio
+            onNavigateToRadar={() => setTrainingMode('radar')}
+            onNavigateToScore={() => setTrainingMode('score')}
+          />
+        </div>
+      ) : trainingMode === 'score' ? (
         /* MODO 1: TREINO PARTITURADO (PAUTA MUSICAL COM CLAVES, COMPASSOS E EXERCÍCIOS) */
         <RhythmicScoreTrainer
           globalBpm={bpm}
@@ -197,6 +240,7 @@ export const RhythmLab: React.FC = () => {
               <MetronomeView
                 onBpmChange={(newBpm) => setBpm(newBpm)}
                 onPlayStateChange={(playing) => setIsPlaying(playing)}
+                onOpenStudio={() => setTrainingMode('studio')}
               />
 
               {/* Dicas Pedagógicas Dinâmicas */}

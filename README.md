@@ -64,11 +64,15 @@ npm run build:android
 ## ✨ Principais Funcionalidades
 
 ### 1. 🎙️ Escuta Acústica em Tempo Real & Ciclo de Vida do Evento Musical
-* **Detecção por Autocorrelação Normalizada:** Captação precisa pelo microfone integrado, interface de áudio USB ou cabo auxiliar (P2/P10).
+* **Detecção por Autocorrelação Normalizada com Supressão de Sub-harmônicos:** Captação precisa pelo microfone integrado, interface de áudio USB ou cabo auxiliar (P2/P10). Parâmetros de calibração:
+  - Limiar de clareza: `0.38` — captura instrumentos acústicos reais sem inventar notas em silêncio.
+  - Sensibilidade padrão: `0.015` RMS — detecta toques suaves sem capturar ruído de fundo.
+  - Buffer de acordes acústicos: `900ms` de sustentação — cobre decaimento natural sem acumular notas antigas.
+  - Confirmação de silêncio: `4 frames (~60ms)` — evita término prematuro em notas com sustain natural.
 * **Ciclo de Vida Completo do Evento Musical:**
   $$\text{Ataque (Onset)} \longrightarrow \text{Sustentação (Tracking)} \longrightarrow \text{Transição / Término (Finalize)}$$
 * **Avaliação Integrada:**
-  - **Nota(s) e Acordes:** Avalia tríades e tétrades com agrupamento em janela harmônica (evitando que notas arpejadas gerem erros individuais).
+  - **Nota(s) e Acordes:** Avalia tríades e tétrades com comparação por raiz (pitch class, tolerante a enarmonias) e qualidade harmônica normalizada (trata `dim7`=`diminished`, `min7`=`minor`, etc.).
   - **Duração:** Mede o tempo exato em que a nota permaneceu sustentada.
   - **Intensidade / Dinâmica:** Monitora o volume RMS acústico ou velocity MIDI (0-127).
   - **Timing Rítmico:** Calcula o desvio milissegundo a milissegundo em relação à partitura.

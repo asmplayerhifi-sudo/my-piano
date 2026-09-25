@@ -68,11 +68,13 @@ export const MicrophonePitchBar: React.FC<Props> = ({
   const onOnsetDetectedRef = useRef(onOnsetDetected);
   onOnsetDetectedRef.current = onOnsetDetected;
 
-  // Registra nota ouvida para buffer de acordes acústicos em tempo real
+  // Registra nota ouvida para buffer de acordes acústicos em tempo real.
+  // 900ms de sustentação harmônica: cobre o decaimento natural do piano e violão
+  // sem acumular notas antigas que distorcem a identificação do acorde atual.
   const registerAcousticNote = (midi: number) => {
     setRecentAcousticNotes((prev) => {
       const next = new Map(prev);
-      next.set(midi, Date.now() + 1800); // 1.8s de sustentação harmônica
+      next.set(midi, Date.now() + 900);
       return next;
     });
   };
@@ -435,7 +437,7 @@ export const MicrophonePitchBar: React.FC<Props> = ({
                       {isWrong ? '✕ NOTA ERRADA' : isMatch ? '✔ NOTA CORRETA' : isChordNote ? '✔ NOTA DO ACORDE' : '♫ AMOSTRADOR'}
                     </span>
                     <span className="text-xl font-black font-display text-white">
-                      {currentPitch.noteName}
+                      {octaveConfigStore.midiToNoteName(currentPitch.midi, octaveStandard)}
                     </span>
                   </div>
 

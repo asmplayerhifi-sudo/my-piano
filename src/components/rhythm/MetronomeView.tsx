@@ -7,17 +7,16 @@ import {
 } from '../../core/accompanimentStore';
 import { soundEngine } from '../../core/soundEngine';
 import { accompanimentSynthesizer } from '../../core/accompanimentSynthesizer';
-import { MetronomeAccompanimentModal } from './MetronomeAccompanimentModal';
 import type { TimeSignature } from '../../core/types';
 
 interface Props {
   onBpmChange?: (bpm: number) => void;
   onPlayStateChange?: (isPlaying: boolean) => void;
+  onOpenStudio?: () => void;
 }
 
-export const MetronomeView: React.FC<Props> = ({ onBpmChange, onPlayStateChange }) => {
+export const MetronomeView: React.FC<Props> = ({ onBpmChange, onPlayStateChange, onOpenStudio }) => {
   const accState = useAccompaniment();
-  const [showStudioModal, setShowStudioModal] = useState<boolean>(false);
 
   // Notifica componentes pai quando o estado muda
   useEffect(() => {
@@ -41,6 +40,17 @@ export const MetronomeView: React.FC<Props> = ({ onBpmChange, onPlayStateChange 
 
   const updateBpm = (newBpm: number) => {
     accompanimentStore.setBpm(newBpm);
+  };
+
+  const handleOpenStudio = () => {
+    if (onOpenStudio) {
+      onOpenStudio();
+    } else {
+      if (window.location.hash !== '#/rhythm') {
+        window.location.hash = '#/rhythm';
+      }
+      window.dispatchEvent(new CustomEvent('nav-rhythm-mode', { detail: 'studio' }));
+    }
   };
 
   const handleTimeSignature = (ts: TimeSignature) => {
@@ -83,7 +93,7 @@ export const MetronomeView: React.FC<Props> = ({ onBpmChange, onPlayStateChange 
           </button>
 
           <button
-            onClick={() => setShowStudioModal(true)}
+            onClick={handleOpenStudio}
             className="px-3.5 py-2 rounded-2xl bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/40 text-purple-200 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-lg shadow-purple-600/20"
             title="Abrir Estúdio Completo com Bateria, Baixo e Harmonia"
           >
@@ -290,12 +300,6 @@ export const MetronomeView: React.FC<Props> = ({ onBpmChange, onPlayStateChange 
           )}
         </button>
       </div>
-
-      {/* Modal do Estúdio Completo de Acompanhamento */}
-      <MetronomeAccompanimentModal
-        isOpen={showStudioModal}
-        onClose={() => setShowStudioModal(false)}
-      />
     </div>
   );
 };

@@ -74,8 +74,9 @@ export function detectPitchFromBuffer(
     }
   }
 
-  // Limiar de clareza acessível para microfones reais de notebooks e smartphones
-  if (globalMax < 0.45 || globalMaxPeriod === 0) {
+  // Limiar de clareza calibrado para microfones reais (notebooks, smartphones, interfaces USB).
+  // 0.38 permite capturar instrumentos acústicos sem inventar notas em silêncio.
+  if (globalMax < 0.38 || globalMaxPeriod === 0) {
     return null; // Clareza insuficiente
   }
 
@@ -89,11 +90,11 @@ export function detectPitchFromBuffer(
     const candidateP = Math.round(globalMaxPeriod / divisor);
     if (candidateP < minPeriod) continue;
 
-    // Busca o pico local mais próximo em uma janela estreita de ±3 amostras em torno de candidateP
+    // Busca o pico local mais próximo em uma janela de ±5 amostras em torno de candidateP
     let localPeakP = candidateP;
     let localPeakCorr = -1;
-    const searchStart = Math.max(minPeriod, candidateP - 3);
-    const searchEnd = Math.min(maxPeriod, candidateP + 3);
+    const searchStart = Math.max(minPeriod, candidateP - 5);
+    const searchEnd = Math.min(maxPeriod, candidateP + 5);
 
     for (let p = searchStart; p <= searchEnd; p++) {
       if (correlations[p] > localPeakCorr) {
@@ -102,9 +103,12 @@ export function detectPitchFromBuffer(
       }
     }
 
-    // Se o pico nessa sub-harmônica atinge pelo menos 82% da correlação máxima global e correlação >= 0.45,
-    // a frequência fundamental verdadeira é candidateP (oitava acima), não a sub-harmônica globalMaxPeriod!
-    if (localPeakCorr >= Math.max(0.45, globalMax * 0.82)) {
+    // Threshold 0.72: o candidato (período menor / nota mais aguda) precisa ter >= 72% da
+    // correlação do falso máximo E >= 0.38 de clareza absoluta para ser eleito fundamental.
+    // Calibrado para piano/teclado captado por microfone:
+    //   - C3 (261 Hz) detectado erroneamente como C2 (130 Hz): correlação real ~ 73-80% -> corrige.
+    //   - C2 (130 Hz) com harmônico forte em C3: correlação harmônica ~ 55-68% -> não inverte.
+    if (localPeakCorr >= Math.max(0.38, globalMax * 0.72)) {
       chosenPeriod = localPeakP;
       break;
     }
@@ -137,7 +141,7 @@ export class MicrophonePitchDetector {
   private animationFrameId: number | null = null;
   private buffer: Float32Array<ArrayBuffer> | null = null;
   private isListening = false;
-  private sensitivityThreshold = 0.018; // Sensibilidade de captação
+  private sensitivityThreshold = 0.015; // Sensibilidade padrão: detecta notas suaves sem capturar ruído de fundo
 
   private onPitchCallback: ((pitch: DetectedPitch) => void) | null = null;
   private onVolumeCallback: ((rms: number) => void) | null = null;
@@ -324,10 +328,11 @@ export class MicrophonePitchDetector {
         this.stableCount = 1;
       }
 
-      // Estabilidade de 2 frames para evitar ruídos de transientes falsos
-      if (this.stableCount >= 2) {
+      // Estabilidade de 1 frame: resposta imediata ao ataque com sub-harmônico suprimido
+      // O algoritmo de autocorrelação já é robusto o suficiente para dispensar espera dupla.
+      if (this.stableCount >= 1) {
         const isDifferentNote = midi !== this.lastEmittedMidi;
-        const isReattack = (now - this.lastEmittedTime > 220) && (result.rms > this.prevRms * 1.3);
+        const isReattack = (now - this.lastEmittedTime > 200) && (result.rms > this.prevRms * 1.25);
         const isNewAttack = isDifferentNote || this.noteReleased || isReattack;
 
         if (isNewAttack) {
@@ -361,8 +366,9 @@ export class MicrophonePitchDetector {
       // Sinal abaixo do threshold de sensibilidade: incrementa frames de silêncio
       this.silenceFrameCount++;
 
-      // Após 3 frames consecutivos de silêncio (~45ms), confirma término da nota ouvida
-      if (this.silenceFrameCount >= 3) {
+      // Após 4 frames consecutivos de silêncio (~60ms), confirma término da nota ouvida.
+      // 4 frames evita encerramento prematuro em notas com sustain natural (piano, violão).
+      if (this.silenceFrameCount >= 4) {
         this.noteReleased = true;
         this.stableCount = 0;
         this.lastDetectedMidi = null;

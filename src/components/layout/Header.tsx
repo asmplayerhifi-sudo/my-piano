@@ -7,14 +7,12 @@ import { LatencyWizardModal } from '../rhythm/LatencyWizardModal';
 import { useOctaveStandard } from '../../core/octaveConfigStore';
 import { OctaveStandardModal } from './OctaveStandardModal';
 import { useAccompaniment } from '../../core/accompanimentStore';
-import { MetronomeAccompanimentModal } from '../rhythm/MetronomeAccompanimentModal';
 
 export const Header: React.FC = () => {
   const [volume, setVolume] = useState<number>(soundEngine.getVolume());
   const [isMuted, setIsMuted] = useState<boolean>(soundEngine.isSoundMuted());
   const [showLatencyModal, setShowLatencyModal] = useState<boolean>(false);
   const [showOctaveModal, setShowOctaveModal] = useState<boolean>(false);
-  const [showAccompanimentModal, setShowAccompanimentModal] = useState<boolean>(false);
   const [currentOffset, setCurrentOffset] = useState<number>(latencyManager.getOffsetMs());
   const octaveStandard = useOctaveStandard();
   const accState = useAccompaniment();
@@ -73,13 +71,18 @@ export const Header: React.FC = () => {
 
           {/* Botão de Acesso Rápido ao Metrônomo & Acompanhamento Musical */}
           <button
-            onClick={() => setShowAccompanimentModal(true)}
+            onClick={() => {
+              if (window.location.hash !== '#/rhythm') {
+                window.location.hash = '#/rhythm';
+              }
+              window.dispatchEvent(new CustomEvent('nav-rhythm-mode', { detail: 'studio' }));
+            }}
             className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
               accState.isPlaying
                 ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 ring-1 ring-emerald-400'
                 : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-200 hover:text-white'
             }`}
-            title="Abrir Metrônomo & Estúdio de Acompanhamento Musical"
+            title="Ir para o Estúdio de Metrônomo & Acompanhamento na Tela"
           >
             <Radio className={`w-3.5 h-3.5 ${accState.isPlaying ? 'text-emerald-400 animate-pulse' : 'text-indigo-400'}`} />
             <span className="hidden sm:inline">Metrônomo:</span>
@@ -145,12 +148,6 @@ export const Header: React.FC = () => {
       <OctaveStandardModal
         isOpen={showOctaveModal}
         onClose={() => setShowOctaveModal(false)}
-      />
-
-      {/* Metronome & Accompaniment Studio Modal */}
-      <MetronomeAccompanimentModal
-        isOpen={showAccompanimentModal}
-        onClose={() => setShowAccompanimentModal(false)}
       />
     </>
   );
