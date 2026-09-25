@@ -50,14 +50,14 @@ export function drawScoreNotes({
     const noteOffset = noteOffsets[idx] ?? 0;
     const noteX = attackLineX + noteOffset * pixelsPerBeat - scrollOffset;
     const noteY = getNoteY(note.midi, note.clef);
-    const isCurrentTarget = isDemoMode ? Math.abs(noteX - attackLineX) < 24 : idx === currentIndex;
-    const hasPassed = isDemoMode ? noteX < attackLineX - 10 : idx < currentIndex;
+    const isCurrentTarget = isDemoMode ? Math.abs(noteX - attackLineX) <= 14 : idx === currentIndex;
+    const hasPassed = isDemoMode ? noteX < attackLineX - 11 : idx < currentIndex;
     const isMiddleC = note.midi === 60;
     const dur = note.duration || 1;
 
     let noteAlpha = 1.0;
-    if (noteX < attackLineX) {
-      noteAlpha = Math.max(0, 1 - (attackLineX - noteX) / 75) * 0.35;
+    if (noteX < attackLineX - 11) {
+      noteAlpha = Math.max(0, 1 - (attackLineX - 11 - noteX) / 70) * 0.45;
     }
 
     if (noteAlpha <= 0.01 || noteX <= -40 || noteX >= width + 60) return;

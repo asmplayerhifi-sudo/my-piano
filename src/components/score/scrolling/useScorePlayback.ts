@@ -192,8 +192,31 @@ export function useScorePlayback({
   }, [notes, isDemoMode, tempo, toleranceMs, evaluateStrikeUseCase]);
 
   useEffect(() => {
-    if (currentNoteIndex !== undefined) setCurrentIndex(currentNoteIndex);
-  }, [currentNoteIndex]);
+    if (currentNoteIndex !== undefined) {
+      setCurrentIndex(currentNoteIndex);
+      if (currentNoteIndex === 0) {
+        scrollOffsetRef.current = 0;
+        playedNotesRef.current.clear();
+        playedChordsRef.current.clear();
+        playedBeatsRef.current.clear();
+        isPausedWaitingRef.current = false;
+        validatorRef.current.reset();
+      } else {
+        const targetOffset = timeline.noteOffsets[currentNoteIndex] ?? 0;
+        const targetScroll = targetOffset * pixelsPerBeat;
+        const diff = Math.abs(scrollOffsetRef.current - targetScroll);
+        if (diff > 8) {
+          scrollOffsetRef.current = targetScroll;
+        }
+        for (let i = 0; i < currentNoteIndex; i++) {
+          playedNotesRef.current.add(i);
+        }
+        for (let i = currentNoteIndex; i < notes.length; i++) {
+          playedNotesRef.current.delete(i);
+        }
+      }
+    }
+  }, [currentNoteIndex, notes.length, pixelsPerBeat, timeline.noteOffsets]);
 
   useEffect(() => {
     if (isDemoMode || currentMidiPressed === null || currentMidiPressed === undefined) return;

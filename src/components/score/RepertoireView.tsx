@@ -61,6 +61,7 @@ export const RepertoireView: React.FC = () => {
 
 
   const playbackTimeoutRef = useRef<number | null>(null);
+  const playbackStartTimeRef = useRef<number>(0);
   const isPlayingRef = useRef<boolean>(false);
   const tempoRef = useRef<number>(tempo);
   const currentNoteIdxRef = useRef<number>(0);
@@ -81,8 +82,11 @@ export const RepertoireView: React.FC = () => {
       playbackTimeoutRef.current = null;
     }
     setIsPlaying(false);
+    isPlayingRef.current = false;
     setActiveDemoMidi([]);
     setCurrentNoteIdx(0);
+    currentNoteIdxRef.current = 0;
+    playbackStartTimeRef.current = 0;
     setActiveSong(song);
     setTempo(song.recommendedBpm);
     tempoRef.current = song.recommendedBpm;
@@ -239,15 +243,16 @@ export const RepertoireView: React.FC = () => {
     setActiveDemoMidi(currentNotesMidi);
     setCurrentNoteIdx(nextIndex);
 
-    // Calcula tempo exato até o próximo evento musical
+    // Calcula tempo exato até o próximo evento musical com compensação ativa de jitter (zero drift)
     if (nextIndex < track.length) {
       const nextOffset = offsets[nextIndex] ?? (currentOffset + 1);
-      const deltaBeats = Math.max(0.08, nextOffset - currentOffset);
-      const noteDurationMs = (60 / tempoRef.current) * 1000 * deltaBeats;
+      const expectedElapsedMs = (nextOffset * (60 / tempoRef.current)) * 1000;
+      const actualElapsedMs = performance.now() - playbackStartTimeRef.current;
+      const delayMs = Math.max(10, expectedElapsedMs - actualElapsedMs);
 
       playbackTimeoutRef.current = window.setTimeout(() => {
         playNextNote(nextIndex);
-      }, noteDurationMs);
+      }, delayMs);
     } else {
       // Última nota da partitura:
       // Aguarda rigorosamente a execução e o decaimento real de sustain da última nota
@@ -259,6 +264,7 @@ export const RepertoireView: React.FC = () => {
         if (isPlayingRef.current) {
           if (playbackEndModeRef.current === 'repeat') {
             // Modo Repetição: Retorna ao início e reinicia
+            playbackStartTimeRef.current = performance.now();
             setCurrentNoteIdx(0);
             playNextNote(0);
           } else {
@@ -282,12 +288,17 @@ export const RepertoireView: React.FC = () => {
         playbackTimeoutRef.current = null;
       }
       setIsPlaying(false);
+      isPlayingRef.current = false;
       setActiveDemoMidi([]);
     } else {
       // Iniciar demonstração sonora
       setIsPlaying(true);
       isPlayingRef.current = true;
-      playNextNote(currentNoteIdx >= sortedScoreTrack.length ? 0 : currentNoteIdx);
+      const startIdx = currentNoteIdx >= sortedScoreTrack.length ? 0 : currentNoteIdx;
+      const startOffset = noteOffsetsRef.current[startIdx] ?? 0;
+      const elapsedBeatsMs = (startOffset * (60 / tempoRef.current)) * 1000;
+      playbackStartTimeRef.current = performance.now() - elapsedBeatsMs;
+      playNextNote(startIdx);
     }
   };
 
@@ -297,13 +308,20 @@ export const RepertoireView: React.FC = () => {
       playbackTimeoutRef.current = null;
     }
     setIsPlaying(false);
+    isPlayingRef.current = false;
     setActiveDemoMidi([]);
     setCurrentNoteIdx(0);
     currentNoteIdxRef.current = 0;
+    playbackStartTimeRef.current = 0;
   };
 
   const handleTempoChange = (newTempo: number) => {
     const clamped = Math.max(30, Math.min(240, newTempo));
+    if (isPlayingRef.current) {
+      const currentOffset = noteOffsetsRef.current[currentNoteIdxRef.current] ?? 0;
+      const newElapsedMs = (currentOffset * (60 / clamped)) * 1000;
+      playbackStartTimeRef.current = performance.now() - newElapsedMs;
+    }
     setTempo(clamped);
     tempoRef.current = clamped;
     metronomeEngine.setBpm(clamped);

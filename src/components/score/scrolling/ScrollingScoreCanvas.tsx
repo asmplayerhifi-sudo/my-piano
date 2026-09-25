@@ -157,7 +157,7 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
         // Em modo de reprodução externa gerenciada pelo pai (ex: RepertoireView), autoPlayAudio é falso e não duplica a faixa!
         if (enableAudio && autoPlayAudio) {
           timeline.noteOffsets.forEach((b, i) => {
-            if (b <= currentBeat + 0.05 && !playback.playedNotesRef.current.has(i)) {
+            if (b <= currentBeat && !playback.playedNotesRef.current.has(i)) {
               playback.playedNotesRef.current.add(i);
               const n = notes[i];
               if (n) {
@@ -171,7 +171,7 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
           // Reprodução polifônica síncrona dos acordes da partitura ao atingir o beat de início
           if (displayOptions.showChords) {
             timeline.chordSpans.forEach((chord, chordIdx) => {
-              if (chord.startBeat <= currentBeat + 0.05 && !playback.playedChordsRef.current.has(chordIdx)) {
+              if (chord.startBeat <= currentBeat && !playback.playedChordsRef.current.has(chordIdx)) {
                 playback.playedChordsRef.current.add(chordIdx);
                 const parsed = parseChord(chord.chordName);
                 if (parsed && parsed.midiNotes.length > 0) {
