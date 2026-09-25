@@ -22,7 +22,7 @@ export const CourseStatusBar: React.FC<CourseStatusBarProps> = ({
 }) => {
   return (
     <div
-      className="w-full h-[28px] sm:h-[30px] px-3 sm:px-4 flex items-center justify-between gap-2 bg-[#06060e] border-t border-white/5 text-[10px] sm:text-[11px] text-slate-400 select-none"
+      className="w-full h-[32px] px-3 sm:px-4 flex items-center justify-between gap-2 bg-[#06060e] border-t border-white/5 text-xs text-slate-400 select-none"
       role="status"
       aria-label="Barra de status da aula"
     >
@@ -38,14 +38,14 @@ export const CourseStatusBar: React.FC<CourseStatusBarProps> = ({
             }`}
             title="Clique para alternar detalhes da orientação pedagógica"
           >
-            <BookOpen className="w-3 h-3 text-indigo-400 shrink-0" />
+            <BookOpen className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
             <span className="font-medium truncate max-w-[200px] sm:max-w-xs md:max-w-md">
               📘 Dicas: {pedagogicalTip}
             </span>
           </button>
         ) : (
-          <span className="flex items-center gap-1.5 text-slate-500">
-            <Info className="w-3 h-3" />
+          <span className="flex items-center gap-1.5 text-slate-500 text-xs">
+            <Info className="w-3.5 h-3.5" />
             <span>Mantenha as mãos relaxadas e coluna ereta</span>
           </span>
         )}
@@ -53,15 +53,15 @@ export const CourseStatusBar: React.FC<CourseStatusBarProps> = ({
 
       {/* 2. Reconhecimento de Áudio & Afinação Acústica (Centro) */}
       <div className="flex items-center gap-2 shrink-0">
-        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-white/[0.03] border border-white/5 font-mono text-[10px]">
-          <Headphones className="w-3 h-3 text-emerald-400 shrink-0" />
+        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-white/[0.03] border border-white/5 font-mono text-xs">
+          <Headphones className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
           <span className="hidden sm:inline text-slate-400">Reconhecimento de Áudio:</span>
           {hearingNoteName ? (
             <span className="text-emerald-300 font-bold animate-pulse">
               Ouvindo {hearingNoteName}
             </span>
           ) : audioRecognitionActive ? (
-            <span className="text-emerald-400">Ativo</span>
+            <span className="text-emerald-400 font-medium">Ativo</span>
           ) : (
             <span className="text-slate-500">Aguardando</span>
           )}
@@ -71,12 +71,12 @@ export const CourseStatusBar: React.FC<CourseStatusBarProps> = ({
       {/* 3. Status Geral & MIDI (Direita) */}
       <div className="flex items-center gap-2 shrink-0">
         {midiConnected && (
-          <span className="hidden md:inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-mono text-[9px]">
+          <span className="hidden md:inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-mono text-xs font-bold">
             🎹 MIDI Conectado
           </span>
         )}
-        <span className="flex items-center gap-1 text-slate-300 font-mono">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50" />
+        <span className="flex items-center gap-1 text-slate-300 font-mono text-xs font-bold">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50" />
           <span>[Status: {statusText}]</span>
         </span>
       </div>

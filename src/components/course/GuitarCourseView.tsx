@@ -9,12 +9,10 @@ import { LessonIllustration } from './illustrations/LessonIllustration';
 import type { GuitarChordShape } from '../../core/types';
 import { soundEngine } from '../../core/soundEngine';
 import { CourseContextualHeader } from './layout/CourseContextualHeader';
-import { CourseSubTabs } from './layout/CourseSubTabs';
 import { CourseLearningTrailModal } from './layout/CourseLearningTrailModal';
 import { CourseStatusBar } from './layout/CourseStatusBar';
 import {
   Sparkles,
-  CheckCircle2,
   Layers,
   Zap,
   ShieldAlert,
@@ -214,56 +212,39 @@ export const GuitarCourseView: React.FC = () => {
 
   return (
     <div className="w-full flex-1 flex flex-col min-h-0 bg-[#0c0906] rounded-2xl border border-white/5 shadow-2xl overflow-hidden">
-      {/* 1. HEADER CONTEXTUAL — até 36px */}
+      {/* HEADER DE CONTEXTO RESPONSIVO E UNIFICADO — Linha Única 44px (REQ-UI-LESSONHEADER-01) */}
       <CourseContextualHeader
         courseTitle="Curso de Violão & Guitarra"
         courseIcon="🎸"
         currentLessonCode={currentLessonCode}
         totalLessons={allLessons.length}
         completedLessonsCount={completedLessonIds.length}
+        lessonTitle={activeLesson.title}
+        lessonLevel={activeLesson.level}
         onOpenTrail={() => setIsTrailModalOpen(true)}
         onPrevLesson={handlePrevLesson}
         onNextLesson={handleNextLesson}
         hasPrevLesson={currentLinearIndex > 0}
         hasNextLesson={currentLinearIndex < allLessons.length - 1}
-        accentColor="amber"
-      />
-
-      {/* 2. SUB-TABS — até 32px */}
-      <CourseSubTabs
-        lessonTitle={activeLesson.title}
-        lessonLevel={activeLesson.level}
         tabs={[
           {
             id: 'all',
             label: 'Prática Completa',
-            shortLabel: 'Completo',
-            icon: <Sparkles className="w-3 h-3 text-amber-400" />,
+            shortLabel: 'Prática',
+            icon: <Sparkles className="w-3.5 h-3.5 text-amber-400" />,
           },
           { id: 'fretboard', label: 'Braço & Shapes', shortLabel: 'Braço' },
           ...(activeLesson.scoreTrack
-            ? [{ id: 'score', label: 'Partitura & Tablatura', shortLabel: 'Tab' }]
+            ? [{ id: 'score', label: 'Partitura & Tablatura', shortLabel: 'Partitura' }]
             : []),
           { id: 'transitions', label: 'Dedo Âncora', shortLabel: 'Âncora' },
           { id: 'theory', label: 'Teoria & Postura', shortLabel: 'Teoria' },
         ]}
         activeTabId={activeTab}
         onSelectTab={(id) => setActiveTab(id as any)}
+        isCompleted={isCurrentCompleted}
+        onToggleComplete={() => handleLessonComplete(activeLesson.id)}
         accentColor="amber"
-        rightSlot={
-          <button
-            onClick={() => handleLessonComplete(activeLesson.id)}
-            className={`px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
-              isCurrentCompleted
-                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                : 'bg-amber-600 hover:bg-amber-500 text-slate-950 font-black shadow-sm'
-            }`}
-            title="Marcar lição como concluída"
-          >
-            <CheckCircle2 className="w-3 h-3" />
-            <span className="hidden sm:inline">{isCurrentCompleted ? 'Concluída' : 'Concluir'}</span>
-          </button>
-        }
       />
 
       {/* 3. SIMULADOR & ÁREA FULL-WIDTH (100% da Largura Útil sem Sidebar Fixa) */}
@@ -278,13 +259,13 @@ export const GuitarCourseView: React.FC = () => {
                     <Sparkles className="w-4 h-4 text-amber-400" />
                     <span>{activeLesson.instructions.heading}</span>
                   </h4>
-                  <p className="text-[11px] sm:text-xs text-slate-300 mt-0.5 leading-relaxed max-w-4xl">
+                  <p className="text-xs sm:text-sm text-slate-300 mt-1 leading-relaxed max-w-4xl">
                     {activeLesson.instructions.text}
                   </p>
                 </div>
                 {activeLesson.instructions.fingeringTip && (
-                  <div className="p-2 sm:p-2.5 rounded-xl bg-amber-950/40 border border-amber-500/30 text-[11px] text-amber-200 shrink-0 max-w-md">
-                    <strong className="text-amber-300">Dica:</strong> {activeLesson.instructions.fingeringTip}
+                  <div className="p-2.5 sm:p-3 rounded-xl bg-amber-950/40 border border-amber-500/30 text-xs text-amber-200 shrink-0 max-w-md">
+                    <strong className="text-amber-300 font-bold">Dica:</strong> {activeLesson.instructions.fingeringTip}
                   </div>
                 )}
               </div>

@@ -3,25 +3,23 @@ import { KEYBOARD_COURSE_MODULES, GUITAR_COURSE_MODULES } from '../../src/core/c
 import { THEORY_MODULES } from '../../src/core/theoryLessonsData';
 
 describe('Redesenho Responsivo & Pixel Budget (PRD HARMONIA)', () => {
-  describe('Orçamento Vertical (Pixel Budget e Header 54px)', () => {
-    // Especificação Definitiva de UX/UI: Header Global ~54px
+  describe('Orçamento Vertical (Pixel Budget e Header Responsivo REQ-UI-LESSONHEADER-01)', () => {
+    // Especificação Definitiva de UX/UI: Header Global ~54px e Header Unificado da Aula 44px
     const HEADER_GLOBAL_TARGET_PX = 54;
-    const HEADER_CONTEXTUAL_TARGET_PX = 36;
-    const SUB_TABS_TARGET_PX = 32;
-    const TOTAL_TARGET_PX = HEADER_GLOBAL_TARGET_PX + HEADER_CONTEXTUAL_TARGET_PX + SUB_TABS_TARGET_PX;
+    const HEADER_UNIFIED_LESSON_TARGET_PX = 44;
+    const TOTAL_TARGET_PX = HEADER_GLOBAL_TARGET_PX + HEADER_UNIFIED_LESSON_TARGET_PX;
     const MAX_STRUCTURAL_LIMIT_PX = 125;
 
-    it('a soma dos elementos persistentes superiores deve ser de aproximadamente 122px (<= 125px)', () => {
-      expect(TOTAL_TARGET_PX).toBe(122);
+    it('a soma dos elementos persistentes superiores (Global + Aula Unificada) deve ser de 98px (<= 125px)', () => {
+      expect(TOTAL_TARGET_PX).toBe(98);
       expect(TOTAL_TARGET_PX).toBeLessThanOrEqual(MAX_STRUCTURAL_LIMIT_PX);
     });
 
-    it('o Header Global deve possuir altura de referência de aproximadamente 54px para conforto visual', () => {
-      expect(HEADER_GLOBAL_TARGET_PX).toBe(54);
+    it('o Header da Aula Unificado não deve ultrapassar 44px de altura fixa sob nenhuma circunstância', () => {
+      expect(HEADER_UNIFIED_LESSON_TARGET_PX).toBe(44);
+      expect(HEADER_UNIFIED_LESSON_TARGET_PX).toBeLessThanOrEqual(44);
       expect(HEADER_GLOBAL_TARGET_PX).toBeLessThanOrEqual(56);
       expect(HEADER_GLOBAL_TARGET_PX).toBeGreaterThanOrEqual(50);
-      expect(HEADER_CONTEXTUAL_TARGET_PX).toBeLessThanOrEqual(36);
-      expect(SUB_TABS_TARGET_PX).toBeLessThanOrEqual(32);
     });
   });
 

@@ -47,4 +47,30 @@ describe('RhythmAudioInputOutput & Protocolo Cinestésico', () => {
     expect(earlyEval.grade).toBe('OFF_TIME');
     expect(earlyEval.isEarly).toBe(true);
   });
+
+  it('deve compensar com exatidão a latência de hardware Bluetooth no cálculo de batidas', async () => {
+    const { latencyManager } = await import('../../src/core/latencyManager');
+    
+    // Sem compensação (0ms): toque com 160ms de atraso é considerado atrasado
+    latencyManager.saveProfile({ offsetMs: 0, deviceType: 'speaker', isCalibrated: true });
+    const uncompensated = latencyManager.evaluateTap(1000, 1160);
+    expect(uncompensated.result).toBe('late');
+
+    // Com compensação Bluetooth (150ms): mesmo atraso acústico vira +10ms efetivo => PERFECT
+    latencyManager.saveProfile({ offsetMs: 150, deviceType: 'bluetooth', isCalibrated: true });
+    const compensated = latencyManager.evaluateTap(1000, 1160);
+    expect(compensated.result).toBe('perfect');
+    expect(compensated.diffMs).toBe(10);
+    expect(compensated.rawDiffMs).toBe(160);
+  });
+
+  it('deve respeitar os limites de tolerância e calibração de 0 a 400ms', async () => {
+    const { latencyManager } = await import('../../src/core/latencyManager');
+    
+    latencyManager.setOffsetMs(220);
+    expect(latencyManager.getOffsetMs()).toBe(220);
+
+    latencyManager.setToleranceMs(60);
+    expect(latencyManager.getToleranceMs()).toBe(60);
+  });
 });

@@ -11,9 +11,11 @@ class LatencyManager {
 
   private loadProfile(): LatencyCalibrationProfile {
     try {
-      const data = localStorage.getItem(STORAGE_KEY);
-      if (data) {
-        return JSON.parse(data);
+      if (typeof localStorage !== 'undefined') {
+        const data = localStorage.getItem(STORAGE_KEY);
+        if (data) {
+          return JSON.parse(data);
+        }
       }
     } catch (e) {
       console.warn('Erro ao carregar perfil de latência:', e);
@@ -33,7 +35,9 @@ class LatencyManager {
       lastCalibrationDate: new Date().toISOString(),
     };
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.profile));
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.profile));
+      }
     } catch (e) {
       console.error('Erro ao salvar perfil de latência:', e);
     }

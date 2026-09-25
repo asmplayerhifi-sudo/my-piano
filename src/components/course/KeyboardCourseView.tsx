@@ -14,7 +14,6 @@ import { accompanimentStore } from '../../core/accompanimentStore';
 import { useActiveNotes } from '../../hooks/useActiveNotes';
 import { soundEngine } from '../../core/soundEngine';
 import { CourseContextualHeader } from './layout/CourseContextualHeader';
-import { CourseSubTabs } from './layout/CourseSubTabs';
 import { CourseLearningTrailModal } from './layout/CourseLearningTrailModal';
 import { CourseStatusBar } from './layout/CourseStatusBar';
 import {
@@ -373,31 +372,26 @@ export const KeyboardCourseView: React.FC = () => {
 
   return (
     <div className="w-full flex-1 flex flex-col min-h-0 bg-[#070611] rounded-2xl border border-white/5 shadow-2xl overflow-hidden">
-      {/* 1. HEADER CONTEXTUAL — até 36px */}
+      {/* HEADER DE CONTEXTO RESPONSIVO E UNIFICADO — Linha Única 44px (REQ-UI-LESSONHEADER-01) */}
       <CourseContextualHeader
         courseTitle="Curso de Teclado & Piano"
         courseIcon="🎹"
         currentLessonCode={currentLessonCode}
         totalLessons={allLessons.length}
         completedLessonsCount={completedLessonIds.length}
+        lessonTitle={activeLesson.title}
+        lessonLevel={activeLesson.level}
         onOpenTrail={() => setIsTrailModalOpen(true)}
         onPrevLesson={handlePrevLesson}
         onNextLesson={handleNextLesson}
         hasPrevLesson={currentLinearIndex > 0}
         hasNextLesson={currentLinearIndex < allLessons.length - 1}
-        accentColor="indigo"
-      />
-
-      {/* 2. SUB-TABS — até 32px */}
-      <CourseSubTabs
-        lessonTitle={activeLesson.title}
-        lessonLevel={activeLesson.level}
         tabs={[
           {
             id: 'all',
             label: 'Prática Completa',
-            shortLabel: 'Completo',
-            icon: <Sparkles className="w-3 h-3 text-indigo-400" />,
+            shortLabel: 'Prática',
+            icon: <Sparkles className="w-3.5 h-3.5 text-indigo-400" />,
           },
           { id: 'score', label: 'Partitura & Exercícios', shortLabel: 'Partitura' },
           ...(activeLesson.targetChords
@@ -407,21 +401,9 @@ export const KeyboardCourseView: React.FC = () => {
         ]}
         activeTabId={practiceTab}
         onSelectTab={(id) => setPracticeTab(id as any)}
+        isCompleted={isCurrentCompleted}
+        onToggleComplete={() => handleLessonComplete(activeLesson.id)}
         accentColor="indigo"
-        rightSlot={
-          <button
-            onClick={() => handleLessonComplete(activeLesson.id)}
-            className={`px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
-              isCurrentCompleted
-                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm'
-            }`}
-            title="Concluir lição e registrar avanço"
-          >
-            <CheckCircle2 className="w-3 h-3" />
-            <span className="hidden sm:inline">{isCurrentCompleted ? 'Concluída' : 'Concluir'}</span>
-          </button>
-        }
       />
 
       {/* 3. SIMULADOR & ÁREA FULL-WIDTH (100% da Largura Útil sem Sidebar Fixa) */}
@@ -436,13 +418,13 @@ export const KeyboardCourseView: React.FC = () => {
                     <Sparkles className="w-4 h-4 text-indigo-400" />
                     <span>{octaveConfigStore.formatNoteOctavesInText(activeLesson.instructions.heading, octaveStandard)}</span>
                   </h4>
-                  <p className="text-[11px] sm:text-xs text-slate-300 mt-0.5 leading-relaxed max-w-4xl">
+                  <p className="text-xs sm:text-sm text-slate-300 mt-1 leading-relaxed max-w-4xl">
                     {octaveConfigStore.formatNoteOctavesInText(activeLesson.instructions.text, octaveStandard)}
                   </p>
                 </div>
                 {activeLesson.instructions.fingeringTip && (
-                  <div className="p-2 sm:p-2.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-[11px] text-indigo-200 shrink-0 max-w-md">
-                    <strong className="text-indigo-300">Dica de Digitação:</strong> {octaveConfigStore.formatNoteOctavesInText(activeLesson.instructions.fingeringTip, octaveStandard)}
+                  <div className="p-2.5 sm:p-3 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-xs text-indigo-200 shrink-0 max-w-md">
+                    <strong className="text-indigo-300 font-bold">Dica de Digitação:</strong> {octaveConfigStore.formatNoteOctavesInText(activeLesson.instructions.fingeringTip, octaveStandard)}
                   </div>
                 )}
               </div>
@@ -509,10 +491,10 @@ export const KeyboardCourseView: React.FC = () => {
         {(practiceTab === 'all' || practiceTab === 'score') && activeScoreTrack && (
           <div className="space-y-3">
             {/* Seletor Horizontal de Exercícios */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 rounded-xl bg-white/[0.02] border border-white/5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/5">
               <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-                <span className="text-[10px] font-mono font-bold uppercase text-indigo-400 flex items-center gap-1 shrink-0">
-                  <Target className="w-3.5 h-3.5" />
+                <span className="text-xs font-mono font-bold uppercase text-indigo-400 flex items-center gap-1.5 shrink-0">
+                  <Target className="w-4 h-4" />
                   <span>Exercícios:</span>
                 </span>
                 {exercises.map((ex, idx) => {
@@ -522,15 +504,15 @@ export const KeyboardCourseView: React.FC = () => {
                     <button
                       key={ex.id}
                       onClick={() => handleSelectExercise(idx)}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
                         isSel
                           ? 'bg-indigo-600 text-white border-indigo-400 shadow-sm'
-                          : 'bg-white/[0.02] hover:bg-white/[0.06] text-slate-400 hover:text-white border-white/5'
+                          : 'bg-white/[0.02] hover:bg-white/[0.06] text-slate-300 hover:text-white border-white/5'
                       }`}
                     >
-                      <span className={`w-1.5 h-1.5 rounded-full ${isDone ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+                      <span className={`w-2 h-2 rounded-full ${isDone ? 'bg-emerald-400' : 'bg-slate-500'}`} />
                       <span>{ex.title}</span>
-                      {isDone && <CheckCircle2 className="w-3 h-3 text-emerald-400" />}
+                      {isDone && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
                     </button>
                   );
                 })}
@@ -540,14 +522,14 @@ export const KeyboardCourseView: React.FC = () => {
               {currentExercise.accompanimentStyleId && (
                 <button
                   onClick={toggleAccompaniment}
-                  className={`px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer shrink-0 ${
+                  className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
                     isAccompanimentPlaying
                       ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 animate-pulse'
-                      : 'bg-white/5 text-slate-400 hover:text-white border-white/5'
+                      : 'bg-white/5 text-slate-300 hover:text-white border-white/5'
                   }`}
                   title="Tocar com estilo rítmico automático de acompanhamento"
                 >
-                  {isAccompanimentPlaying ? <Pause className="w-3 h-3 text-emerald-400" /> : <Play className="w-3 h-3 text-indigo-400" />}
+                  {isAccompanimentPlaying ? <Pause className="w-3.5 h-3.5 text-emerald-400" /> : <Play className="w-3.5 h-3.5 text-indigo-400" />}
                   <span>Acompanhamento</span>
                 </button>
               )}

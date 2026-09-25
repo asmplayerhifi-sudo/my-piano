@@ -10,7 +10,6 @@ import { octaveConfigStore, useOctaveStandard } from '../../core/octaveConfigSto
 import { LessonIllustration } from '../course/illustrations/LessonIllustration';
 import { IntervalLaboratory } from './IntervalLaboratory';
 import { CourseContextualHeader } from '../course/layout/CourseContextualHeader';
-import { CourseSubTabs } from '../course/layout/CourseSubTabs';
 import { CourseLearningTrailModal, type TrailModuleItem } from '../course/layout/CourseLearningTrailModal';
 import { CourseStatusBar } from '../course/layout/CourseStatusBar';
 import {
@@ -186,54 +185,35 @@ export const TheoryStudyAcademy: React.FC = () => {
 
   return (
     <div className="w-full flex-1 flex flex-col min-h-0 bg-[#060b13] rounded-2xl border border-white/5 shadow-2xl overflow-hidden">
-      {/* 1. HEADER CONTEXTUAL — até 36px */}
+      {/* HEADER DE CONTEXTO RESPONSIVO E UNIFICADO — Linha Única 44px (REQ-UI-LESSONHEADER-01) */}
       <CourseContextualHeader
         courseTitle={`Teoria & Harmonia • ${selectedModule.code}`}
         courseIcon="🎼"
         currentLessonCode={currentLessonCode}
         totalLessons={allLessons.length}
         completedLessonsCount={completedLessonIds.length}
+        lessonTitle={activeLesson.title}
+        lessonLevel={activeLesson.level}
         onOpenTrail={() => setIsTrailModalOpen(true)}
         onPrevLesson={handlePrevLesson}
         onNextLesson={handleNextLesson}
         hasPrevLesson={currentLessonIndex > 0}
         hasNextLesson={currentLessonIndex < allLessons.length - 1}
-        accentColor="cyan"
-      />
-
-      {/* 2. SUB-TABS — até 32px */}
-      <CourseSubTabs
-        lessonTitle={activeLesson.title}
-        lessonLevel={activeLesson.level}
         tabs={[
           {
             id: 'all',
             label: 'Estudo da Lição',
             shortLabel: 'Lição',
-            icon: <Sparkles className="w-3 h-3 text-cyan-400" />,
+            icon: <Sparkles className="w-3.5 h-3.5 text-cyan-400" />,
           },
           { id: 'theory', label: 'Teoria & Exercícios', shortLabel: 'Teoria' },
           { id: 'lab', label: 'Laboratório de Intervalos', shortLabel: 'Laboratório' },
         ]}
         activeTabId={academyTab}
         onSelectTab={(id) => setAcademyTab(id as any)}
+        isCompleted={isCurrentLessonCompleted}
+        onToggleComplete={() => handleToggleCompleteLesson(activeLesson.id)}
         accentColor="cyan"
-        rightSlot={
-          <button
-            onClick={() => handleToggleCompleteLesson(activeLesson.id)}
-            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
-              isCurrentLessonCompleted
-                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                : 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-sm'
-            }`}
-            title="Marcar lição como concluída"
-          >
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">
-              {isCurrentLessonCompleted ? 'Concluída' : 'Concluir'}
-            </span>
-          </button>
-        }
       />
 
       {/* 3. CONTEÚDO PRINCIPAL COM SUPORTE A GRID RESPONSIVO (>= 1280px 2 COLUNAS / < 1280px 1 COLUNA) */}
@@ -252,13 +232,13 @@ export const TheoryStudyAcademy: React.FC = () => {
                       <h3 className="font-black text-sm text-white tracking-wide">
                         TEORIA &amp; EXERCÍCIOS
                       </h3>
-                      <span className="text-[10px] font-mono text-cyan-300">
+                      <span className="text-xs font-mono text-cyan-300">
                         {activeLesson.subtitle || 'Fundamentos Harmônicos'}
                       </span>
                     </div>
                   </div>
-                  <span className="text-[11px] font-mono px-2.5 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/30 text-cyan-300 font-bold flex items-center gap-1">
-                    <Lightbulb className="w-3 h-3 text-cyan-400" />
+                  <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/30 text-cyan-300 font-bold flex items-center gap-1.5">
+                    <Lightbulb className="w-3.5 h-3.5 text-cyan-400" />
                     <span>LIÇÃO {currentLessonCode}</span>
                   </span>
                 </div>
@@ -272,7 +252,7 @@ export const TheoryStudyAcademy: React.FC = () => {
                   <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-sans">
                     {octaveConfigStore.formatNoteOctavesInText(activeLesson.summary, octaveStandard)}
                   </p>
-                  <div className="text-[11px] text-cyan-300 font-mono pt-1">
+                  <div className="text-xs text-cyan-300 font-mono pt-1">
                     <strong>💡 Conclusão Rápida:</strong>{' '}
                     {octaveConfigStore.formatNoteOctavesInText(activeLesson.keyTakeaway, octaveStandard)}
                   </div>
@@ -343,12 +323,12 @@ export const TheoryStudyAcademy: React.FC = () => {
                                 )}
                                 <span className="truncate">{ex.title}</span>
                               </div>
-                              <div className="text-[11px] text-slate-400 truncate">
+                              <div className="text-xs text-slate-400 truncate">
                                 {ex.description}
                               </div>
                             </div>
 
-                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-cyan-300 shrink-0">
+                            <span className="text-xs font-mono px-2 py-0.5 rounded bg-white/5 text-cyan-300 shrink-0 font-medium">
                               {ex.type === 'harmonic' ? 'Harmônico' : ex.type === 'cadence' ? 'Cadência' : 'Melodia'}
                             </span>
                           </button>
@@ -501,13 +481,13 @@ export const TheoryStudyAcademy: React.FC = () => {
                     <h3 className="font-black text-sm text-white tracking-wide">
                       TEORIA &amp; EXERCÍCIOS
                     </h3>
-                    <span className="text-[10px] font-mono text-cyan-300">
+                    <span className="text-xs font-mono text-cyan-300">
                       {activeLesson.subtitle || 'Fundamentos Harmônicos'}
                     </span>
                   </div>
                 </div>
-                <span className="text-[11px] font-mono px-2.5 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/30 text-cyan-300 font-bold flex items-center gap-1">
-                  <Lightbulb className="w-3 h-3 text-cyan-400" />
+                <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/30 text-cyan-300 font-bold flex items-center gap-1.5">
+                  <Lightbulb className="w-3.5 h-3.5 text-cyan-400" />
                   <span>LIÇÃO {currentLessonCode}</span>
                 </span>
               </div>
@@ -521,7 +501,7 @@ export const TheoryStudyAcademy: React.FC = () => {
                 <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-sans">
                   {octaveConfigStore.formatNoteOctavesInText(activeLesson.summary, octaveStandard)}
                 </p>
-                <div className="text-[11px] text-cyan-300 font-mono pt-1">
+                <div className="text-xs text-cyan-300 font-mono pt-1">
                   <strong>💡 Conclusão Rápida:</strong>{' '}
                   {octaveConfigStore.formatNoteOctavesInText(activeLesson.keyTakeaway, octaveStandard)}
                 </div>

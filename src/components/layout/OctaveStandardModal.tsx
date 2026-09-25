@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Check, Globe, Sparkles, Music2, ShieldCheck } from 'lucide-react';
 import { octaveConfigStore, useOctaveStandard, type OctaveStandard } from '../../core/octaveConfigStore';
 
@@ -10,16 +11,28 @@ interface Props {
 export const OctaveStandardModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const currentStandard = useOctaveStandard();
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleSelect = (std: OctaveStandard) => {
     octaveConfigStore.setStandard(std);
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fade-in select-none">
+  const modalContent = (
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fade-in select-none"
+      onClick={onClose}
+    >
       <div
-        className="relative w-full max-w-xl rounded-3xl bg-[#0b0a17] border border-white/10 shadow-2xl p-5 sm:p-7 space-y-5 overflow-hidden"
+        className="relative w-full max-w-xl max-h-[92vh] overflow-y-auto rounded-3xl bg-[#0b0a17] border border-white/10 shadow-2xl p-5 sm:p-7 space-y-5"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Glow de Fundo Decorativo */}
@@ -166,4 +179,8 @@ export const OctaveStandardModal: React.FC<Props> = ({ isOpen, onClose }) => {
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined'
+    ? createPortal(modalContent, document.body)
+    : modalContent;
 };

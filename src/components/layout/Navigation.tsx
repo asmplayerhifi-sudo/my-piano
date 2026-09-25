@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   GraduationCap,
   Guitar,
@@ -313,9 +314,15 @@ export const Navigation: React.FC<Props> = ({ activeTab, onSelectTab }) => {
       </nav>
 
       {/* Modal de Navegação Rápida com Categorias Claramente Divididas */}
-      {showGridModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-          <div className="bg-[#100f24] border border-white/15 rounded-3xl p-5 sm:p-6 w-full max-w-2xl shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+      {showGridModal && (typeof document !== 'undefined' ? createPortal(
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fade-in select-none"
+          onClick={() => setShowGridModal(false)}
+        >
+          <div
+            className="bg-[#100f24] border border-white/15 rounded-3xl p-5 sm:p-6 w-full max-w-2xl shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between pb-3 border-b border-white/10">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400">
@@ -465,8 +472,9 @@ export const Navigation: React.FC<Props> = ({ activeTab, onSelectTab }) => {
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div>,
+        document.body
+      ) : null)}
     </>
   );
 };
