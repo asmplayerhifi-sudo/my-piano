@@ -10,6 +10,8 @@
  */
 
 import type { RepertoireSong } from './repertoireData';
+import { WORLD_FOLK_SONGS } from './repertoireDataWorld';
+import { PSYCHEDELIC_ROCK_SONGS } from './repertoireDataPsych';
 
 export const EXTENDED_REPERTOIRE_SONGS: RepertoireSong[] = [
   // =========================================================================
@@ -725,4 +727,7 @@ export const EXTENDED_REPERTOIRE_SONGS: RepertoireSong[] = [
       { midi: 67, clef: 'treble', duration: 4, beat: 1, measure: 16, fingerRightHand: 5, noteName: 'G3' },
     ],
   },
+  ...WORLD_FOLK_SONGS,
+  ...PSYCHEDELIC_ROCK_SONGS,
 ];
+

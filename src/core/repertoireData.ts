@@ -1,4 +1,5 @@
 import type { ScoreNote } from './coursesData';
+import type { SongExtension } from './repertoireTypes';
 import { EXTENDED_REPERTOIRE_SONGS } from './repertoireDataExtended';
 
 export type SongGenre =
@@ -10,7 +11,9 @@ export type SongGenre =
   | 'Forró, Xote & Baião'
   | 'Seresta & Brega (Zezo dos Teclados)'
   | 'Gospel Clássico & Sacro'
-  | 'Infantis, Cirandas & Folclore';
+  | 'Infantis, Cirandas & Folclore'
+  | 'Internacional & Folk'
+  | 'Rock Psicodelico & Progressivo';
 
 export interface CategoryInfo {
   id: SongGenre | 'Todos';
@@ -102,6 +105,22 @@ export const REPERTOIRE_CATEGORIES: CategoryInfo[] = [
     badge: '4 Obras',
     description: 'Cirandas, cantigas de roda e temas tradicionais da cultura brasileira.',
   },
+  {
+    id: 'Internacional & Folk',
+    label: 'Internacional & Folk (Bella Ciao, El Cóndor Pasa & Tradição Mundial)',
+    shortLabel: 'Internacional & Folk',
+    iconName: 'Globe',
+    badge: '4 Obras',
+    description: 'Canções folk do mundo todo: Bella Ciao, Hasta Siempre, El Cóndor Pasa e Guantanamera.',
+  },
+  {
+    id: 'Rock Psicodelico & Progressivo',
+    label: 'Rock Psicodelico, Progressivo & Atmosférico (Original)',
+    shortLabel: 'Rock Prog & Psych',
+    iconName: 'Waves',
+    badge: '5 Obras',
+    description: 'Composições originais inspiradas no rock psicodelico/progressivo dos anos 60/70: arpejos, solos, camadas atmosféricas e estruturas progressivas.',
+  },
 ];
 
 export interface RepertoireSong {
@@ -118,6 +137,8 @@ export interface RepertoireSong {
   biomechanicsTip: string;
   chords: string[];
   scoreTrack: ScoreNote[];
+  /** Extensão opcional: letra, seções, arranjos, créditos e progressão harmônica */
+  extension?: SongExtension;
 }
 
 export const REPERTOIRE_SONGS: RepertoireSong[] = [
@@ -8381,3 +8402,5 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
 },
 ...EXTENDED_REPERTOIRE_SONGS,
 ];
+
+export { REPERTOIRE_SONGS as ALL_SONGS };
