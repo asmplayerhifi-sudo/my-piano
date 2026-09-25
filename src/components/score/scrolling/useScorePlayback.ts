@@ -8,6 +8,7 @@ import { useRef, useState, useCallback, useEffect } from 'react';
 import type { ScoreNote } from '../../../core/coursesData';
 import { getNoteInfo } from '../../../core/musicTheory';
 import { soundEngine } from '../../../core/soundEngine';
+import { NoteConfirmationValidator } from '../../../core/noteConfirmationValidator';
 import { EvaluateRhythmStrikeUseCase } from '../../../application/use-cases/EvaluateRhythmStrikeUseCase';
 import type { ChordSpan, ScoreErrorEvent } from './types';
 
@@ -99,6 +100,16 @@ export function useScorePlayback({
     }
   }, [currentIndex, notes]);
 
+  const currentIndexRef = useRef(currentIndex);
+  currentIndexRef.current = currentIndex;
+
+  const validatorRef = useRef(new NoteConfirmationValidator());
+
+  // Adapta parâmetros da janela de confirmação conforme o andamento e o instrumento
+  useEffect(() => {
+    validatorRef.current.adaptToTempoAndInstrument(tempo, instrument);
+  }, [tempo, instrument]);
+
   // Limpa o estado visual de erro após 1.4s de inatividade
   useEffect(() => {
     if (!lastError) return;
@@ -129,6 +140,7 @@ export function useScorePlayback({
     playedChordsRef.current.clear();
     playedBeatsRef.current.clear();
     isPausedWaitingRef.current = false;
+    validatorRef.current.reset();
   };
 
   const processStrike = useCallback((diffMs: number, noteIndex: number) => {
@@ -170,8 +182,12 @@ export function useScorePlayback({
     const targetNote = notes[currentIndex];
     if (!targetNote) return;
 
-    // Se for toque rítmico genérico (-1) ou a nota correta
+    const nextNote = notes[currentIndex + 1] || null;
+    const now = performance.now();
+
+    // 1. Acerto Imediato (Zero Latência): Toque rítmico genérico (-1) ou a nota correta
     if (rawMidi === -1 || targetNote.midi === rawMidi) {
+      validatorRef.current.onNoteCompleted(targetNote.midi, now);
       setLastError(null);
       const noteOffset = timeline.noteOffsets[currentIndex] ?? 0;
       const currentBeat = scrollOffsetRef.current / pixelsPerBeat;
@@ -184,22 +200,58 @@ export function useScorePlayback({
       } else {
         soundEngine.playPianoNote(targetNote.midi, 1.2);
       }
-    } else {
-      // ✕ Nota tocada incorreta: registra o erro, marca em vermelho e notifica
-      const err: ScoreErrorEvent = {
-        playedMidi: rawMidi,
-        expectedMidi: targetNote.midi,
-        timestamp: performance.now(),
-      };
-      setLastError(err);
-      const playedInfo = getNoteInfo(rawMidi);
-      const targetInfo = getNoteInfo(targetNote.midi);
-      setFeedback({
-        text: `✕ NOTA ERRADA: Tocou ${playedInfo.name}${playedInfo.octave} (Esperada: ${targetInfo.name}${targetInfo.octave})`,
-        color: 'text-rose-400',
-      });
-      onNoteErrorRef.current?.(err);
+      return;
     }
+
+    // 2. Transição Antecipada: Usuário tocou a próxima nota da partitura
+    if (nextNote && nextNote.midi === rawMidi) {
+      validatorRef.current.onNoteCompleted(nextNote.midi, now);
+      setLastError(null);
+      const nextIdx = currentIndex + 1;
+      const noteOffset = timeline.noteOffsets[nextIdx] ?? 0;
+      const currentBeat = scrollOffsetRef.current / pixelsPerBeat;
+      const diffMs = (currentBeat - noteOffset) * ((60 / tempo) * 1000);
+      processStrike(diffMs, nextIdx);
+
+      if (instrument === 'guitar') {
+        soundEngine.playGuitarPluck(nextNote.midi, 1.2);
+      } else {
+        soundEngine.playPianoNote(nextNote.midi, 1.2);
+      }
+      return;
+    }
+
+    // 3. Tolerância de Sustain: Decaimento acústico da nota anterior ainda ressoando
+    if (validatorRef.current.isPreviousSustain(rawMidi, now)) {
+      // Ignora silenciosamente resíduo acústico da nota anterior
+      return;
+    }
+
+    // 4. Janela de Confirmação de Erro (Anti-Falsos Erros):
+    // Não classifica prematuramente como erro durante transições ou ruídos.
+    // Agenda janela de estabilização; se a nota correta for executada antes do estouro, cancela o erro.
+    const candidateMidi = rawMidi;
+    const expectedMidi = targetNote.midi;
+
+    validatorRef.current.schedulePendingError(candidateMidi, expectedMidi, (errPayload) => {
+      // Confirma o erro apenas se o alvo atual ainda for o mesmo (não acertou nem avançou no intervalo)
+      const currentTarget = notes[currentIndexRef.current];
+      if (currentTarget && currentTarget.midi === errPayload.expectedMidi) {
+        const err: ScoreErrorEvent = {
+          playedMidi: errPayload.playedMidi,
+          expectedMidi: errPayload.expectedMidi,
+          timestamp: errPayload.timestamp,
+        };
+        setLastError(err);
+        const playedInfo = getNoteInfo(errPayload.playedMidi);
+        const targetInfo = getNoteInfo(errPayload.expectedMidi);
+        setFeedback({
+          text: `✕ NOTA ERRADA: Tocou ${playedInfo.name}${playedInfo.octave} (Esperada: ${targetInfo.name}${targetInfo.octave})`,
+          color: 'text-rose-400',
+        });
+        onNoteErrorRef.current?.(err);
+      }
+    });
   }, [currentMidiPressed, currentIndex, notes, timeline, tempo, isDemoMode, processStrike, pixelsPerBeat, instrument]);
 
   return {

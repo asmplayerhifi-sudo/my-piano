@@ -29,7 +29,7 @@ export function midiToNoteName(midi: number, standard?: OctaveStandard): string 
 export function detectPitchFromBuffer(
   buf: Float32Array<ArrayBufferLike>,
   sampleRate: number,
-  minRmsThreshold = 0.015
+  minRmsThreshold = 0.008
 ): { freq: number; clarity: number; rms: number } | null {
   // 1. Calcula volume RMS
   let sum = 0;
@@ -41,8 +41,8 @@ export function detectPitchFromBuffer(
     return null; // Silêncio ou ruído de fundo
   }
 
-  // 2. Limita busca para frequências musicais (50 Hz a 2100 Hz)
-  const minPeriod = Math.floor(sampleRate / 2100);
+  // 2. Limita busca para frequências musicais do piano e violão (50 Hz a 2200 Hz)
+  const minPeriod = Math.max(2, Math.floor(sampleRate / 2200));
   const maxPeriod = Math.min(Math.floor(sampleRate / 50), Math.floor(buf.length / 2));
 
   const correlations = new Float32Array(maxPeriod + 2);
@@ -74,29 +74,43 @@ export function detectPitchFromBuffer(
     }
   }
 
-  if (globalMax < 0.65 || globalMaxPeriod === 0) {
+  // Limiar de clareza acessível para microfones reais de notebooks e smartphones
+  if (globalMax < 0.45 || globalMaxPeriod === 0) {
     return null; // Clareza insuficiente
   }
 
-  // 3. Supressão de Erro de Oitava / Sub-harmônicos (Octave Drop Protection)
-  // Procura o primeiro pico local que atinja o limiar de aceitação (82% do globalMax)
+  // 3. Supressão de Erro de Sub-harmônico / Octave Drop:
+  // Se globalMaxPeriod for um múltiplo de T0 (2*T0, 3*T0 ou 4*T0),
+  // deve existir um pico forte de autocorrelação próximo a globalMaxPeriod / k.
   let chosenPeriod = globalMaxPeriod;
-  const peakThreshold = Math.max(0.60, globalMax * 0.82);
 
-  for (let p = minPeriod + 1; p < maxPeriod; p++) {
-    if (correlations[p] > correlations[p - 1] && correlations[p] >= correlations[p + 1]) {
-      if (correlations[p] >= peakThreshold) {
-        const ratio = globalMaxPeriod / p;
-        const nearestInt = Math.round(ratio);
-        if (nearestInt >= 1 && Math.abs(ratio - nearestInt) < 0.15) {
-          chosenPeriod = p;
-          break; // O primeiro pico local representativo é a frequência fundamental verdadeira!
-        }
+  // Testa divisores k = 4, 3, 2 (do menor período / maior frequência para o maior)
+  for (const divisor of [4, 3, 2]) {
+    const candidateP = Math.round(globalMaxPeriod / divisor);
+    if (candidateP < minPeriod) continue;
+
+    // Busca o pico local mais próximo em uma janela estreita de ±3 amostras em torno de candidateP
+    let localPeakP = candidateP;
+    let localPeakCorr = -1;
+    const searchStart = Math.max(minPeriod, candidateP - 3);
+    const searchEnd = Math.min(maxPeriod, candidateP + 3);
+
+    for (let p = searchStart; p <= searchEnd; p++) {
+      if (correlations[p] > localPeakCorr) {
+        localPeakCorr = correlations[p];
+        localPeakP = p;
       }
+    }
+
+    // Se o pico nessa sub-harmônica atinge pelo menos 82% da correlação máxima global e correlação >= 0.45,
+    // a frequência fundamental verdadeira é candidateP (oitava acima), não a sub-harmônica globalMaxPeriod!
+    if (localPeakCorr >= Math.max(0.45, globalMax * 0.82)) {
+      chosenPeriod = localPeakP;
+      break;
     }
   }
 
-  // 4. Interpolação parabólica refinada em torno de chosenPeriod para frequência precisa
+  // 4. Interpolação parabólica refinada em torno de chosenPeriod para frequência contínua precisa
   let refinedPeriod = chosenPeriod;
   if (chosenPeriod > minPeriod && chosenPeriod < maxPeriod) {
     const alpha = correlations[chosenPeriod - 1];
@@ -105,7 +119,9 @@ export function detectPitchFromBuffer(
     const denom = 2 * (2 * beta - alpha - gamma);
     if (Math.abs(denom) > 1e-6) {
       const delta = (gamma - alpha) / denom;
-      refinedPeriod = chosenPeriod + delta;
+      if (Math.abs(delta) <= 1) {
+        refinedPeriod = chosenPeriod + delta;
+      }
     }
   }
 

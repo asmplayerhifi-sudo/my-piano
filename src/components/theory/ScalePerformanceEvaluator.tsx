@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import type { ScaleDefinition, ComputedScaleNote } from '../../core/scaleData';
 import { micPitchDetector, type DetectedPitch } from '../../core/pitchDetector';
+import { NoteConfirmationValidator } from '../../core/noteConfirmationValidator';
 import { soundEngine } from '../../core/soundEngine';
 import {
   Mic,
@@ -122,6 +123,8 @@ export const ScalePerformanceEvaluator: React.FC<Props> = ({
   const mistakeCountRef = useRef(mistakeCount);
   mistakeCountRef.current = mistakeCount;
 
+  const validatorRef = useRef(new NoteConfirmationValidator({ confirmationWindowMs: 280, sustainDecayWindowMs: 650 }));
+
   // Finaliza a avaliação da escala com cálculo de nota e feedback
   const finishEvaluation = useCallback((totalMistakes: number, startedAt: number | null) => {
     const elapsed = startedAt ? (performance.now() - startedAt) / 1000 : 8;
@@ -185,10 +188,14 @@ export const ScalePerformanceEvaluator: React.FC<Props> = ({
         const target = seq[currentIdx];
         if (!target) return;
 
+        const nextTarget = seq[currentIdx + 1];
         const targetPitchClass = ((target.midi % 12) + 12) % 12;
+        const nextPitchClass = nextTarget ? ((nextTarget.midi % 12) + 12) % 12 : -1;
+        const now = performance.now();
 
+        // 1. ACERTO IMEDIATO (Zero Latência)
         if (detectedPitchClass === targetPitchClass) {
-          // ACERTO!
+          validatorRef.current.onNoteCompleted(detectedMidi, now);
           const nextIdx = currentIdx + 1;
           setCompletedIndices((prev) => (prev.includes(currentIdx) ? prev : [...prev, currentIdx]));
           setCurrentTargetIndex(nextIdx);
@@ -208,20 +215,54 @@ export const ScalePerformanceEvaluator: React.FC<Props> = ({
           if (nextIdx >= seq.length) {
             finishEvaluation(mistakeCountRef.current, startTimeRef.current);
           }
-        } else {
-          // NOTA INCORRETA OU FORA DA SEQUÊNCIA
-          setMistakeCount((prev) => {
-            const nextVal = prev + 1;
-            mistakeCountRef.current = nextVal;
-            return nextVal;
-          });
+          return;
+        }
+
+        // 2. Transição antecipada para a próxima nota da sequência
+        if (nextPitchClass !== -1 && detectedPitchClass === nextPitchClass) {
+          validatorRef.current.onNoteCompleted(detectedMidi, now);
+          const nextIdx = currentIdx + 2;
+          setCompletedIndices((prev) => [...prev, currentIdx, currentIdx + 1]);
+          setCurrentTargetIndex(nextIdx);
 
           setLastFeedback({
-            type: 'error',
-            message: `Nota detectada: ${cleanNoteName} — Esperado: ${target.note} (${target.notePt})`,
+            type: 'success',
+            message: `Correto! ${nextTarget.note} (${nextTarget.notePt}) executada.`,
             detectedNote: noteNameWithOctave,
           });
+
+          soundEngine.ensureAudioReady().then(() => {
+            soundEngine.playPianoNote(nextTarget.midi, 0.35, undefined, 0.5);
+          });
+
+          if (nextIdx >= seq.length) {
+            finishEvaluation(mistakeCountRef.current, startTimeRef.current);
+          }
+          return;
         }
+
+        // 3. Tolerância de Sustain: Decaimento da nota anterior
+        if (validatorRef.current.isPreviousSustain(detectedMidi, now)) {
+          return;
+        }
+
+        // 4. Janela de Confirmação de Erro (Anti-Falsos Erros)
+        validatorRef.current.schedulePendingError(detectedMidi, target.midi, () => {
+          if (currentTargetIndexRef.current === currentIdx && !isCompletedRef.current) {
+            setMistakeCount((prev) => {
+              const nextVal = prev + 1;
+              mistakeCountRef.current = nextVal;
+              return nextVal;
+            });
+
+            setLastFeedback({
+              type: 'error',
+              message: `Nota detectada: ${cleanNoteName} — Esperado: ${target.note} (${target.notePt})`,
+              detectedNote: noteNameWithOctave,
+            });
+          }
+        });
+        return;
       }
 
       // =========================================================================
@@ -305,6 +346,7 @@ export const ScalePerformanceEvaluator: React.FC<Props> = ({
       lastDetectedNote: null,
       isInScale: null,
     });
+    validatorRef.current.reset();
   };
 
   // Quando a escala ou tom muda, reseta o progresso

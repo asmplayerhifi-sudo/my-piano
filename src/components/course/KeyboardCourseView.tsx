@@ -167,17 +167,7 @@ export const KeyboardCourseView: React.FC = () => {
 
   const handleNoteInput = useCallback((midi: number) => {
     setLastMidiEvent({ midi, timestamp: performance.now() });
-    if (targetScoreNote) {
-      if (targetScoreNote.midi === midi) {
-        setCorrectMidiNotes([midi]);
-        setErrorMidiNotes([]);
-        setTimeout(() => setCorrectMidiNotes([]), 600);
-      } else {
-        setErrorMidiNotes([midi]);
-        setTimeout(() => setErrorMidiNotes([]), 1400);
-      }
-    }
-  }, [targetScoreNote]);
+  }, []);
 
   const handleTargetNoteChange = useCallback((note: ScoreNote | null) => {
     setTargetScoreNote(prev => {
