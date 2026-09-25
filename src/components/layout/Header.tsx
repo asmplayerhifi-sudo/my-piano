@@ -4,11 +4,16 @@ import { soundEngine } from '../../core/soundEngine';
 import { latencyManager } from '../../core/latencyManager';
 import { LatencyWizardModal } from '../rhythm/LatencyWizardModal';
 
+import { useOctaveStandard } from '../../core/octaveConfigStore';
+import { OctaveStandardModal } from './OctaveStandardModal';
+
 export const Header: React.FC = () => {
   const [volume, setVolume] = useState<number>(soundEngine.getVolume());
   const [isMuted, setIsMuted] = useState<boolean>(soundEngine.isSoundMuted());
   const [showLatencyModal, setShowLatencyModal] = useState<boolean>(false);
+  const [showOctaveModal, setShowOctaveModal] = useState<boolean>(false);
   const [currentOffset, setCurrentOffset] = useState<number>(latencyManager.getOffsetMs());
+  const octaveStandard = useOctaveStandard();
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value);
@@ -45,6 +50,23 @@ export const Header: React.FC = () => {
 
         {/* Action Controls */}
         <div className="flex items-center gap-2 sm:gap-4">
+          {/* Seletor de Nomenclatura do Dó Central (C3 Brasil / C4 Internacional) */}
+          <button
+            onClick={() => setShowOctaveModal(true)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-slate-200 hover:text-white transition-all cursor-pointer group"
+            title="Escolha entre o padrão C3 (Brasil / Roland / Yamaha) ou C4 (Internacional / SPN) para o Dó Central"
+          >
+            <span className="text-sm">{octaveStandard === 'C3' ? '🇧🇷' : '🌐'}</span>
+            <span className="hidden sm:inline text-slate-300">Dó Central:</span>
+            <span className={`font-mono font-bold px-1.5 py-0.2 rounded-md ${
+              octaveStandard === 'C3'
+                ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+            }`}>
+              {octaveStandard === 'C3' ? 'C3 (Brasil)' : 'C4 (Intl)'}
+            </span>
+          </button>
+
           {/* Latency Calibration Button */}
           <button
             onClick={() => setShowLatencyModal(true)}
@@ -92,6 +114,12 @@ export const Header: React.FC = () => {
         isOpen={showLatencyModal}
         onClose={() => setShowLatencyModal(false)}
         onCalibrated={(newOffset) => setCurrentOffset(newOffset)}
+      />
+
+      {/* Octave Standard Modal */}
+      <OctaveStandardModal
+        isOpen={showOctaveModal}
+        onClose={() => setShowOctaveModal(false)}
       />
     </>
   );

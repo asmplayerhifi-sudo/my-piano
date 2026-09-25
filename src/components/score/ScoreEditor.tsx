@@ -6,6 +6,8 @@ import React, {
   useMemo,
 } from 'react';
 import { soundEngine } from '../../core/soundEngine';
+import { getNoteInfo } from '../../core/musicTheory';
+import { octaveConfigStore, useOctaveStandard, type OctaveStandard } from '../../core/octaveConfigStore';
 import { TimbreSelector } from '../audio/TimbreSelector';
 import {
   Play, Pause, Square, Plus, Trash2, Download,
@@ -41,73 +43,37 @@ interface ScoreProject {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// Constantes Musicais
+// Constantes Musicais Dinâmicas (Aderentes ao padrão C3 Brasil ou C4 Internacional)
 // ────────────────────────────────────────────────────────────────────────────
 
-const TREBLE_NOTES: { midi: number; name: string; label: string }[] = [
-  { midi: 93, name: 'A5', label: 'Lá5' },
-  { midi: 92, name: 'G#5', label: 'Sol♯5' },
-  { midi: 91, name: 'G5', label: 'Sol5' },
-  { midi: 90, name: 'F#5', label: 'Fá♯5' },
-  { midi: 89, name: 'F5', label: 'Fá5' },
-  { midi: 88, name: 'E5', label: 'Mi5' },
-  { midi: 87, name: 'D#5', label: 'Ré♯5' },
-  { midi: 86, name: 'D5', label: 'Ré5' },
-  { midi: 85, name: 'C#5', label: 'Dó♯5' },
-  { midi: 84, name: 'C5', label: 'Dó5' },
-  { midi: 83, name: 'B4', label: 'Si4' },
-  { midi: 82, name: 'A#4', label: 'Lá♯4' },
-  { midi: 81, name: 'A4', label: 'Lá4' },
-  { midi: 80, name: 'G#4', label: 'Sol♯4' },
-  { midi: 79, name: 'G4', label: 'Sol4' },
-  { midi: 78, name: 'F#4', label: 'Fá♯4' },
-  { midi: 77, name: 'F4', label: 'Fá4' },
-  { midi: 76, name: 'E4', label: 'Mi4' },
-  { midi: 75, name: 'D#4', label: 'Ré♯4' },
-  { midi: 74, name: 'D4', label: 'Ré4' },
-  { midi: 73, name: 'C#4', label: 'Dó♯4' },
-  { midi: 72, name: 'C4', label: 'Dó4' },
-  { midi: 71, name: 'B3', label: 'Si3' },
-  { midi: 70, name: 'A#3', label: 'Lá♯3' },
-  { midi: 69, name: 'A3', label: 'Lá3 (A440)' },
-  { midi: 68, name: 'G#3', label: 'Sol♯3' },
-  { midi: 67, name: 'G3', label: 'Sol3' },
-  { midi: 66, name: 'F#3', label: 'Fá♯3' },
-  { midi: 65, name: 'F3', label: 'Fá3' },
-  { midi: 64, name: 'E3', label: 'Mi3' },
-  { midi: 63, name: 'D#3', label: 'Ré♯3' },
-  { midi: 62, name: 'D3', label: 'Ré3' },
-  { midi: 61, name: 'C#3', label: 'Dó♯3' },
-  { midi: 60, name: 'C3', label: 'Dó3 (Central)' },
-];
+function getTrebleNotes(standard: OctaveStandard): { midi: number; name: string; label: string }[] {
+  const TREBLE_MIDIS = [
+    93, 92, 91, 90, 89, 88, 87, 86, 85, 84, 83, 82, 81, 80, 79, 78,
+    77, 76, 75, 74, 73, 72, 71, 70, 69, 68, 67, 66, 65, 64, 63, 62, 61, 60
+  ];
+  return TREBLE_MIDIS.map(midi => {
+    const info = getNoteInfo(midi, false, standard);
+    let label = info.namePt || info.fullName;
+    if (midi === 60) label = `Dó${info.octave} (Central)`;
+    else if (midi === 69) label = `Lá${info.octave} (A440)`;
+    return { midi, name: info.fullName, label };
+  });
+}
 
-const BASS_NOTES: { midi: number; name: string; label: string }[] = [
-  { midi: 60, name: 'C3', label: 'Dó3 (Central)' },
-  { midi: 59, name: 'B2', label: 'Si2' },
-  { midi: 58, name: 'A#2', label: 'Lá♯2' },
-  { midi: 57, name: 'A2', label: 'Lá2' },
-  { midi: 56, name: 'G#2', label: 'Sol♯2' },
-  { midi: 55, name: 'G2', label: 'Sol2' },
-  { midi: 54, name: 'F#2', label: 'Fá♯2' },
-  { midi: 53, name: 'F2', label: 'Fá2' },
-  { midi: 52, name: 'E2', label: 'Mi2' },
-  { midi: 51, name: 'D#2', label: 'Ré♯2' },
-  { midi: 50, name: 'D2', label: 'Ré2' },
-  { midi: 49, name: 'C#2', label: 'Dó♯2' },
-  { midi: 48, name: 'C2', label: 'Dó2 (Grave)' },
-  { midi: 47, name: 'B1', label: 'Si1' },
-  { midi: 46, name: 'A#1', label: 'Lá♯1' },
-  { midi: 45, name: 'A1', label: 'Lá1' },
-  { midi: 44, name: 'G#1', label: 'Sol♯1' },
-  { midi: 43, name: 'G1', label: 'Sol1' },
-  { midi: 42, name: 'F#1', label: 'Fá♯1' },
-  { midi: 41, name: 'F1', label: 'Fá1' },
-  { midi: 40, name: 'E1', label: 'Mi1' },
-  { midi: 39, name: 'D#1', label: 'Ré♯1' },
-  { midi: 38, name: 'D1', label: 'Ré1' },
-  { midi: 37, name: 'C#1', label: 'Dó♯1' },
-  { midi: 36, name: 'C1', label: 'Dó1 (Muito Grave)' },
-];
+function getBassNotes(standard: OctaveStandard): { midi: number; name: string; label: string }[] {
+  const BASS_MIDIS = [
+    60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45,
+    44, 43, 42, 41, 40, 39, 38, 37, 36
+  ];
+  return BASS_MIDIS.map(midi => {
+    const info = getNoteInfo(midi, false, standard);
+    let label = info.namePt || info.fullName;
+    if (midi === 60) label = `Dó${info.octave} (Central)`;
+    else if (midi === 48) label = `Dó${info.octave} (Grave)`;
+    else if (midi === 36) label = `Dó${info.octave} (Muito Grave)`;
+    return { midi, name: info.fullName, label };
+  });
+}
 
 const DURATION_OPTIONS: { value: NoteDuration; label: string; symbol: string; beats: number }[] = [
   { value: 4,    label: 'Semibreve',  symbol: '𝅝',  beats: 4 },
@@ -117,16 +83,23 @@ const DURATION_OPTIONS: { value: NoteDuration; label: string; symbol: string; be
   { value: 0.25, label: 'Semicolcheia', symbol: '𝅘𝅥𝅯', beats: 0.25 },
 ];
 
-const QUICK_TRIADS = [
-  { name: 'C', label: 'Dó Maior', notes: [{ midi: 60, name: 'C3' }, { midi: 64, name: 'E3' }, { midi: 67, name: 'G3' }] },
-  { name: 'Dm', label: 'Ré Menor', notes: [{ midi: 62, name: 'D3' }, { midi: 65, name: 'F3' }, { midi: 69, name: 'A3' }] },
-  { name: 'Em', label: 'Mi Menor', notes: [{ midi: 64, name: 'E3' }, { midi: 67, name: 'G3' }, { midi: 71, name: 'B3' }] },
-  { name: 'F', label: 'Fá Maior', notes: [{ midi: 65, name: 'F3' }, { midi: 69, name: 'A3' }, { midi: 72, name: 'C4' }] },
-  { name: 'G', label: 'Sol Maior', notes: [{ midi: 67, name: 'G3' }, { midi: 71, name: 'B3' }, { midi: 74, name: 'D4' }] },
-  { name: 'Am', label: 'Lá Menor', notes: [{ midi: 69, name: 'A3' }, { midi: 72, name: 'C4' }, { midi: 76, name: 'E4' }] },
-  { name: 'Bdim', label: 'Si Dim', notes: [{ midi: 71, name: 'B3' }, { midi: 74, name: 'D4' }, { midi: 77, name: 'F4' }] },
-  { name: 'G7', label: 'Sol 7ª', notes: [{ midi: 67, name: 'G3' }, { midi: 71, name: 'B3' }, { midi: 74, name: 'D4' }, { midi: 77, name: 'F4' }] },
-];
+function getQuickTriads(standard: OctaveStandard): { name: string; label: string; notes: { midi: number; name: string }[] }[] {
+  const BASE_TRIADS = [
+    { name: 'C', label: 'Dó Maior', midis: [60, 64, 67] },
+    { name: 'Dm', label: 'Ré Menor', midis: [62, 65, 69] },
+    { name: 'Em', label: 'Mi Menor', midis: [64, 67, 71] },
+    { name: 'F', label: 'Fá Maior', midis: [65, 69, 72] },
+    { name: 'G', label: 'Sol Maior', midis: [67, 71, 74] },
+    { name: 'Am', label: 'Lá Menor', midis: [69, 72, 76] },
+    { name: 'Bdim', label: 'Si Dim', midis: [71, 74, 77] },
+    { name: 'G7', label: 'Sol 7ª', midis: [67, 71, 74, 77] },
+  ];
+  return BASE_TRIADS.map(t => ({
+    name: t.name,
+    label: t.label,
+    notes: t.midis.map(m => ({ midi: m, name: getNoteInfo(m, false, standard).fullName })),
+  }));
+}
 
 // ────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -288,17 +261,19 @@ const NoteGrid: React.FC<NoteGridProps> = ({
     }
   }, [playheadBeat]);
 
+  const octaveStandard = useOctaveStandard();
+
   const allNoteRows = useMemo(() => {
     const seen = new Set<number>();
     const list: { midi: number; name: string; label: string }[] = [];
-    [...TREBLE_NOTES, ...BASS_NOTES].forEach(n => {
+    [...getTrebleNotes(octaveStandard), ...getBassNotes(octaveStandard)].forEach(n => {
       if (!seen.has(n.midi)) {
         seen.add(n.midi);
         list.push(n);
       }
     });
     return list;
-  }, []);
+  }, [octaveStandard]);
   const totalBeats = totalMeasures * beatsPerMeasure;
 
   return (
@@ -400,7 +375,7 @@ const NoteGrid: React.FC<NoteGridProps> = ({
                         key={note.id}
                         onClick={(e) => { e.stopPropagation(); onSelectNote(note.id); }}
                         onDoubleClick={(e) => { e.stopPropagation(); onDeleteNote(note.id); }}
-                        title={`${note.noteName} — ${note.duration} beat(s) | Duplo clique para remover`}
+                        title={`${getNoteInfo(note.midi, false, octaveStandard).fullName} — ${note.duration} beat(s) | Duplo clique para remover`}
                         className={`absolute top-1 cursor-pointer rounded flex items-center justify-center transition-all
                           ${isSelected
                             ? 'ring-2 ring-white/80 z-10'
@@ -787,7 +762,11 @@ export const ScoreEditor: React.FC = () => {
     return () => window.removeEventListener('keydown', handler);
   }, [undo, redo, saveToLocalStorage, selectedNoteId, deleteSelectedNote, togglePlayback]);
 
-  const noteRows = selectedClef === 'treble' ? TREBLE_NOTES : BASS_NOTES;
+  const octaveStandard = useOctaveStandard();
+  const trebleNotes = useMemo(() => getTrebleNotes(octaveStandard), [octaveStandard]);
+  const bassNotes = useMemo(() => getBassNotes(octaveStandard), [octaveStandard]);
+  const quickTriads = useMemo(() => getQuickTriads(octaveStandard), [octaveStandard]);
+  const noteRows = selectedClef === 'treble' ? trebleNotes : bassNotes;
 
   return (
     <div className="w-full space-y-5" onClick={() => setSelectedNoteId(null)}>
@@ -1031,7 +1010,7 @@ export const ScoreEditor: React.FC = () => {
         {/* Tríades Rápidas */}
         <div className="hidden md:flex items-center gap-1 bg-[#0a091e] rounded-xl p-1 border border-white/8 text-xs">
           <span className="text-[10px] text-slate-400 font-bold px-1.5 font-mono">Tríades:</span>
-          {QUICK_TRIADS.map(triad => (
+          {quickTriads.map(triad => (
             <button
               key={triad.name}
               onClick={() => insertTriadChord(triad.notes)}
@@ -1102,8 +1081,12 @@ export const ScoreEditor: React.FC = () => {
             <Plus className="w-4 h-4 text-violet-400" />
             <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
               <span>Inserir Nota — {selectedClef === 'treble' ? '𝄞 Clave de Sol' : '𝄢 Clave de Fá'}</span>
-              <span className="text-[10px] font-normal text-indigo-300 bg-indigo-500/15 px-2 py-0.5 rounded-full border border-indigo-500/30">
-                Dó Central = C3 (MIDI 60)
+              <span
+                onClick={octaveConfigStore.toggleStandard}
+                title="Clique para alternar entre os padrões C3 (Brasil) e C4 (Internacional)"
+                className="text-[10px] font-bold text-indigo-300 bg-indigo-500/15 hover:bg-indigo-500/25 px-2 py-0.5 rounded-full border border-indigo-500/30 transition-all cursor-pointer"
+              >
+                Dó Central = {octaveStandard === 'C4' ? 'C4' : 'C3'} (MIDI 60)
               </span>
             </span>
           </div>

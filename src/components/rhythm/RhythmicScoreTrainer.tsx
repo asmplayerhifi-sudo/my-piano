@@ -3,6 +3,7 @@ import { RHYTHM_EXERCISES } from '../../core/rhythmExercisesData';
 import { ScrollingScoreCanvas } from '../score/ScrollingScoreCanvas';
 import { soundEngine } from '../../core/soundEngine';
 import { latencyManager } from '../../core/latencyManager';
+import { useOctaveStandard, octaveConfigStore } from '../../core/octaveConfigStore';
 import {
   Volume2,
   Square,
@@ -27,6 +28,7 @@ export const RhythmicScoreTrainer: React.FC<Props> = ({
   globalBpm,
   onBpmChange,
 }) => {
+  const octaveStandard = useOctaveStandard();
   // 1. Estado de Instrumento e Exercício
   const [instrument, setInstrument] = useState<'keyboard' | 'guitar'>(initialInstrument);
   const filteredExercises = RHYTHM_EXERCISES.filter(ex => ex.instrument === instrument);
@@ -242,7 +244,9 @@ export const RhythmicScoreTrainer: React.FC<Props> = ({
                   </div>
 
                   <h4 className="text-sm font-bold text-white leading-snug line-clamp-1">{ex.title}</h4>
-                  <p className="text-[11px] text-slate-400 mt-1 line-clamp-2">{ex.subtitle}</p>
+                  <p className="text-[11px] text-slate-400 mt-1 line-clamp-2">
+                    {octaveConfigStore.formatNoteOctavesInText(ex.subtitle, octaveStandard)}
+                  </p>
                 </div>
 
                 <div className="mt-3 pt-2.5 border-t border-white/5 flex items-center justify-between text-[11px] text-slate-400 font-mono">
@@ -475,7 +479,7 @@ export const RhythmicScoreTrainer: React.FC<Props> = ({
             <span>Foco Pedagógico &amp; Métrica</span>
           </div>
           <p className="text-xs text-slate-300 leading-relaxed">
-            {currentExercise.pedagogicalFocus}
+            {octaveConfigStore.formatNoteOctavesInText(currentExercise.pedagogicalFocus, octaveStandard)}
           </p>
           {currentExercise.chordsSummary && (
             <div className="mt-3 pt-2 border-t border-white/5 flex items-center gap-2 text-xs">
@@ -494,7 +498,9 @@ export const RhythmicScoreTrainer: React.FC<Props> = ({
           </div>
           <ul className="text-xs text-slate-300 space-y-1.5 list-disc list-inside">
             {currentExercise.techniqueTips.map((tip, idx) => (
-              <li key={idx} className="leading-snug">{tip}</li>
+              <li key={idx} className="leading-snug">
+                {octaveConfigStore.formatNoteOctavesInText(tip, octaveStandard)}
+              </li>
             ))}
           </ul>
         </div>

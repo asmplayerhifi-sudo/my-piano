@@ -8,6 +8,7 @@ import { MicrophonePitchBar } from '../audio/MicrophonePitchBar';
 import { RepertoireCatalogModal } from './RepertoireCatalogModal';
 import { TimbreSelector } from '../audio/TimbreSelector';
 import { soundEngine } from '../../core/soundEngine';
+import { useOctaveStandard, octaveConfigStore } from '../../core/octaveConfigStore';
 import {
   Music,
   Play,
@@ -56,6 +57,7 @@ export const RepertoireView: React.FC = () => {
   const [isFullscreenStage, setIsFullscreenStage] = useState<boolean>(false);
   // Sustain: true = nota sustentada até o próximo evento (legato); false = staccato (~40% da duração)
   const [sustainMode, setSustainMode] = useState<boolean>(true);
+  const octaveStandard = useOctaveStandard();
 
   const toggleFullscreenStage = () => {
     if (!isFullscreenStage) {
@@ -174,10 +176,10 @@ export const RepertoireView: React.FC = () => {
       finger: f,
       label: `${f}`,
       fingerName: names[f] || `D${f}`,
-      noteName: currentSongTargetNote.noteName,
+      noteName: octaveConfigStore.midiToNoteName(currentSongTargetNote.midi, octaveStandard),
       color: colors[f] || '#38bdf8',
     };
-  }, [currentSongTargetNote]);
+  }, [currentSongTargetNote, octaveStandard]);
 
   // Motor de Reprodução em Áudio Fiel à Partitura (Polifonia, Baixo e Melodia Sincronizados)
   const playNextNote = (noteIndex: number) => {
@@ -476,7 +478,7 @@ export const RepertoireView: React.FC = () => {
             <span>Contexto Histórico:</span>
           </span>
           <p className="text-slate-400 text-[11px] leading-relaxed line-clamp-2">
-            {activeSong.historicalContext}
+            {octaveConfigStore.formatNoteOctavesInText(activeSong.historicalContext, octaveStandard)}
           </p>
         </div>
 
@@ -486,7 +488,7 @@ export const RepertoireView: React.FC = () => {
             <span>Dica de Biomecânica:</span>
           </span>
           <p className="text-slate-300 text-[11px] leading-relaxed line-clamp-2">
-            {activeSong.biomechanicsTip}
+            {octaveConfigStore.formatNoteOctavesInText(activeSong.biomechanicsTip, octaveStandard)}
           </p>
         </div>
 

@@ -19,13 +19,19 @@ export function midiToFrequency(midi: number): number {
   return 440 * Math.pow(2, (midi - 69) / 12);
 }
 
-// Constrói objeto NoteInfo completo (Padrão Teclado Brasileiro / Yamaha: Dó Central = C3 / MIDI 60)
-export function getNoteInfo(midi: number, preferFlat = false): NoteInfo {
-  const octave = Math.floor(midi / 12) - 2;
+import { octaveConfigStore, type OctaveStandard } from './octaveConfigStore';
+
+// Constrói objeto NoteInfo completo (Padrão C3 Brasil ou C4 Internacional)
+export function getNoteInfo(midi: number, preferFlat = false, standard?: OctaveStandard): NoteInfo {
+  const std = standard ?? octaveConfigStore.getStandard();
+  const octave = Math.floor(midi / 12) + (std === 'C4' ? -1 : -2);
   const noteIndex = ((midi % 12) + 12) % 12;
   const name = preferFlat ? CHROMATIC_NOTES_FLAT[noteIndex] : CHROMATIC_NOTES_SHARP[noteIndex];
   const letter = name[0];
   const accidental = name.length > 1 ? (name[1] as '#' | 'b') : '';
+  const fullName = `${name}${octave}`;
+  const ptBase = NOTE_NAMES_PT[name] || name;
+  const namePt = `${ptBase}${octave}`;
 
   return {
     name,
@@ -34,6 +40,8 @@ export function getNoteInfo(midi: number, preferFlat = false): NoteInfo {
     midi,
     octave,
     frequency: midiToFrequency(midi),
+    fullName,
+    namePt,
   };
 }
 

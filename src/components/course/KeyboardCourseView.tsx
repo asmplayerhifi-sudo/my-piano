@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { KEYBOARD_COURSE_MODULES } from '../../core/coursesData';
 import type { CourseLesson, CourseModule, ScoreNote } from '../../core/coursesData';
 import { getNoteInfo } from '../../core/musicTheory';
+import { octaveConfigStore, useOctaveStandard } from '../../core/octaveConfigStore';
 import { ScrollingScoreCanvas } from '../score/ScrollingScoreCanvas';
 import { FastChordTrainer } from '../piano/FastChordTrainer';
 import { PianoKeyboard } from '../piano/PianoKeyboard';
@@ -29,6 +30,7 @@ export const KeyboardCourseView: React.FC = () => {
   const [lastMidiEvent, setLastMidiEvent] = useState<{ midi: number; timestamp: number } | null>(null);
   const [micHearingMidi, setMicHearingMidi] = useState<number | null>(null);
   const [targetScoreNote, setTargetScoreNote] = useState<ScoreNote | null>(null);
+  const octaveStandard = useOctaveStandard();
   const [errorMidiNotes, setErrorMidiNotes] = useState<number[]>([]);
   const [correctMidiNotes, setCorrectMidiNotes] = useState<number[]>([]);
   const [isWidescreenStage, setIsWidescreenStage] = useState<boolean>(false);
@@ -176,7 +178,7 @@ export const KeyboardCourseView: React.FC = () => {
       const names = ['', 'Polegar', 'Indicador', 'Médio', 'Anelar', 'Mínimo'];
       const colors = ['', '#f59e0b', '#38bdf8', '#10b981', '#c084fc', '#f43f5e'];
       const f = fingerNum || (hand === 'MD' ? (curNote.midi === 60 ? 1 : 2) : 5);
-      const nInfo = getNoteInfo(curNote.midi);
+      const nInfo = getNoteInfo(curNote.midi, false, octaveStandard);
       return {
         finger: f,
         label: `${f}`,
@@ -186,7 +188,7 @@ export const KeyboardCourseView: React.FC = () => {
       };
     }
     return null;
-  }, [targetScoreNote, activeLesson]);
+  }, [targetScoreNote, activeLesson, octaveStandard]);
 
   const isCurrentCompleted = completedLessonIds.includes(activeLesson.id);
 
@@ -451,23 +453,23 @@ export const KeyboardCourseView: React.FC = () => {
                   moduleCode={selectedModule.code}
                   title={activeLesson.title}
                   instrument="keyboard"
-                  targetNotes={activeLesson.scoreTrack?.map(n => n.noteName)}
-                  fingeringTip={activeLesson.instructions.fingeringTip}
+                  targetNotes={activeLesson.scoreTrack?.map(n => getNoteInfo(n.midi, false, octaveStandard).fullName)}
+                  fingeringTip={octaveConfigStore.formatNoteOctavesInText(activeLesson.instructions.fingeringTip || '', octaveStandard)}
                 />
 
                 <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-2">
                   <h4 className="text-sm font-bold text-white flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-indigo-400" />
-                    <span>{activeLesson.instructions.heading}</span>
+                    <span>{octaveConfigStore.formatNoteOctavesInText(activeLesson.instructions.heading, octaveStandard)}</span>
                   </h4>
                   <p className="text-xs text-slate-300 leading-relaxed">
-                    {activeLesson.instructions.text}
+                    {octaveConfigStore.formatNoteOctavesInText(activeLesson.instructions.text, octaveStandard)}
                   </p>
                   <ul className="space-y-1.5 text-xs text-slate-400 pt-1">
                     {activeLesson.instructions.bulletPoints.map((pt, i) => (
                       <li key={i} className="flex items-start gap-2">
                         <span className="text-indigo-400 font-bold">•</span>
-                        <span>{pt}</span>
+                        <span>{octaveConfigStore.formatNoteOctavesInText(pt, octaveStandard)}</span>
                       </li>
                     ))}
                   </ul>
@@ -477,7 +479,7 @@ export const KeyboardCourseView: React.FC = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {activeLesson.instructions.fingeringTip && (
                       <div className="p-3.5 rounded-2xl bg-cyan-950/20 border border-cyan-500/20 text-xs text-cyan-200">
-                        <strong className="text-cyan-300">Dica de Digitação:</strong> {activeLesson.instructions.fingeringTip}
+                        <strong className="text-cyan-300">Dica de Digitação:</strong> {octaveConfigStore.formatNoteOctavesInText(activeLesson.instructions.fingeringTip, octaveStandard)}
                       </div>
                     )}
 
@@ -485,7 +487,7 @@ export const KeyboardCourseView: React.FC = () => {
                       <div className="p-3.5 rounded-2xl bg-rose-950/20 border border-rose-500/20 text-xs text-rose-200 flex items-start gap-2">
                         <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
                         <div>
-                          <strong className="text-rose-300">Alerta de Postura:</strong> {activeLesson.instructions.postureAlert}
+                          <strong className="text-rose-300">Alerta de Postura:</strong> {octaveConfigStore.formatNoteOctavesInText(activeLesson.instructions.postureAlert, octaveStandard)}
                         </div>
                       </div>
                     )}
@@ -513,7 +515,7 @@ export const KeyboardCourseView: React.FC = () => {
                   onNoteDetected={(midi) => handleNoteInput(midi)}
                   onNoteHold={(midi) => setMicHearingMidi(midi)}
                   expectedMidi={targetScoreNote?.midi ?? null}
-                  expectedNoteName={targetScoreNote?.noteName}
+                  expectedNoteName={targetScoreNote ? getNoteInfo(targetScoreNote.midi, false, octaveStandard).fullName : undefined}
                   isErrorActive={activeErrors.length > 0}
                 />
 

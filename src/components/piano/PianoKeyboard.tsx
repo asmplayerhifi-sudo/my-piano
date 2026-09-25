@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useId } from 'react';
 import { soundEngine } from '../../core/soundEngine';
 import { getNoteInfo } from '../../core/musicTheory';
+import { useOctaveStandard } from '../../core/octaveConfigStore';
 import { PianoWaterfallCanvas } from './PianoWaterfallCanvas';
 import type { TrailColorTheme } from './PianoWaterfallCanvas';
 import { ChevronLeft, ChevronRight, Layers, Sparkles, Flame } from 'lucide-react';
@@ -79,6 +80,10 @@ export const PianoKeyboard: React.FC<Props> = ({
   const [trailTheme, setTrailTheme] = useState<TrailColorTheme>('coral');
   const [trailSpeed, setTrailSpeed] = useState<number>(180);
   const [activePressedKeys, setActivePressedKeys] = useState<number[]>([]);
+
+  const octaveStandard = useOctaveStandard();
+  const centralNoteName = octaveStandard === 'C4' ? 'C4' : 'C3';
+  const displayOctaveOffset = octaveStandard === 'C4' ? 1 : 0;
 
   // Monitora a largura real disponível para preencher 100% da tela sem scrollbar
   useEffect(() => {
@@ -434,7 +439,7 @@ export const PianoKeyboard: React.FC<Props> = ({
                             fontWeight="black"
                             fontFamily="Outfit, sans-serif"
                           >
-                            {whiteKeyWidth > 38 ? 'DÓ CENTRAL (C3)' : 'C3'}
+                            {whiteKeyWidth > 38 ? `DÓ CENTRAL (${centralNoteName})` : centralNoteName}
                           </text>
                         </g>
                       )}
@@ -813,7 +818,7 @@ export const PianoKeyboard: React.FC<Props> = ({
           {/* Deslocamento de Oitava (Transpose / Shift) */}
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-mono text-slate-400">
-              Faixa: <strong className="text-white">C{startOctave} a B{endOctave}</strong> ({octaveCount * 12} Teclas)
+              Faixa: <strong className="text-white">C{startOctave + displayOctaveOffset} a B{endOctave + displayOctaveOffset}</strong> ({octaveCount * 12} Teclas)
             </span>
             <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/5">
               <button
@@ -825,7 +830,7 @@ export const PianoKeyboard: React.FC<Props> = ({
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <span className="px-2 text-[10px] font-mono font-bold text-indigo-300">
-                Oitava {startOctave}
+                Oitava {startOctave + displayOctaveOffset}
               </span>
               <button
                 onClick={() => handleShiftOctave(1)}
@@ -883,7 +888,7 @@ export const PianoKeyboard: React.FC<Props> = ({
         <div className="flex flex-wrap items-center justify-center gap-4 text-xs pt-0.5">
           <div className="flex items-center gap-1.5 bg-cyan-950/40 px-2.5 py-0.5 rounded-lg border border-cyan-500/20">
             <Sparkles className="w-3 h-3 text-cyan-400" />
-            <span className="text-cyan-200 font-bold text-[10px]">C3 = Dó Central (Marcador Ciano)</span>
+            <span className="text-cyan-200 font-bold text-[10px]">{centralNoteName} = Dó Central (Marcador Ciano)</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm" />

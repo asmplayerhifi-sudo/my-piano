@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import { getNoteInfo } from '../../core/musicTheory';
+import { useOctaveStandard } from '../../core/octaveConfigStore';
 
 export interface ActiveNoteTrigger {
   midi: number;
@@ -109,6 +110,7 @@ export const PianoWaterfallCanvas: React.FC<Props> = ({
   onKeyPointerUp,
   className = '',
 }) => {
+  const octaveStandard = useOctaveStandard();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const currentCanvasMidiRef = useRef<number | null>(null);
   const trailsRef = useRef<TrailSegment[]>([]);
@@ -116,6 +118,14 @@ export const PianoWaterfallCanvas: React.FC<Props> = ({
   const activeKeysMapRef = useRef<Map<number, string>>(new Map()); // midi -> segmentId
   const lastTimeRef = useRef<number>(performance.now());
   const animationFrameRef = useRef<number | null>(null);
+
+  // Re-rotula trilhas existentes ao trocar padrão de oitava
+  useEffect(() => {
+    trailsRef.current.forEach((t) => {
+      const info = getNoteInfo(t.midi, undefined, octaveStandard);
+      t.noteName = `${info.name}${info.octave}`;
+    });
+  }, [octaveStandard]);
 
   const totalWhiteKeys = octaveCount * 7;
   const canvasWidth = totalWhiteKeys * whiteKeyWidth;

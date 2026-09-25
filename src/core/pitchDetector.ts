@@ -12,13 +12,16 @@ export interface DetectedPitch {
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
+import { octaveConfigStore, type OctaveStandard } from './octaveConfigStore';
+
 export function frequencyToMidi(freq: number): number {
   return Math.round(69 + 12 * Math.log2(freq / 440));
 }
 
-export function midiToNoteName(midi: number): string {
+export function midiToNoteName(midi: number, standard?: OctaveStandard): string {
+  const std = standard ?? octaveConfigStore.getStandard();
   const noteIndex = ((midi % 12) + 12) % 12;
-  const octave = Math.floor(midi / 12) - 2;
+  const octave = Math.floor(midi / 12) + (std === 'C4' ? -1 : -2);
   return `${NOTE_NAMES[noteIndex]}${octave}`;
 }
 

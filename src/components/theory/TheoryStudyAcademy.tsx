@@ -6,6 +6,7 @@ import {
   type AudioExample,
 } from '../../core/theoryLessonsData';
 import { soundEngine } from '../../core/soundEngine';
+import { octaveConfigStore, useOctaveStandard } from '../../core/octaveConfigStore';
 import { LessonIllustration } from '../course/illustrations/LessonIllustration';
 import {
   CheckCircle2,
@@ -43,6 +44,7 @@ export const TheoryStudyAcademy: React.FC = () => {
   // Filtros e Busca
   const [levelFilter, setLevelFilter] = useState<'all' | 'Iniciante' | 'Intermediário' | 'Avançado'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const octaveStandard = useOctaveStandard();
 
   // Estado do Quiz da Lição Atual
   const [selectedQuizOption, setSelectedQuizOption] = useState<number | null>(null);
@@ -620,10 +622,10 @@ export const TheoryStudyAcademy: React.FC = () => {
                 <span>Ideia Central da Lição</span>
               </div>
               <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-sans">
-                {activeLesson.summary}
+                {octaveConfigStore.formatNoteOctavesInText(activeLesson.summary, octaveStandard)}
               </p>
               <div className="text-[11px] text-indigo-300 font-mono pt-1">
-                <strong>💡 Conclusão Rápida:</strong> {activeLesson.keyTakeaway}
+                <strong>💡 Conclusão Rápida:</strong> {octaveConfigStore.formatNoteOctavesInText(activeLesson.keyTakeaway, octaveStandard)}
               </div>
             </div>
 
@@ -641,11 +643,11 @@ export const TheoryStudyAcademy: React.FC = () => {
                 <div key={secIdx} className="space-y-3">
                   <h4 className="text-base font-bold text-white flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-purple-500 rounded-full" />
-                    <span>{sec.heading}</span>
+                    <span>{octaveConfigStore.formatNoteOctavesInText(sec.heading, octaveStandard)}</span>
                   </h4>
 
                   {sec.paragraphs.map((p, pIdx) => (
-                    <p key={pIdx}>{p}</p>
+                    <p key={pIdx}>{octaveConfigStore.formatNoteOctavesInText(p, octaveStandard)}</p>
                   ))}
 
                   {sec.bulletPoints && (
@@ -653,7 +655,7 @@ export const TheoryStudyAcademy: React.FC = () => {
                       {sec.bulletPoints.map((bp, bpIdx) => (
                         <li key={bpIdx} className="flex items-start gap-2">
                           <span className="w-1.5 h-1.5 rounded-full bg-purple-400 mt-1.5 shrink-0" />
-                          <span>{bp}</span>
+                          <span>{octaveConfigStore.formatNoteOctavesInText(bp, octaveStandard)}</span>
                         </li>
                       ))}
                     </ul>
@@ -686,7 +688,7 @@ export const TheoryStudyAcademy: React.FC = () => {
                         <div className="space-y-0.5">
                           <div className="text-xs font-bold text-white">{ex.title}</div>
                           <div className="text-[10px] text-slate-400 line-clamp-1">
-                            {ex.description}
+                            {octaveConfigStore.formatNoteOctavesInText(ex.description, octaveStandard)}
                           </div>
                         </div>
                         <div className="w-7 h-7 rounded-lg bg-purple-600 flex items-center justify-center text-white shrink-0 shadow-md">
@@ -707,7 +709,7 @@ export const TheoryStudyAcademy: React.FC = () => {
                   Regra de Ouro para Memorizar
                 </span>
                 <p className="text-xs sm:text-sm font-bold text-amber-100">
-                  {activeLesson.goldenRule}
+                  {octaveConfigStore.formatNoteOctavesInText(activeLesson.goldenRule, octaveStandard)}
                 </p>
               </div>
             </div>
@@ -720,7 +722,7 @@ export const TheoryStudyAcademy: React.FC = () => {
               </div>
 
               <h5 className="text-xs sm:text-sm font-bold text-white">
-                {activeLesson.quiz.question}
+                {octaveConfigStore.formatNoteOctavesInText(activeLesson.quiz.question, octaveStandard)}
               </h5>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -749,7 +751,8 @@ export const TheoryStudyAcademy: React.FC = () => {
                       }}
                       className={`p-3 rounded-xl border text-left text-xs font-medium transition-all cursor-pointer ${style}`}
                     >
-                      <span>{opt}</span>
+                      <span className="font-mono text-slate-400 font-bold mr-1.5">{String.fromCharCode(65 + optIdx)})</span>
+                      <span>{octaveConfigStore.formatNoteOctavesInText(opt, octaveStandard)}</span>
                     </button>
                   );
                 })}

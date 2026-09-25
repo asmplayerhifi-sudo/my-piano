@@ -6,9 +6,11 @@ export interface NoteInfo {
   name: string;              // ex: 'C', 'F#', 'Bb'
   letter: string;            // ex: 'C', 'F', 'B'
   accidental: Accidental;    // '', '#', 'b'
-  midi: number;              // MIDI number (ex: 60 = C3 / Dó Central)
-  octave: number;            // ex: 3
+  midi: number;              // MIDI number (ex: 60 = C3 / C4 Dó Central)
+  octave: number;            // ex: 3 (Brasil) ou 4 (Internacional)
   frequency: number;         // ex: 261.63 Hz
+  fullName: string;          // ex: 'C3' ou 'C4'
+  namePt?: string;           // ex: 'Dó3' ou 'Dó4'
 }
 
 export type ChordQuality = 'major' | 'minor' | 'diminished' | 'augmented' | 'dom7' | 'maj7' | 'min7' | 'm7b5';

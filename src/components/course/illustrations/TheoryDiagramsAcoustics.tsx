@@ -5,6 +5,7 @@
  */
 
 import React from 'react';
+import { useOctaveStandard } from '../../../core/octaveConfigStore';
 
 /** 1. As 4 Propriedades Fundamentais do Som (m1-1) */
 export const SoundPropertiesDiagram: React.FC = () => (
@@ -40,73 +41,78 @@ export const SoundPropertiesDiagram: React.FC = () => (
   </svg>
 );
 
-/** 2. O Grande Pentagrama / Grand Staff (m1-2: Pauta, Claves de Sol e Fá e Dó Central C3) */
-export const GrandStaffCompleteDiagram: React.FC = () => (
-  <svg viewBox="0 0 960 250" className="w-full h-auto rounded-2xl bg-[#070714] border border-white/10 select-none shadow-xl">
-    <g transform="translate(30, 16)">
-      <text x="0" y="18" fill="#38bdf8" fontSize="14" fontWeight="black" letterSpacing="1">
-        O GRANDE PENTAGRAMA (GRAND STAFF) &amp; DÓ CENTRAL (C3)
-      </text>
-      <text x="0" y="34" fill="#94a3b8" fontSize="11">
-        A união da Clave de Sol (agudos) e Clave de Fá (graves) com o Dó Central C3 na linha suplementar divisória
-      </text>
-    </g>
+/** 2. O Grande Pentagrama / Grand Staff (m1-2: Pauta, Claves de Sol e Fá e Dó Central C3/C4) */
+export const GrandStaffCompleteDiagram: React.FC = () => {
+  const std = useOctaveStandard();
+  const d = std === 'C4' ? 1 : 0;
 
-    <g transform="translate(40, 52)">
-      {/* Chave de Ligação Esquerda (Chave Acoplada) */}
-      <path d="M 45,10 C 25,45 25,75 10,95 C 25,115 25,145 45,180" fill="none" stroke="#6366f1" strokeWidth="2.5" />
-      <line x1="45" y1="10" x2="45" y2="180" stroke="#475569" strokeWidth="2" />
-
-      {/* Pentagrama Superior (Clave de Sol) - 5 Linhas */}
-      {[10, 26, 42, 58, 74].map((y, i) => (
-        <line key={`treble-${i}`} x1="45" y1={y} x2="880" y2={y} stroke="#475569" strokeWidth="1.2" />
-      ))}
-      <text x="55" y="65" fill="#a5b4fc" fontSize="56" fontFamily="serif" fontWeight="bold">𝄞</text>
-      <text x="100" y="24" fill="#a5b4fc" fontSize="10" fontWeight="bold">CLAVE DE SOL (Mão Direita • Agudos)</text>
-
-      {/* Linha Suplementar Central do Dó Central (C3) */}
-      <g transform="translate(440, 95)">
-        <line x1="-35" y1="0" x2="35" y2="0" stroke="#38bdf8" strokeWidth="2.5" />
-        <ellipse cx="0" cy="0" rx="13" ry="8.5" fill="#38bdf8" transform="rotate(-20)" />
-        <rect x="-65" y="-30" width="130" height="20" rx="5" fill="#0284c7" />
-        <text x="0" y="-16" textAnchor="middle" fill="#ffffff" fontSize="10.5" fontWeight="black" fontFamily="JetBrains Mono, monospace">
-          ★ DÓ CENTRAL (C3)
+  return (
+    <svg viewBox="0 0 960 250" className="w-full h-auto rounded-2xl bg-[#070714] border border-white/10 select-none shadow-xl">
+      <g transform="translate(30, 16)">
+        <text x="0" y="18" fill="#38bdf8" fontSize="14" fontWeight="black" letterSpacing="1">
+          O GRANDE PENTAGRAMA (GRAND STAFF) &amp; DÓ CENTRAL ({std})
         </text>
-        <text x="0" y="22" textAnchor="middle" fill="#7dd3fc" fontSize="9.5" fontWeight="bold">
-          MIDI 60 • Ponto de Encontro
+        <text x="0" y="34" fill="#94a3b8" fontSize="11">
+          A união da Clave de Sol (agudos) e Clave de Fá (graves) com o Dó Central {std} na linha suplementar divisória
         </text>
       </g>
 
-      {/* Pentagrama Inferior (Clave de Fá) - 5 Linhas */}
-      {[116, 132, 148, 164, 180].map((y, i) => (
-        <line key={`bass-${i}`} x1="45" y1={y} x2="880" y2={y} stroke="#475569" strokeWidth="1.2" />
-      ))}
-      <text x="55" y="160" fill="#fde68a" fontSize="50" fontFamily="serif" fontWeight="bold">𝄢</text>
-      <text x="100" y="174" fill="#fde68a" fontSize="10" fontWeight="bold">CLAVE DE FÁ (Mão Esquerda • Graves)</text>
+      <g transform="translate(40, 52)">
+        {/* Chave de Ligação Esquerda (Chave Acoplada) */}
+        <path d="M 45,10 C 25,45 25,75 10,95 C 25,115 25,145 45,180" fill="none" stroke="#6366f1" strokeWidth="2.5" />
+        <line x1="45" y1="10" x2="45" y2="180" stroke="#475569" strokeWidth="2" />
 
-      {/* Notas Orientativas Rápidas */}
-      <g transform="translate(180, 0)">
-        {/* Mi3 na 1ª linha da Clave de Sol */}
-        <ellipse cx="60" cy="74" rx="8" ry="5.5" fill="#6366f1" transform="rotate(-20 60 74)" />
-        <text x="60" y="90" textAnchor="middle" fill="#c7d2fe" fontSize="9" fontWeight="bold">Mi3 (1ª L)</text>
+        {/* Pentagrama Superior (Clave de Sol) - 5 Linhas */}
+        {[10, 26, 42, 58, 74].map((y, i) => (
+          <line key={`treble-${i}`} x1="45" y1={y} x2="880" y2={y} stroke="#475569" strokeWidth="1.2" />
+        ))}
+        <text x="55" y="65" fill="#a5b4fc" fontSize="56" fontFamily="serif" fontWeight="bold">𝄞</text>
+        <text x="100" y="24" fill="#a5b4fc" fontSize="10" fontWeight="bold">CLAVE DE SOL (Mão Direita • Agudos)</text>
 
-        {/* Sol3 na 2ª linha da Clave de Sol */}
-        <ellipse cx="140" cy="58" rx="8" ry="5.5" fill="#38bdf8" transform="rotate(-20 140 58)" />
-        <text x="140" y="44" textAnchor="middle" fill="#7dd3fc" fontSize="9" fontWeight="bold">Sol3 (2ª L)</text>
+        {/* Linha Suplementar Central do Dó Central */}
+        <g transform="translate(440, 95)">
+          <line x1="-35" y1="0" x2="35" y2="0" stroke="#38bdf8" strokeWidth="2.5" />
+          <ellipse cx="0" cy="0" rx="13" ry="8.5" fill="#38bdf8" transform="rotate(-20)" />
+          <rect x="-65" y="-30" width="130" height="20" rx="5" fill="#0284c7" />
+          <text x="0" y="-16" textAnchor="middle" fill="#ffffff" fontSize="10.5" fontWeight="black" fontFamily="JetBrains Mono, monospace">
+            ★ DÓ CENTRAL ({std})
+          </text>
+          <text x="0" y="22" textAnchor="middle" fill="#7dd3fc" fontSize="9.5" fontWeight="bold">
+            MIDI 60 • Ponto de Encontro
+          </text>
+        </g>
+
+        {/* Pentagrama Inferior (Clave de Fá) - 5 Linhas */}
+        {[116, 132, 148, 164, 180].map((y, i) => (
+          <line key={`bass-${i}`} x1="45" y1={y} x2="880" y2={y} stroke="#475569" strokeWidth="1.2" />
+        ))}
+        <text x="55" y="160" fill="#fde68a" fontSize="50" fontFamily="serif" fontWeight="bold">𝄢</text>
+        <text x="100" y="174" fill="#fde68a" fontSize="10" fontWeight="bold">CLAVE DE FÁ (Mão Esquerda • Graves)</text>
+
+        {/* Notas Orientativas Rápidas */}
+        <g transform="translate(180, 0)">
+          {/* Mi na 1ª linha da Clave de Sol */}
+          <ellipse cx="60" cy="74" rx="8" ry="5.5" fill="#6366f1" transform="rotate(-20 60 74)" />
+          <text x="60" y="90" textAnchor="middle" fill="#c7d2fe" fontSize="9" fontWeight="bold">Mi{3+d} (1ª L)</text>
+
+          {/* Sol na 2ª linha da Clave de Sol */}
+          <ellipse cx="140" cy="58" rx="8" ry="5.5" fill="#38bdf8" transform="rotate(-20 140 58)" />
+          <text x="140" y="44" textAnchor="middle" fill="#7dd3fc" fontSize="9" fontWeight="bold">Sol{3+d} (2ª L)</text>
+        </g>
+
+        <g transform="translate(560, 0)">
+          {/* Fá na 4ª linha da Clave de Fá */}
+          <ellipse cx="60" cy="132" rx="8" ry="5.5" fill="#f59e0b" transform="rotate(-20 60 132)" />
+          <text x="60" y="122" textAnchor="middle" fill="#fde68a" fontSize="9" fontWeight="bold">Fá{2+d} (4ª L)</text>
+
+          {/* Lá na 5ª linha da Clave de Fá */}
+          <ellipse cx="140" cy="116" rx="8" ry="5.5" fill="#f43f5e" transform="rotate(-20 140 116)" />
+          <text x="140" y="106" textAnchor="middle" fill="#fecdd3" fontSize="9" fontWeight="bold">Lá{2+d} (5ª L)</text>
+        </g>
       </g>
-
-      <g transform="translate(560, 0)">
-        {/* Fá2 na 4ª linha da Clave de Fá */}
-        <ellipse cx="60" cy="132" rx="8" ry="5.5" fill="#f59e0b" transform="rotate(-20 60 132)" />
-        <text x="60" y="122" textAnchor="middle" fill="#fde68a" fontSize="9" fontWeight="bold">Fá2 (4ª L)</text>
-
-        {/* Lá2 na 5ª linha da Clave de Fá */}
-        <ellipse cx="140" cy="116" rx="8" ry="5.5" fill="#f43f5e" transform="rotate(-20 140 116)" />
-        <text x="140" y="106" textAnchor="middle" fill="#fecdd3" fontSize="9" fontWeight="bold">Lá2 (5ª L)</text>
-      </g>
-    </g>
-  </svg>
-);
+    </svg>
+  );
+};
 
 /** 3. Figuras Rítmicas & Fórmulas de Compasso (m1-3) */
 export const RhythmAndMeterComboDiagram: React.FC = () => (

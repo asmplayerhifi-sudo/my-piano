@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { micPitchDetector, MicrophonePitchDetector } from '../../core/pitchDetector';
 import type { DetectedPitch } from '../../core/pitchDetector';
+import { getNoteInfo } from '../../core/musicTheory';
+import { octaveConfigStore, useOctaveStandard } from '../../core/octaveConfigStore';
 import { Mic, MicOff, Activity, Radio, ShieldAlert, Cable, Sliders } from 'lucide-react';
 
 interface Props {
@@ -24,6 +26,7 @@ export const MicrophonePitchBar: React.FC<Props> = ({
   expectedNoteName,
   isErrorActive = false,
 }) => {
+  const octaveStandard = useOctaveStandard();
   const [isActive, setIsActive] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [currentPitch, setCurrentPitch] = useState<DetectedPitch | null>(null);
@@ -318,9 +321,9 @@ export const MicrophonePitchBar: React.FC<Props> = ({
                   </span>
                 </div>
 
-                {isWrong && expectedNoteName && (
+                {isWrong && (expectedMidi !== null && expectedMidi !== undefined ? getNoteInfo(expectedMidi, false, octaveStandard).fullName : expectedNoteName ? octaveConfigStore.convertNoteOctave(expectedNoteName, octaveStandard, 'C3') : null) && (
                   <span className="text-[10px] font-mono font-black text-rose-300 bg-rose-900/60 px-2 py-0.5 rounded-lg border border-rose-500/40">
-                    A partitura pede: {expectedNoteName}
+                    A partitura pede: {expectedMidi !== null && expectedMidi !== undefined ? getNoteInfo(expectedMidi, false, octaveStandard).fullName : octaveConfigStore.convertNoteOctave(expectedNoteName!, octaveStandard, 'C3')}
                   </span>
                 )}
               </div>

@@ -6,6 +6,7 @@
 
 import type { DisplayOptions, ScoreTheme } from './types';
 import { SCORE_GEOMETRY, drawRoundedPill } from './scoreGeometry';
+import { octaveConfigStore } from '../../../core/octaveConfigStore';
 
 interface DrawStavesParams {
   ctx: CanvasRenderingContext2D;
@@ -75,7 +76,8 @@ export function drawScoreStaves({
   ctx.font = 'bold 9px JetBrains Mono, monospace';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('DÓ CENTRAL (C3)', 71, middleCY);
+  const middleCLabel = `DÓ CENTRAL (${octaveConfigStore.getStandard()})`;
+  ctx.fillText(middleCLabel, 71, middleCY);
   ctx.restore();
 
   // 3. Pauta de Fá (5 Linhas)

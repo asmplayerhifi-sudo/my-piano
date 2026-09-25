@@ -24,21 +24,26 @@ interface DrawSheetParams {
 
 export const START_X = 95;
 
+import { octaveConfigStore, type OctaveStandard } from '../../../core/octaveConfigStore';
+import { getNoteInfo } from '../../../core/musicTheory';
+
 /** Calcula a posição vertical Y exata respeitando a respectiva clave com espaçamento de 6px por passo */
-export function getDiatonicY(noteName: string, clef: 'treble' | 'bass' = 'treble'): number {
+export function getDiatonicY(noteName: string, clef: 'treble' | 'bass' = 'treble', standard?: OctaveStandard): number {
   const match = noteName.match(/^([A-G])([#b♭♯]?)(\d+)$/i);
   if (!match) return clef === 'treble' ? 120 : 172;
   const letter = match[1].toUpperCase();
-  const octave = parseInt(match[3], 10);
+  const rawOctave = parseInt(match[3], 10);
   const letterSteps: Record<string, number> = { C: 0, D: 1, E: 2, F: 3, G: 4, A: 5, B: 6 };
+  const currentStd = standard ?? octaveConfigStore.getStandard();
+  const middleCOctave = currentStd === 'C4' ? 4 : 3;
 
   if (clef === 'treble') {
-    // Linha 1 da Clave de Sol (Mi3 / E3) = Y 108, Dó Central (C3) = Y 120 (linha suplementar inferior)
-    const diatonicIndex = (octave - 3) * 7 + (letterSteps[letter] ?? 0) - 2;
+    // Linha 1 da Clave de Sol (Mi = Y 108), Dó Central = Y 120 (linha suplementar inferior)
+    const diatonicIndex = (rawOctave - middleCOctave) * 7 + (letterSteps[letter] ?? 0) - 2;
     return 108 - diatonicIndex * 6;
   } else {
-    // Linha 4 da Clave de Fá (Fá2 / F2) = Y 196, Dó Central (C3) = Y 172 (linha suplementar superior)
-    const diatonicIndex = (octave - 2) * 7 + (letterSteps[letter] ?? 0) - 3;
+    // Linha 4 da Clave de Fá (Fá = Y 196), Dó Central = Y 172 (linha suplementar superior)
+    const diatonicIndex = (rawOctave - (middleCOctave - 1)) * 7 + (letterSteps[letter] ?? 0) - 3;
     return 196 - diatonicIndex * 6;
   }
 }
@@ -47,26 +52,28 @@ export function getDiatonicY(noteName: string, clef: 'treble' | 'bass' = 'treble
 export function getPitchFromY(clickY: number): { clef: 'treble' | 'bass'; noteName: string; midi: number } {
   const LETTERS = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
   const SEMITONES = [0, 2, 4, 5, 7, 9, 11];
+  const standard = octaveConfigStore.getStandard();
+  const middleCOctave = octaveConfigStore.getMiddleCOctave();
 
   if (clickY <= 145) {
-    // Clave de Sol: Mi3 (E3) = Y 108
+    // Clave de Sol: Mi = Y 108
     const diatonicIndex = Math.round((108 - clickY) / 6);
-    const totalDiatonic = diatonicIndex + 23;
+    const totalDiatonic = diatonicIndex + (middleCOctave === 4 ? 30 : 23);
     const octave = Math.floor(totalDiatonic / 7);
     const letterIndex = ((totalDiatonic % 7) + 7) % 7;
     const letter = LETTERS[letterIndex];
     const noteName = `${letter}${octave}`;
-    const midi = (octave + 2) * 12 + SEMITONES[letterIndex];
+    const midi = (octave + (standard === 'C4' ? 1 : 2)) * 12 + SEMITONES[letterIndex];
     return { clef: 'treble', noteName, midi };
   } else {
-    // Clave de Fá: Fá2 (F2) = Y 196
+    // Clave de Fá: Fá = Y 196
     const diatonicIndex = Math.round((196 - clickY) / 6);
-    const totalDiatonic = diatonicIndex + 17;
+    const totalDiatonic = diatonicIndex + (middleCOctave === 4 ? 24 : 17);
     const octave = Math.floor(totalDiatonic / 7);
     const letterIndex = ((totalDiatonic % 7) + 7) % 7;
     const letter = LETTERS[letterIndex];
     const noteName = `${letter}${octave}`;
-    const midi = (octave + 2) * 12 + SEMITONES[letterIndex];
+    const midi = (octave + (standard === 'C4' ? 1 : 2)) * 12 + SEMITONES[letterIndex];
     return { clef: 'bass', noteName, midi };
   }
 }
@@ -324,7 +331,10 @@ export function drawFormalScoreSheet({
         const labelY = clef === 'treble'
           ? (noteY >= 108 ? noteY + 16 : noteY - 12)
           : (noteY >= 232 ? noteY + 16 : noteY - 12);
-        ctx.fillText(note.noteName, noteX, labelY);
+        const displayLabel = typeof note.midi === 'number'
+          ? getNoteInfo(note.midi).fullName
+          : octaveConfigStore.convertNoteOctave(note.noteName, octaveConfigStore.getStandard(), 'C3');
+        ctx.fillText(displayLabel, noteX, labelY);
       }
 
       ctx.restore();
