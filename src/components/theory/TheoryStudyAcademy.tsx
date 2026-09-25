@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   THEORY_MODULES,
   type TheoryLesson,
@@ -52,6 +52,18 @@ export const TheoryStudyAcademy: React.FC = () => {
 
   // Estado do Reprodutor de Áudio da Lição
   const [playingAudioIndex, setPlayingAudioIndex] = useState<number | null>(null);
+  const audioTimeoutsRef = useRef<NodeJS.Timeout[]>([]);
+
+  const clearAudioTimeouts = () => {
+    audioTimeoutsRef.current.forEach((t) => clearTimeout(t));
+    audioTimeoutsRef.current = [];
+  };
+
+  useEffect(() => {
+    return () => {
+      clearAudioTimeouts();
+    };
+  }, []);
 
   // Estados de Expansão e Tela Cheia dos Cards
   const [isCurriculumExpanded, setIsCurriculumExpanded] = useState<boolean>(false);
@@ -188,6 +200,8 @@ export const TheoryStudyAcademy: React.FC = () => {
   }, [allLessons, activeLesson.id]);
 
   const handleSelectLesson = (lesson: TheoryLesson) => {
+    clearAudioTimeouts();
+    setPlayingAudioIndex(null);
     setActiveLesson(lesson);
     const mod = THEORY_MODULES.find((m) => m.code === lesson.moduleCode);
     if (mod) setSelectedModule(mod);
@@ -226,39 +240,47 @@ export const TheoryStudyAcademy: React.FC = () => {
 
   // Toca exemplo sonoro de uma lição
   const playLessonAudio = async (example: AudioExample, idx: number) => {
+    clearAudioTimeouts();
     await soundEngine.ensureAudioReady();
     setPlayingAudioIndex(idx);
 
-    if (example.type === 'melodic') {
-      example.notes.forEach((midi, noteIdx) => {
-        setTimeout(() => {
-          soundEngine.playPianoNote(midi, 0.6);
-          if (noteIdx === example.notes.length - 1) {
-            setTimeout(() => setPlayingAudioIndex(null), 300);
+    if (example.chords && example.chords.length > 0) {
+      // Cadência ou encadeamento estruturado de acordes
+      const stepMs = example.tempoMs || 850;
+      example.chords.forEach((chord, chordIdx) => {
+        const timeout = setTimeout(() => {
+          chord.forEach((midi) => {
+            soundEngine.playPianoNote(midi, (stepMs / 1000) * 1.35, undefined, 0.75);
+          });
+          if (chordIdx === example.chords!.length - 1) {
+            const finishTimeout = setTimeout(() => setPlayingAudioIndex(null), stepMs + 200);
+            audioTimeoutsRef.current.push(finishTimeout);
           }
-        }, noteIdx * 250);
+        }, chordIdx * stepMs);
+        audioTimeoutsRef.current.push(timeout);
       });
-    } else if (example.type === 'harmonic') {
+    } else if (example.type === 'harmonic' && example.notes && example.notes.length > 0) {
+      // Acorde harmônico simultâneo
       example.notes.forEach((midi) => {
-        soundEngine.playPianoNote(midi, 1.4, undefined, 0.7);
+        soundEngine.playPianoNote(midi, 1.6, undefined, 0.75);
       });
-      setTimeout(() => setPlayingAudioIndex(null), 1200);
+      const finishTimeout = setTimeout(() => setPlayingAudioIndex(null), 1400);
+      audioTimeoutsRef.current.push(finishTimeout);
+    } else if (example.notes && example.notes.length > 0) {
+      // Melodia ou notas com subdivisão rítmica
+      let currentOffset = 0;
+      example.notes.forEach((midi, noteIdx) => {
+        const noteDur = example.noteDurationsMs?.[noteIdx] ?? (example.tempoMs || 280);
+        const timeout = setTimeout(() => {
+          soundEngine.playPianoNote(midi, Math.max(0.4, (noteDur / 1000) * 1.35), undefined, 0.75);
+        }, currentOffset);
+        audioTimeoutsRef.current.push(timeout);
+        currentOffset += noteDur;
+      });
+      const finishTimeout = setTimeout(() => setPlayingAudioIndex(null), currentOffset + 250);
+      audioTimeoutsRef.current.push(finishTimeout);
     } else {
-      // Cadência / encadeamento de acordes
-      // Toca em blocos de 4 notas a cada 600ms
-      const chunkSize = 4;
-      const chunks: number[][] = [];
-      for (let i = 0; i < example.notes.length; i += chunkSize) {
-        chunks.push(example.notes.slice(i, i + chunkSize));
-      }
-      chunks.forEach((chunk, chunkIdx) => {
-        setTimeout(() => {
-          chunk.forEach((midi) => soundEngine.playPianoNote(midi, 1.0, undefined, 0.75));
-          if (chunkIdx === chunks.length - 1) {
-            setTimeout(() => setPlayingAudioIndex(null), 1000);
-          }
-        }, chunkIdx * 650);
-      });
+      setPlayingAudioIndex(null);
     }
   };
 
@@ -681,17 +703,35 @@ export const TheoryStudyAcademy: React.FC = () => {
                         onClick={() => playLessonAudio(ex, exIdx)}
                         className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between gap-3 ${
                           isPlaying
-                            ? 'bg-purple-600/30 border-purple-400 text-white ring-1 ring-purple-400'
+                            ? 'bg-purple-600/30 border-purple-400 text-white ring-1 ring-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.3)]'
                             : 'bg-white/[0.02] border-white/5 hover:bg-white/[0.06] text-slate-300'
                         }`}
                       >
-                        <div className="space-y-0.5">
-                          <div className="text-xs font-bold text-white">{ex.title}</div>
-                          <div className="text-[10px] text-slate-400 line-clamp-1">
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <div className="text-xs font-bold text-white leading-tight">{ex.title}</div>
+                          <div className="text-[10px] text-slate-400 line-clamp-2">
                             {octaveConfigStore.formatNoteOctavesInText(ex.description, octaveStandard)}
                           </div>
+                          {ex.chordNames && ex.chordNames.length > 0 && (
+                            <div className="flex flex-wrap gap-1 pt-1">
+                              {ex.chordNames.map((name, cIdx) => (
+                                <span
+                                  key={cIdx}
+                                  className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-200 border border-purple-500/30"
+                                >
+                                  {name}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                        <div className="w-7 h-7 rounded-lg bg-purple-600 flex items-center justify-center text-white shrink-0 shadow-md">
+                        <div
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-md transition-all ${
+                            isPlaying
+                              ? 'bg-purple-500 text-white animate-pulse'
+                              : 'bg-purple-600/80 hover:bg-purple-500 text-white'
+                          }`}
+                        >
                           <Play className="w-3.5 h-3.5 fill-current" />
                         </div>
                       </button>

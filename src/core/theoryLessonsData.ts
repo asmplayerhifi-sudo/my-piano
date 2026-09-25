@@ -4,9 +4,13 @@
 export interface AudioExample {
   title: string;
   description: string;
-  notes: number[]; // Array de MIDIs
-  type: 'melodic' | 'harmonic' | 'cadence';
+  notes?: number[];            // Array linear de MIDIs (melodias e notas individuais)
+  chords?: number[][];         // Lista estruturada de acordes: ex [[60, 64, 67], [65, 69, 72]]
+  chordNames?: string[];       // Nomes dos acordes para exibição visual
+  type: 'melodic' | 'harmonic' | 'cadence' | 'comparison';
   duration?: number;
+  tempoMs?: number;            // Intervalo entre notas ou acordes (ms)
+  noteDurationsMs?: number[];  // Durações personalizadas para ritmos
 }
 
 export interface TheoryQuiz {
@@ -90,12 +94,14 @@ export const THEORY_MODULES: TheoryModuleData[] = [
             title: 'Contraste Grave vs Agudo (Altura)',
             description: 'Ouça o contraste de frequência entre um Dó grave (C2) e um Dó agudo (C5).',
             notes: [36, 72],
+            noteDurationsMs: [800, 900],
             type: 'melodic'
           },
           {
             title: 'Ouvir Lá de Afinação Universal (A4 - 440 Hz)',
             description: 'A frequência padrão internacional de calibração orquestral e de instrumentos.',
             notes: [69],
+            noteDurationsMs: [1200],
             type: 'melodic'
           }
         ],
@@ -135,8 +141,16 @@ export const THEORY_MODULES: TheoryModuleData[] = [
         audioExamples: [
           {
             title: 'Grande Pauta: Do Grave da Clave de Fá ao Agudo da Clave de Sol',
-            description: 'Ouça o percurso sonoro que conecta Fá2, Dó Central (C3) e Sol3.',
+            description: 'Ouça o percurso sonoro que conecta Fá2 (Clave de Fá), Dó Central e Sol3 (Clave de Sol).',
             notes: [41, 60, 67],
+            noteDurationsMs: [750, 750, 850],
+            type: 'melodic'
+          },
+          {
+            title: 'Dó Central — O Ponto de Encontro',
+            description: 'A nota fundamental de referência desenhada na linha suplementar central entre as duas claves.',
+            notes: [60],
+            noteDurationsMs: [1200],
             type: 'melodic'
           }
         ],
@@ -190,14 +204,16 @@ export const THEORY_MODULES: TheoryModuleData[] = [
         audioExamples: [
           {
             title: 'Pulsação 4/4 com Semínimas',
-            description: 'Quatro pulsos regulares em Dó.',
+            description: 'Quatro pulsos regulares e uniformes a 120 BPM em Dó.',
             notes: [60, 60, 60, 60],
+            tempoMs: 500,
             type: 'melodic'
           },
           {
             title: 'Subdivisão Rítmica: Semínima seguida de 4 Semicolcheias',
-            description: 'Ouça a subdivisão rápida de um tempo em 4 partes iguais.',
+            description: '1 tempo sustentado (semínima) seguido imediatamente por 4 notas rápidas iguais (semicolcheias).',
             notes: [60, 64, 65, 67, 69],
+            noteDurationsMs: [600, 150, 150, 150, 150],
             type: 'melodic'
           }
         ],
@@ -259,12 +275,21 @@ export const THEORY_MODULES: TheoryModuleData[] = [
             title: 'Semitom Natural (Mi -> Fá)',
             description: 'Ouça o passo imediato de meio-tom entre Mi4 (64) e Fá4 (65).',
             notes: [64, 65],
+            tempoMs: 650,
             type: 'melodic'
           },
           {
             title: 'Tom Inteiro (Dó -> Ré)',
             description: 'Ouça o passo de 2 semitons entre Dó4 (60) e Ré4 (62).',
             notes: [60, 62],
+            tempoMs: 650,
+            type: 'melodic'
+          },
+          {
+            title: 'Enarmonia Sonora (Dó# vs Ré♭)',
+            description: 'Duas notas teoricamente distintas (C# e Db) soando na mesmíssima frequência física (277.18 Hz).',
+            notes: [61, 61],
+            noteDurationsMs: [600, 600],
             type: 'melodic'
           }
         ],
@@ -311,15 +336,21 @@ export const THEORY_MODULES: TheoryModuleData[] = [
         goldenRule: 'A Terça (Maior ou Menor) é quem define a polaridade emocional de um acorde: 3ª Maior = Feliz/Luminoso; 3ª Menor = Triste/Profundo.',
         audioExamples: [
           {
-            title: 'Terça Maior vs Terça Menor',
-            description: 'Ouça o contraste emocional direto entre C-E (Maior) e C-Eb (Menor).',
-            notes: [60, 64, 60, 63],
-            type: 'melodic'
+            title: 'Terça Maior Harmônica (C - E)',
+            description: 'Consonância brilhante, luminosa e alegre (4 semitons).',
+            notes: [60, 64],
+            type: 'harmonic'
           },
           {
-            title: 'Quinta Justa (Power Chord)',
-            description: 'Ouça a força e consonância de C-G simultâneos.',
-            notes: [60, 67],
+            title: 'Terça Menor Harmônica (C - E♭)',
+            description: 'Sonoridade suave, emotiva e melancólica (3 semitons).',
+            notes: [60, 63],
+            type: 'harmonic'
+          },
+          {
+            title: 'Quinta Justa (Power Chord C - G)',
+            description: 'A estabilidade e força imutável da quinta justa com fundamental.',
+            notes: [48, 55, 60],
             type: 'harmonic'
           }
         ],
@@ -368,15 +399,20 @@ export const THEORY_MODULES: TheoryModuleData[] = [
         goldenRule: '9 menos o intervalo dá a inversão: 3ª Maior invertida vira 6ª Menor. 5ª Justa invertida vira 4ª Justa.',
         audioExamples: [
           {
-            title: 'O Trítono Diabólico (Fá e Si simultâneos)',
-            description: 'Ouça a tensão eletromagnética do trítono.',
+            title: 'O Trítono Instável (Fá e Si simultâneos)',
+            description: 'Ouça a tensão eletromagnética dos 3 tons inteiros (intervalo de 6 semitons).',
             notes: [65, 71],
             type: 'harmonic'
           },
           {
             title: 'Resolução do Trítono (F-B resolvendo em E-C)',
-            description: 'A mágica da resolução: as notas tensas relaxam na terça de Dó Maior.',
-            notes: [65, 71, 64, 72],
+            description: 'A mágica da resolução convergente: Fá desce para Mi e Si sobe para Dó.',
+            chords: [
+              [65, 71],
+              [64, 72]
+            ],
+            chordNames: ['Trítono (F - B)', 'Resolução (E - C)'],
+            tempoMs: 900,
             type: 'cadence'
           }
         ],
@@ -442,6 +478,14 @@ export const THEORY_MODULES: TheoryModuleData[] = [
             title: 'Escala Maior de Dó Completa',
             description: 'Ouça a escala ascendente de Dó Maior (C D E F G A B C).',
             notes: [60, 62, 64, 65, 67, 69, 71, 72],
+            tempoMs: 320,
+            type: 'melodic'
+          },
+          {
+            title: 'Os Dois Semitons Diatônicos (E-F e B-C)',
+            description: 'Os passos de atração gravitacional: Graus 3-4 (Mi para Fá) e Graus 7-8 (Si para Dó).',
+            notes: [64, 65, 71, 72],
+            noteDurationsMs: [450, 650, 450, 800],
             type: 'melodic'
           }
         ],
@@ -487,6 +531,14 @@ export const THEORY_MODULES: TheoryModuleData[] = [
             title: 'Escala com 1 Sustenido: Sol Maior (Fá#)',
             description: 'Ouça a escala de Sol Maior com seu sensível Fá# garantindo o semitom no final.',
             notes: [67, 69, 71, 72, 74, 76, 78, 79],
+            tempoMs: 320,
+            type: 'melodic'
+          },
+          {
+            title: 'Escala com 1 Bemol: Fá Maior (Si♭)',
+            description: 'Ouça a escala de Fá Maior com seu Si♭ no 4º grau mantendo a proporção T-T-ST.',
+            notes: [65, 67, 69, 70, 72, 74, 76, 77],
+            tempoMs: 320,
             type: 'melodic'
           }
         ],
@@ -528,9 +580,24 @@ export const THEORY_MODULES: TheoryModuleData[] = [
         goldenRule: 'Menor Harmônica tem 7ª maior. Menor Melódica tem 6ª maior E 7ª maior.',
         audioExamples: [
           {
-            title: 'Lá Menor Natural vs Lá Menor Harmônica',
-            description: 'Ouça primeiro o 7º grau natural (G) e depois o 7º grau elevado (G#) com seu sabor misterioso.',
-            notes: [57, 59, 60, 62, 64, 65, 67, 69, 57, 59, 60, 62, 64, 65, 68, 69],
+            title: 'Escala Menor Natural (Lá Menor)',
+            description: 'A - B - C - D - E - F - G - A (relativa direta de Dó Maior, sem sensível).',
+            notes: [57, 59, 60, 62, 64, 65, 67, 69],
+            tempoMs: 320,
+            type: 'melodic'
+          },
+          {
+            title: 'Escala Menor Harmônica (Lá Menor)',
+            description: 'A - B - C - D - E - F - G# - A (7º grau elevado com sensível e salto de 2ª aumentada).',
+            notes: [57, 59, 60, 62, 64, 65, 68, 69],
+            tempoMs: 320,
+            type: 'melodic'
+          },
+          {
+            title: 'Escala Menor Melódica (Lá Menor)',
+            description: 'A - B - C - D - E - F# - G# - A (6º e 7º graus elevados para fluidez melódica).',
+            notes: [57, 59, 60, 62, 64, 66, 68, 69],
+            tempoMs: 320,
             type: 'melodic'
           }
         ],
@@ -584,7 +651,14 @@ export const THEORY_MODULES: TheoryModuleData[] = [
           {
             title: 'As 4 Tríades em Dó (Maior, Menor, Diminuta, Aumentada)',
             description: 'Ouça sequencialmente C (Maior), Cm (Menor), Cdim (Diminuta) e Caug (Aumentada).',
-            notes: [60, 64, 67, 60, 63, 67, 60, 63, 66, 60, 64, 68],
+            chords: [
+              [48, 60, 64, 67],
+              [48, 60, 63, 67],
+              [48, 60, 63, 66],
+              [48, 60, 64, 68]
+            ],
+            chordNames: ['C Maior', 'C Menor', 'C Diminuta', 'C Aumentada'],
+            tempoMs: 900,
             type: 'cadence'
           }
         ],
@@ -630,8 +704,26 @@ export const THEORY_MODULES: TheoryModuleData[] = [
         audioExamples: [
           {
             title: 'Linha de Baixo Descendente com Inversão (C -> G/B -> Am)',
-            description: 'Ouça como o baixo caminha suavemente: C (Dó), B (Si) e A (Lá).',
-            notes: [48, 60, 64, 67, 47, 59, 62, 67, 45, 57, 60, 64],
+            description: 'Condução melódica suave por passo no baixo: Dó (48) -> Si (47) -> Lá (45).',
+            chords: [
+              [48, 60, 64, 67],
+              [47, 55, 59, 62],
+              [45, 57, 60, 64]
+            ],
+            chordNames: ['C (Baixo Dó)', 'G/B (Baixo Si)', 'Am (Baixo Lá)'],
+            tempoMs: 950,
+            type: 'cadence'
+          },
+          {
+            title: 'Baixo Fundamental sem Inversão (C -> G -> Am)',
+            description: 'Ouça o contraste: sem inversão, o baixo é obrigado a dar grandes saltos.',
+            chords: [
+              [48, 60, 64, 67],
+              [43, 55, 59, 62],
+              [45, 57, 60, 64]
+            ],
+            chordNames: ['C', 'G (salto)', 'Am'],
+            tempoMs: 950,
             type: 'cadence'
           }
         ],
@@ -672,15 +764,26 @@ export const THEORY_MODULES: TheoryModuleData[] = [
         audioExamples: [
           {
             title: 'Tétrade Maj7 (C7M)',
-            description: 'Ouça o clima aveludado de C - E - G - B.',
-            notes: [60, 64, 67, 71],
+            description: 'Ouça o clima aveludado e lírico de C - E - G - B com fundamental no baixo.',
+            notes: [48, 60, 64, 67, 71],
             type: 'harmonic'
           },
           {
             title: 'Tétrade Dominante 7 (G7) Resolvendo em C7M',
-            description: 'Ouça a tensão do G7 e sua resolução triunfante no C7M.',
-            notes: [55, 59, 62, 65, 60, 64, 67, 72],
+            description: 'Ouça a tensão do trítono no G7 e sua resolução repousante no C7M.',
+            chords: [
+              [43, 55, 59, 62, 65],
+              [48, 60, 64, 67, 71]
+            ],
+            chordNames: ['G7', 'C7M'],
+            tempoMs: 1000,
             type: 'cadence'
+          },
+          {
+            title: 'Tétrade Meio-Diminuta (Bm7♭5 / Bø)',
+            description: 'A sonoridade dramática e misteriosa da tétrade meio-diminuta (B - D - F - A).',
+            notes: [47, 59, 62, 65, 69],
+            type: 'harmonic'
           }
         ],
         quiz: {
@@ -742,8 +845,18 @@ export const THEORY_MODULES: TheoryModuleData[] = [
         audioExamples: [
           {
             title: 'Campo Harmônico de Dó Maior em Tétrades (Graus I a VII)',
-            description: 'Ouça a sequência dos 7 acordes nascidos da escala maior.',
-            notes: [60, 64, 67, 71, 62, 65, 69, 72, 64, 67, 71, 74, 65, 69, 72, 76, 67, 71, 74, 77, 69, 72, 76, 79, 71, 74, 77, 81],
+            description: 'Ouça os 7 acordes diatônicos em tétrades com suas qualidades modais e baixos fundamentais.',
+            chords: [
+              [48, 60, 64, 67, 71],
+              [50, 62, 65, 69, 72],
+              [52, 64, 67, 71, 74],
+              [53, 65, 69, 72, 76],
+              [55, 67, 71, 74, 77],
+              [57, 69, 72, 76, 79],
+              [59, 71, 74, 77, 81]
+            ],
+            chordNames: ['I: C7M', 'ii: Dm7', 'iii: Em7', 'IV: F7M', 'V: G7', 'vi: Am7', 'viiø: Bm7(b5)'],
+            tempoMs: 800,
             type: 'cadence'
           }
         ],
@@ -783,7 +896,14 @@ export const THEORY_MODULES: TheoryModuleData[] = [
           {
             title: 'Ciclo Funcional Perfeito (C -> F -> G7 -> C)',
             description: 'Ouça: Repouso (C) -> Afastamento (F) -> Tensão (G7) -> Alívio e Resolução (C).',
-            notes: [60, 64, 67, 65, 69, 72, 67, 71, 74, 77, 60, 64, 67, 72],
+            chords: [
+              [48, 60, 64, 67],
+              [41, 60, 65, 69],
+              [43, 59, 65, 67],
+              [48, 60, 64, 67]
+            ],
+            chordNames: ['C (Tônica)', 'F (Subdominante)', 'G7 (Dominante)', 'C (Tônica)'],
+            tempoMs: 900,
             type: 'cadence'
           }
         ],
@@ -825,14 +945,27 @@ export const THEORY_MODULES: TheoryModuleData[] = [
         audioExamples: [
           {
             title: 'Cadência II - V - I em Dó (Dm7 -> G7 -> C7M)',
-            description: 'A progressão mais famosa da Bossa Nova e do Jazz.',
-            notes: [62, 65, 69, 72, 67, 71, 74, 77, 60, 64, 67, 71],
+            description: 'A progressão mais famosa da Bossa Nova e do Jazz com condução suave de vozes.',
+            chords: [
+              [50, 62, 65, 69, 72],
+              [43, 59, 62, 65, 67],
+              [48, 60, 64, 67, 71]
+            ],
+            chordNames: ['Dm7', 'G7', 'C7M'],
+            tempoMs: 950,
             type: 'cadence'
           },
           {
             title: 'Progressão Pop dos 4 Acordes (C -> G -> Am -> F)',
             description: 'A progressão de ouro de centenas de sucessos mundiais.',
-            notes: [60, 64, 67, 55, 59, 62, 57, 60, 64, 53, 57, 60],
+            chords: [
+              [48, 60, 64, 67],
+              [43, 55, 59, 62],
+              [45, 57, 60, 64],
+              [41, 53, 57, 60]
+            ],
+            chordNames: ['C', 'G', 'Am', 'F'],
+            tempoMs: 850,
             type: 'cadence'
           }
         ],
@@ -891,12 +1024,21 @@ export const THEORY_MODULES: TheoryModuleData[] = [
             title: 'Modo Dórico de Ré (D E F G A B C D)',
             description: 'Ouça a 6ª Maior (Si) dando o brilho característico do Dórico sobre Ré Menor.',
             notes: [62, 64, 65, 67, 69, 71, 72, 74],
+            tempoMs: 320,
             type: 'melodic'
           },
           {
             title: 'Modo Lídio de Fá (F G A B C D E F)',
             description: 'Ouça a 4ª Aumentada (Si) criando a atmosfera mágica e espacial do Lídio.',
             notes: [65, 67, 69, 71, 72, 74, 76, 77],
+            tempoMs: 320,
+            type: 'melodic'
+          },
+          {
+            title: 'Modo Mixolídio de Sol (G A B C D E F G)',
+            description: 'A 7ª Menor (Fá natural) dando a alma do Rock, Blues e Forró/Baião nordestino.',
+            notes: [67, 69, 71, 72, 74, 76, 77, 79],
+            tempoMs: 320,
             type: 'melodic'
           }
         ],
@@ -951,8 +1093,29 @@ export const THEORY_MODULES: TheoryModuleData[] = [
         audioExamples: [
           {
             title: 'O Efeito do IVm Emprestado (C -> F -> Fm -> C)',
-            description: 'Ouça a doce melancolia do Fá Menor resolvendo em Dó Maior (Beatles / In My Life).',
-            notes: [60, 64, 67, 65, 69, 72, 65, 68, 72, 60, 64, 67],
+            description: 'Ouça a melancolia doce e poética do Fá Menor com o Lá♭ caindo no Sol de Dó Maior.',
+            chords: [
+              [48, 60, 64, 67],
+              [41, 60, 65, 69],
+              [41, 60, 65, 68],
+              [48, 60, 64, 67]
+            ],
+            chordNames: ['C', 'F', 'Fm (AEM)', 'C'],
+            tempoMs: 900,
+            type: 'cadence'
+          },
+          {
+            title: 'Dominante Secundário V7/II (C -> A7 -> Dm7 -> G7 -> C)',
+            description: 'Ouça o acorde A7 com seu Dó# criando atração magnética direta para a chegada de Dm7.',
+            chords: [
+              [48, 60, 64, 67],
+              [45, 57, 61, 64, 67],
+              [50, 57, 62, 65, 69],
+              [43, 59, 62, 65, 67],
+              [48, 60, 64, 67]
+            ],
+            chordNames: ['C', 'A7 (V7/II)', 'Dm7', 'G7', 'C'],
+            tempoMs: 850,
             type: 'cadence'
           }
         ],
