@@ -1,10 +1,15 @@
 import type { ScoreNote } from './coursesData';
+import { EXTENDED_REPERTOIRE_SONGS } from './repertoireDataExtended';
 
 export type SongGenre =
   | 'Clássico & Mestres'
   | 'MPB & Pop Nacional'
   | 'Pop & Rock Clássico'
   | 'Rock Anos 80 & New Wave'
+  | 'Reggae & Praieiro'
+  | 'Forró, Xote & Baião'
+  | 'Seresta & Brega (Zezo dos Teclados)'
+  | 'Gospel Clássico & Sacro'
   | 'Infantis, Cirandas & Folclore';
 
 export interface CategoryInfo {
@@ -22,7 +27,7 @@ export const REPERTOIRE_CATEGORIES: CategoryInfo[] = [
     label: 'Todas as Obras',
     shortLabel: 'Todas',
     iconName: 'LayoutGrid',
-    badge: '22 Obras',
+    badge: '28 Obras',
     description: 'Catálogo completo de partituras autênticas com rolagem interativa e arranjos fiéis.',
   },
   {
@@ -35,15 +40,47 @@ export const REPERTOIRE_CATEGORIES: CategoryInfo[] = [
   },
   {
     id: 'MPB & Pop Nacional',
-    label: 'MPB & Pop Nacional (Roupa Nova & Bossa)',
-    shortLabel: 'MPB / Nacional',
+    label: 'MPB & Roupa Nova (Baladas & Bossa Nova)',
+    shortLabel: 'MPB & Roupa Nova',
     iconName: 'Heart',
-    badge: '5 Obras',
-    description: 'De Roupa Nova a Tom Jobim, Pixinguinha e o Baião imortal de Luiz Gonzaga.',
+    badge: '6 Obras',
+    description: 'De Roupa Nova (Dona, Linda Demais) a Tom Jobim (Garota de Ipanema, Águas de Março) e Pixinguinha.',
+  },
+  {
+    id: 'Forró, Xote & Baião',
+    label: 'Forró, Xote & Baião (Luiz Gonzaga & Mestres)',
+    shortLabel: 'Forró & Xote',
+    iconName: 'Sun',
+    badge: '2 Obras',
+    description: 'O pulsar de Asa Branca e O Xote das Meninas com síncopes de sanfona e zabumba.',
+  },
+  {
+    id: 'Seresta & Brega (Zezo dos Teclados)',
+    label: 'Seresta & Brega (Zezo dos Teclados & Noites de Seresta)',
+    shortLabel: 'Seresta & Brega',
+    iconName: 'Radio',
+    badge: '1 Obra',
+    description: 'O teclado arranjador inconfundível de Zezo dos Teclados com introduções melódicas e seresta romântica.',
+  },
+  {
+    id: 'Gospel Clássico & Sacro',
+    label: 'Gospel Clássico & Hinos Sacros (Gaither & Harpa)',
+    shortLabel: 'Gospel Clássico',
+    iconName: 'Cross',
+    badge: '1 Obra',
+    description: 'Hinos imortais da fé cristã em arranjos solenes e polifônicos como Porque Ele Vive.',
+  },
+  {
+    id: 'Reggae & Praieiro',
+    label: 'Reggae & Praieiro (Bob Marley & Kingston)',
+    shortLabel: 'Reggae',
+    iconName: 'Waves',
+    badge: '1 Obra',
+    description: 'A cadência do contratempo do reggae jamaicano e acordes de piano skank de Three Little Birds.',
   },
   {
     id: 'Pop & Rock Clássico',
-    label: 'Pop & Rock Clássico (ABBA, Elton John & Beatles)',
+    label: 'Pop & Rock Clássico (Queen, Elton John & Beatles)',
     shortLabel: 'Pop/Rock',
     iconName: 'Disc',
     badge: '4 Obras',
@@ -51,10 +88,10 @@ export const REPERTOIRE_CATEGORIES: CategoryInfo[] = [
   },
   {
     id: 'Rock Anos 80 & New Wave',
-    label: 'Rock Anos 80 & New Wave (a-ha & Eurythmics)',
+    label: 'Rock Anos 80 & New Wave (The Police, a-ha & Eurythmics)',
     shortLabel: 'Anos 80 / New Wave',
     iconName: 'Zap',
-    badge: '4 Obras',
+    badge: '5 Obras',
     description: 'Riffs lendários de sintetizadores dos anos 80, pulso staccato e New Wave.',
   },
   {
@@ -8341,5 +8378,6 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       "noteName": "F3"
     }
   ]
-}
+},
+...EXTENDED_REPERTOIRE_SONGS,
 ];

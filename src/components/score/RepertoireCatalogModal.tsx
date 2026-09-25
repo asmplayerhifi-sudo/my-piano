@@ -13,6 +13,10 @@ import {
   LayoutGrid,
   Check,
   Gauge,
+  Sun,
+  Radio,
+  BookOpen,
+  Waves,
 } from 'lucide-react';
 
 const CATEGORY_ICON_MAP: Record<string, React.ElementType> = {
@@ -21,6 +25,10 @@ const CATEGORY_ICON_MAP: Record<string, React.ElementType> = {
   'MPB & Pop Nacional': Heart,
   'Pop & Rock Clássico': Disc,
   'Rock Anos 80 & New Wave': Zap,
+  'Reggae & Praieiro': Waves,
+  'Forró, Xote & Baião': Sun,
+  'Seresta & Brega (Zezo dos Teclados)': Radio,
+  'Gospel Clássico & Sacro': BookOpen,
   'Infantis, Cirandas & Folclore': Sparkles,
 };
 

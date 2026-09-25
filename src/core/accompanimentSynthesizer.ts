@@ -6,7 +6,7 @@
 import { soundEngine } from './soundEngine';
 import { midiToFrequency } from './musicTheory';
 
-export type MetronomeSoundType = 'digital' | 'woodblock' | 'mechanical' | 'cowbell';
+export type MetronomeSoundType = 'digital' | 'woodblock' | 'mechanical' | 'cowbell' | 'keyboard-sidestick';
 
 class AccompanimentSynthesizer {
   /**
@@ -76,6 +76,27 @@ class AccompanimentSynthesizer {
         gain.connect(dest);
         osc.start(t);
         osc.stop(t + 0.05);
+        break;
+      }
+
+      case 'keyboard-sidestick': {
+        // Som musical de sidestick / aro de teclado (madeira orgânica + estalido harmônico)
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+
+        const freq = isDownbeat ? 1750 : isSubdivision ? 880 : 1250;
+        osc.frequency.setValueAtTime(freq, t);
+        osc.frequency.exponentialRampToValueAtTime(freq * 0.45, t + 0.025);
+
+        const peak = (isDownbeat ? 0.85 : isSubdivision ? 0.35 : 0.6) * volume;
+        gain.gain.setValueAtTime(peak, t);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.04);
+
+        osc.connect(gain);
+        gain.connect(dest);
+        osc.start(t);
+        osc.stop(t + 0.045);
         break;
       }
 

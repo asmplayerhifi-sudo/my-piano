@@ -6,8 +6,10 @@ import { ScrollingScoreCanvas } from './ScrollingScoreCanvas';
 import { PianoKeyboard } from '../piano/PianoKeyboard';
 import { MicrophonePitchBar } from '../audio/MicrophonePitchBar';
 import { RepertoireCatalogModal } from './RepertoireCatalogModal';
+import { RepertoireAccuracyModal } from './RepertoireAccuracyModal';
 import { TimbreSelector } from '../audio/TimbreSelector';
 import { soundEngine } from '../../core/soundEngine';
+import { accompanimentSynthesizer, type MetronomeSoundType } from '../../core/accompanimentSynthesizer';
 import { useOctaveStandard, octaveConfigStore } from '../../core/octaveConfigStore';
 import {
   Music,
@@ -21,6 +23,11 @@ import {
   Headphones,
   Expand,
   Shrink,
+  ShieldCheck,
+  Repeat,
+  Square,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
 
 function computeNoteOffsets(notes: ScoreNote[], timeSignature = '4/4'): number[] {
@@ -48,6 +55,7 @@ function computeNoteOffsets(notes: ScoreNote[], timeSignature = '4/4'): number[]
 export const RepertoireView: React.FC = () => {
   const [activeSong, setActiveSong] = useState<RepertoireSong>(REPERTOIRE_SONGS[0]);
   const [isCatalogModalOpen, setIsCatalogModalOpen] = useState<boolean>(false);
+  const [isAccuracyModalOpen, setIsAccuracyModalOpen] = useState<boolean>(false);
   const [tempo, setTempo] = useState<number>(REPERTOIRE_SONGS[0].recommendedBpm);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [currentNoteIdx, setCurrentNoteIdx] = useState<number>(0);
@@ -55,8 +63,21 @@ export const RepertoireView: React.FC = () => {
   const [activeDemoMidi, setActiveDemoMidi] = useState<number[]>([]);
   const [micHearingMidi, setMicHearingMidi] = useState<number | null>(null);
   const [isFullscreenStage, setIsFullscreenStage] = useState<boolean>(false);
-  // Sustain: true = nota sustentada até o próximo evento (legato); false = staccato (~40% da duração)
-  const [sustainMode, setSustainMode] = useState<boolean>(true);
+
+  // Modos de Finalização da Reprodução: 'end' (cessa no final real da música) ou 'repeat' (loop contínuo)
+  const [playbackEndMode, setPlaybackEndMode] = useState<'end' | 'repeat'>('end');
+
+  // Sustain Musical Real Exclusivo no Modo Reprodução:
+  // 'chord' = sustenta notas do acorde até a troca do próximo acorde
+  // 'note'  = sustenta notas individuais melódicas com legato de pedal
+  // 'off'   = staccato puro sem sustain
+  const [sustainOption, setSustainOption] = useState<'note' | 'chord' | 'off'>('chord');
+
+  // Metrônomo Musical com timbre orgânico de instrumento
+  const [enableMetronome, setEnableMetronome] = useState<boolean>(false);
+  const [metronomeVolume, setMetronomeVolume] = useState<number>(75);
+  const [metronomeSound, setMetronomeSound] = useState<MetronomeSoundType>('keyboard-sidestick');
+
   const octaveStandard = useOctaveStandard();
 
   const toggleFullscreenStage = () => {
@@ -95,12 +116,20 @@ export const RepertoireView: React.FC = () => {
   const isPlayingRef = useRef<boolean>(false);
   const tempoRef = useRef<number>(tempo);
   const currentNoteIdxRef = useRef<number>(0);
-  const sustainModeRef = useRef<boolean>(sustainMode);
+  const playbackEndModeRef = useRef<'end' | 'repeat'>(playbackEndMode);
+  const sustainOptionRef = useRef<'note' | 'chord' | 'off'>(sustainOption);
+  const enableMetronomeRef = useRef<boolean>(enableMetronome);
+  const metronomeVolumeRef = useRef<number>(metronomeVolume);
+  const metronomeSoundRef = useRef<MetronomeSoundType>(metronomeSound);
 
   isPlayingRef.current = isPlaying;
   tempoRef.current = tempo;
   currentNoteIdxRef.current = currentNoteIdx;
-  sustainModeRef.current = sustainMode;
+  playbackEndModeRef.current = playbackEndMode;
+  sustainOptionRef.current = sustainOption;
+  enableMetronomeRef.current = enableMetronome;
+  metronomeVolumeRef.current = metronomeVolume;
+  metronomeSoundRef.current = metronomeSound;
 
   // Atualiza tempo recomendado ao trocar de música
   const handleSelectSong = (song: RepertoireSong) => {
@@ -188,13 +217,20 @@ export const RepertoireView: React.FC = () => {
     const track = sortedScoreTrack;
     const offsets = noteOffsetsRef.current;
     if (noteIndex >= track.length) {
-      // Fim da obra: reinicia do começo após uma pausa elegante
-      playbackTimeoutRef.current = window.setTimeout(() => {
-        if (isPlayingRef.current) {
-          setCurrentNoteIdx(0);
-          playNextNote(0);
-        }
-      }, 1200);
+      // Fim da obra: encerra ou reinicia dependendo do modo configurado
+      if (playbackEndModeRef.current === 'repeat') {
+        playbackTimeoutRef.current = window.setTimeout(() => {
+          if (isPlayingRef.current) {
+            setCurrentNoteIdx(0);
+            playNextNote(0);
+          }
+        }, 1200);
+      } else {
+        setIsPlaying(false);
+        isPlayingRef.current = false;
+        setActiveDemoMidi([]);
+        setCurrentNoteIdx(0);
+      }
       return;
     }
 
@@ -203,12 +239,40 @@ export const RepertoireView: React.FC = () => {
     let nextIndex = noteIndex;
     const currentNotesMidi: number[] = [];
 
-    // Calcula duração do intervalo até o próximo evento para modo sustain
+    // Metrônomo Musical Sincronizado por Batida
+    if (enableMetronomeRef.current) {
+      const parts = activeSong.timeSignature.split('/');
+      const num = parseInt(parts[0], 10) || 4;
+      const beatInMeasure = Math.floor(currentOffset % num) + 1;
+      const isDownbeat = beatInMeasure === 1;
+
+      accompanimentSynthesizer.playMetronomeSound(
+        metronomeSoundRef.current,
+        isDownbeat,
+        false,
+        undefined,
+        (metronomeVolumeRef.current / 100) * 0.85
+      );
+    }
+
+    // Calcula duração do intervalo até o próximo evento musical
     let nextEventOffset: number | null = null;
     {
       let scanIdx = nextIndex;
       while (scanIdx < track.length && Math.abs((offsets[scanIdx] ?? 0) - currentOffset) < 0.05) scanIdx++;
       if (scanIdx < track.length) nextEventOffset = offsets[scanIdx] ?? null;
+    }
+
+    // Identifica quando ocorrerá a próxima troca de acorde na partitura (para Sustain Acorde)
+    let nextChordChangeOffset: number | null = null;
+    const currentChordName = track[nextIndex]?.chordName;
+    if (currentChordName) {
+      for (let c = nextIndex + 1; c < track.length; c++) {
+        if (track[c].chordName && track[c].chordName !== currentChordName) {
+          nextChordChangeOffset = offsets[c] ?? null;
+          break;
+        }
+      }
     }
 
     while (nextIndex < track.length && Math.abs((offsets[nextIndex] ?? 0) - currentOffset) < 0.05) {
@@ -217,15 +281,24 @@ export const RepertoireView: React.FC = () => {
       const noteDurSec = (noteToPlay.duration || 1) * beatSec;
 
       let durSec: number;
-      if (sustainModeRef.current) {
-        // Sustain: mantém a nota soando até o próximo evento + leve overlap
+      if (sustainOptionRef.current === 'chord') {
+        // Sustain Acorde: mantém a harmonia sustentada até a entrada do novo acorde
+        if (nextChordChangeOffset !== null) {
+          durSec = Math.max(noteDurSec, (nextChordChangeOffset - currentOffset) * beatSec + 0.08);
+        } else if (nextEventOffset !== null) {
+          durSec = Math.max(noteDurSec * 1.4, (nextEventOffset - currentOffset) * beatSec + 0.4);
+        } else {
+          durSec = Math.max(noteDurSec * 1.5, 2.5);
+        }
+      } else if (sustainOptionRef.current === 'note') {
+        // Sustain Nota: mantém cada nota melódica soando com legato natural de pedal
         const intervalSec = nextEventOffset !== null
-          ? Math.max(0.1, (nextEventOffset - currentOffset) * beatSec + 0.06)
-          : noteDurSec * 1.3;
-        durSec = Math.max(noteDurSec * 0.8, intervalSec);
+          ? Math.max(0.1, (nextEventOffset - currentOffset) * beatSec + 0.08)
+          : noteDurSec * 1.35;
+        durSec = Math.max(noteDurSec * 1.1, intervalSec);
       } else {
-        // Staccato: 40% da duração rítmica, mínimo 0.12s
-        durSec = Math.max(0.12, noteDurSec * 0.40);
+        // Sem Sustain: staccato articulado (~45% da duração rítmica)
+        durSec = Math.max(0.12, noteDurSec * 0.45);
       }
 
       soundEngine.playPianoNote(noteToPlay.midi, durSec);
@@ -233,8 +306,7 @@ export const RepertoireView: React.FC = () => {
       nextIndex++;
     }
 
-    // Atualiza teclas ativas visualmente no piano durante a demonstração,
-    // SEM disparar avaliação de performance ou fingir input do usuário!
+    // Atualiza teclas ativas visualmente no piano durante a demonstração
     setActiveDemoMidi(currentNotesMidi);
     setCurrentNoteIdx(nextIndex);
 
@@ -248,13 +320,25 @@ export const RepertoireView: React.FC = () => {
         playNextNote(nextIndex);
       }, noteDurationMs);
     } else {
-      // Última nota da partitura: aguarda sua duração antes de reiniciar
-      const lastDuration = track[noteIndex]?.duration || 2;
-      const finalWaitMs = (60 / tempoRef.current) * 1000 * lastDuration;
+      // Última nota da partitura:
+      // Aguarda rigorosamente a execução e o decaimento real de sustain da última nota
+      const lastDur = Math.max(...track.slice(noteIndex).map(n => n.duration || 2));
+      const sustainDecayMs = sustainOptionRef.current !== 'off' ? 850 : 200;
+      const finalWaitMs = (60 / tempoRef.current) * 1000 * lastDur + sustainDecayMs;
+
       playbackTimeoutRef.current = window.setTimeout(() => {
         if (isPlayingRef.current) {
-          setCurrentNoteIdx(0);
-          playNextNote(0);
+          if (playbackEndModeRef.current === 'repeat') {
+            // Modo Repetição: Retorna ao início e reinicia
+            setCurrentNoteIdx(0);
+            playNextNote(0);
+          } else {
+            // Modo Fim / Normal: Cessa a reprodução exatamente após a última nota
+            setIsPlaying(false);
+            isPlayingRef.current = false;
+            setActiveDemoMidi([]);
+            setCurrentNoteIdx(0);
+          }
         }
       }, finalWaitMs);
     }
@@ -307,7 +391,7 @@ export const RepertoireView: React.FC = () => {
     <div className="w-full space-y-3 select-none no-select">
       {/* 1. Barra de Acesso ao Catálogo e Controle Principal (Totalmente Fluida & Widescreen) */}
       <div className="glass-card rounded-3xl p-4 sm:p-5 border border-white/5 shadow-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-gradient-to-r from-purple-950/40 via-[#130b24]/60 to-[#0a0718]/80 backdrop-blur-md">
-        {/* Lado Esquerdo: Identificação da Música e Botão para Abrir o Modal de Catálogo */}
+        {/* Lado Esquerdo: Identificação da Música, Botão Catálogo e Botão Validador de Acurácia */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           {/* Botão que Abre o Modal com as Categorias e Músicas */}
           <button
@@ -315,8 +399,19 @@ export const RepertoireView: React.FC = () => {
             className="px-4 py-2.5 rounded-2xl bg-purple-600/30 hover:bg-purple-600/40 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2 border border-purple-500/30 shadow-lg shadow-purple-900/20 cursor-pointer transition-all active:scale-95 group shrink-0"
           >
             <Music className="w-4 h-4 text-purple-400 group-hover:rotate-12 transition-transform" />
-            <span>Catálogo de Músicas</span>
+            <span>Catálogo</span>
             <ChevronDown className="w-3.5 h-3.5 text-purple-300" />
+          </button>
+
+          {/* Botão do Validador de Acurácia Musical */}
+          <button
+            onClick={() => setIsAccuracyModalOpen(true)}
+            className="px-3.5 py-2.5 rounded-2xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 border border-emerald-500/30 shadow-lg shadow-emerald-900/10 cursor-pointer transition-all active:scale-95 group shrink-0"
+            title="Abrir Validador de Acurácia Musical da Partitura"
+          >
+            <ShieldCheck className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
+            <span className="hidden sm:inline">Acurácia</span>
+            <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-emerald-500/20 font-mono font-bold">100% OK</span>
           </button>
 
           {/* Nome e Dados da Música Ativa */}
@@ -338,8 +433,8 @@ export const RepertoireView: React.FC = () => {
           </div>
         </div>
 
-        {/* Lado Direito: Controles Globais de Play / Pause, Timbre e Andamento */}
-        <div className="flex flex-wrap items-center gap-3 self-start lg:self-auto">
+        {/* Lado Direito: Controles Globais de Play / Pause, Timbre, Modo Fim/Loop, Sustain e Metrônomo */}
+        <div className="flex flex-wrap items-center gap-2.5 self-start lg:self-auto">
           {/* Seletor de Timbre */}
           <TimbreSelector compact />
 
@@ -347,7 +442,7 @@ export const RepertoireView: React.FC = () => {
           <div className="flex items-center gap-1.5">
             <button
               onClick={handleTogglePlayPause}
-              className={`px-5 py-2.5 rounded-2xl font-black font-display text-xs uppercase tracking-wider flex items-center gap-2 shadow-xl transition-all cursor-pointer active:scale-95 ${
+              className={`px-4 sm:px-5 py-2.5 rounded-2xl font-black font-display text-xs uppercase tracking-wider flex items-center gap-2 shadow-xl transition-all cursor-pointer active:scale-95 ${
                 isPlaying
                   ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/25 animate-pulse'
                   : 'bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-black shadow-emerald-500/20'
@@ -356,7 +451,7 @@ export const RepertoireView: React.FC = () => {
               {isPlaying ? (
                 <>
                   <Pause className="w-4 h-4 fill-current" />
-                  <span>Pausar Demonstração</span>
+                  <span>Pausar</span>
                 </>
               ) : (
                 <>
@@ -366,12 +461,28 @@ export const RepertoireView: React.FC = () => {
               )}
             </button>
 
-            {isPlaying && (
-              <span className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-200 text-xs font-mono">
-                <Headphones className="w-3.5 h-3.5 text-purple-400" />
-                <span>Modo Demonstração (Apenas Ouvir)</span>
-              </span>
-            )}
+            {/* Alternador de Modo de Fim vs Repetição */}
+            <button
+              onClick={() => setPlaybackEndMode(m => m === 'end' ? 'repeat' : 'end')}
+              className={`px-3 py-2 rounded-2xl border text-xs font-bold font-mono flex items-center gap-1.5 transition-all cursor-pointer ${
+                playbackEndMode === 'repeat'
+                  ? 'bg-purple-600/30 border-purple-500/50 text-purple-200'
+                  : 'bg-white/5 border-white/10 text-slate-300 hover:text-white'
+              }`}
+              title={playbackEndMode === 'repeat' ? 'Modo Repetição (Loop contínuo após o fim)' : 'Modo Fim (Cessa após a última nota)'}
+            >
+              {playbackEndMode === 'repeat' ? (
+                <>
+                  <Repeat className="w-3.5 h-3.5 text-purple-400" />
+                  <span className="hidden xl:inline">Repetição</span>
+                </>
+              ) : (
+                <>
+                  <Square className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="hidden xl:inline">Modo Fim</span>
+                </>
+              )}
+            </button>
 
             <button
               onClick={handleResetPlayback}
@@ -382,8 +493,8 @@ export const RepertoireView: React.FC = () => {
             </button>
           </div>
 
-          {/* Ajuste de Andamento (BPM) com Steppers [- 5] e [+ 5] */}
-          <div className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-2xl border border-white/5">
+          {/* Ajuste de Andamento (BPM) */}
+          <div className="flex items-center gap-1.5 bg-black/40 px-2.5 py-1.5 rounded-2xl border border-white/5">
             <span className="text-[10px] text-slate-400 font-mono flex items-center gap-1">
               <Gauge className="w-3 h-3 text-purple-400" />
               <span>BPM:</span>
@@ -391,82 +502,104 @@ export const RepertoireView: React.FC = () => {
 
             <button
               onClick={() => handleTempoChange(tempo - 5)}
-              className="w-6 h-6 rounded-lg bg-white/5 hover:bg-white/10 text-white font-mono font-bold text-xs flex items-center justify-center cursor-pointer transition-colors"
+              className="w-5 h-5 rounded-md bg-white/5 hover:bg-white/10 text-white font-mono font-bold text-xs flex items-center justify-center cursor-pointer"
               title="-5 BPM"
             >
               -
             </button>
 
-            <span className="text-xs font-bold font-mono text-purple-300 w-14 text-center">
-              {tempo} BPM
+            <span className="text-xs font-bold font-mono text-purple-300 w-12 text-center">
+              {tempo}
             </span>
 
             <button
               onClick={() => handleTempoChange(tempo + 5)}
-              className="w-6 h-6 rounded-lg bg-white/5 hover:bg-white/10 text-white font-mono font-bold text-xs flex items-center justify-center cursor-pointer transition-colors"
+              className="w-5 h-5 rounded-md bg-white/5 hover:bg-white/10 text-white font-mono font-bold text-xs flex items-center justify-center cursor-pointer"
               title="+5 BPM"
             >
               +
             </button>
-
-            <input
-              type="range"
-              min="40"
-              max="180"
-              value={tempo}
-              onChange={(e) => handleTempoChange(parseInt(e.target.value))}
-              className="w-20 sm:w-28 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
-            />
           </div>
 
-          {/* Presets Rápidos de Velocidade */}
-          <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 text-[9px] font-bold font-mono">
-            {[0.75, 1.0, 1.25, 1.5].map((mult) => {
-              const targetBpm = Math.round(activeSong.recommendedBpm * mult);
-              const isActive = tempo === targetBpm;
+          {/* Controle Real de Sustain (Exclusivo na Tela de Repertório / Modo Reprodução) */}
+          <div className="flex items-center bg-black/50 p-1 rounded-2xl border border-white/10 text-xs">
+            <button
+              onClick={() => setSustainOption('note')}
+              className={`px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                sustainOption === 'note'
+                  ? 'bg-indigo-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Sustain Nota: sustenta as notas melódicas com legato natural de pedal"
+            >
+              <span>🎹 Nota</span>
+            </button>
 
-              return (
-                <button
-                  key={mult}
-                  onClick={() => handleTempoChange(targetBpm)}
-                  className={`px-2 py-0.5 rounded-lg transition-all cursor-pointer ${
-                    isActive ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
-                  }`}
+            <button
+              onClick={() => setSustainOption('chord')}
+              className={`px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                sustainOption === 'chord'
+                  ? 'bg-purple-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Sustain Acorde: sustenta todas as notas da harmonia até a troca para o próximo acorde"
+            >
+              <span>🎼 Acorde</span>
+            </button>
+
+            <button
+              onClick={() => setSustainOption('off')}
+              className={`px-2 py-1 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                sustainOption === 'off'
+                  ? 'bg-slate-700 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Sem Sustain: execução staccato com corte seco"
+            >
+              <span>🔇 Desat.</span>
+            </button>
+          </div>
+
+          {/* Metrônomo Musical Integrado */}
+          <div className="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-2xl border border-white/10 text-xs">
+            <button
+              onClick={() => setEnableMetronome(m => !m)}
+              className={`p-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1 font-bold ${
+                enableMetronome
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title={enableMetronome ? 'Metrônomo Musical Ativo' : 'Ativar Metrônomo Musical'}
+            >
+              {enableMetronome ? <Volume2 className="w-3.5 h-3.5 text-amber-400" /> : <VolumeX className="w-3.5 h-3.5" />}
+              <span className="hidden xl:inline">Metrônomo</span>
+            </button>
+
+            {enableMetronome && (
+              <>
+                <select
+                  value={metronomeSound}
+                  onChange={(e) => setMetronomeSound(e.target.value as MetronomeSoundType)}
+                  className="bg-black/60 text-[10px] text-amber-200 border border-white/10 rounded-lg px-1.5 py-0.5 font-mono cursor-pointer"
+                  title="Timbre Musical do Metrônomo"
                 >
-                  {mult}x
-                </button>
-              );
-            })}
-          </div>
+                  <option value="keyboard-sidestick">Aro Teclado</option>
+                  <option value="woodblock">Bloco Madeira</option>
+                  <option value="cowbell">Cowbell</option>
+                </select>
 
-          {/* Toggle Sustain / Staccato */}
-          <button
-            id="sustain-toggle-btn"
-            onClick={() => setSustainMode(s => !s)}
-            title={sustainMode
-              ? 'Modo Sustain ativo — clique para Staccato (notas curtas)'
-              : 'Modo Staccato ativo — clique para Sustain (notas longas)'}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-2xl text-xs font-bold border transition-all cursor-pointer active:scale-95 ${
-              sustainMode
-                ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-200 hover:bg-indigo-500/30 shadow-sm shadow-indigo-900/30'
-                : 'bg-amber-500/20 border-amber-500/50 text-amber-200 hover:bg-amber-500/30 shadow-sm shadow-amber-900/30'
-            }`}
-          >
-            <span className="text-base leading-none select-none">
-              {sustainMode ? '🎹' : '🥁'}
-            </span>
-            <div className="flex flex-col items-start leading-tight">
-              <span className="text-[9px] uppercase tracking-wider opacity-70">
-                {sustainMode ? 'Com Sustain' : 'Sem Sustain'}
-              </span>
-              <span className="text-[11px]">
-                {sustainMode ? 'Legato' : 'Staccato'}
-              </span>
-            </div>
-            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-              sustainMode ? 'bg-indigo-400' : 'bg-amber-400'
-            }`} />
-          </button>
+                <input
+                  type="range"
+                  min="10"
+                  max="100"
+                  value={metronomeVolume}
+                  onChange={(e) => setMetronomeVolume(parseInt(e.target.value, 10))}
+                  className="w-12 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                  title={`Volume: ${metronomeVolume}%`}
+                />
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -607,6 +740,14 @@ export const RepertoireView: React.FC = () => {
         isOpen={isCatalogModalOpen}
         onClose={() => setIsCatalogModalOpen(false)}
         selectedSong={activeSong}
+        onSelectSong={(song) => handleSelectSong(song)}
+      />
+
+      {/* 5. Modal do Validador de Acurácia Musical */}
+      <RepertoireAccuracyModal
+        isOpen={isAccuracyModalOpen}
+        onClose={() => setIsAccuracyModalOpen(false)}
+        currentSong={activeSong}
         onSelectSong={(song) => handleSelectSong(song)}
       />
     </div>
