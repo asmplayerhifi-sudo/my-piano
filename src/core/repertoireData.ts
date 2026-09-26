@@ -1080,6 +1080,31 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       { midi: 48, clef: 'bass', duration: 4, beat: 1, measure: 24, fingerLeftHand: 5, noteName: 'C2', chordName: 'C' },
       { midi: 60, clef: 'treble', duration: 4, beat: 1, measure: 24, fingerRightHand: 1, noteName: 'C3' },
     ],
+    extension: {
+      credits: {
+        composer: 'Luiz Gonzaga & Humberto Teixeira',
+        lyricist: 'Humberto Teixeira',
+        originalArtist: 'Luiz Gonzaga (O Rei do Baião)',
+        arrangementAuthor: 'Harmonia Music Master Series',
+        license: 'creative_commons',
+        publishedYear: 1947,
+        origin: 'Brasil / Baião Tradicional & Hino do Sertão Nordestino',
+        notes: 'Arranjo com pauta dupla didática completa em 24 compassos.',
+      },
+      sections: [
+        { id: 'verse1', label: 'Estrofe 1: A Terra Ardendo', startMeasure: 1, endMeasure: 8, dynamic: 'mf' },
+        { id: 'verse2', label: 'Estrofe 2: O Braseiro e a Seca', startMeasure: 9, endMeasure: 16, dynamic: 'mf' },
+        { id: 'chorus', label: 'Refrão: A Partida da Asa Branca', startMeasure: 17, endMeasure: 24, dynamic: 'f' },
+      ],
+      lyrics: [
+        { text: 'Quando olhei a terra ardendo qual a fogueira de São João', startBeat: 1, endBeat: 17, startMeasure: 1, lineType: 'verse' },
+        { text: 'Eu perguntei a Deus do céu, ai, por que tamanha judiação', startBeat: 17, endBeat: 33, startMeasure: 5, lineType: 'verse' },
+        { text: 'Que braseiro, que fornaia, nem um pé de prantação', startBeat: 33, endBeat: 49, startMeasure: 9, lineType: 'verse' },
+        { text: "Por falta d'água perdi meu gado, morreu de sede meu alazão", startBeat: 49, endBeat: 65, startMeasure: 13, lineType: 'verse' },
+        { text: 'Até mesmo a asa branca bateu asas do sertão', startBeat: 65, endBeat: 81, startMeasure: 17, lineType: 'chorus' },
+        { text: "Entonce eu disse: adeus, Rosinha, guarda contigo meu coração", startBeat: 81, endBeat: 97, startMeasure: 21, lineType: 'chorus' },
+      ],
+    },
   },
   {
     id: 'imagine',

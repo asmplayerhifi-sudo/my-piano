@@ -119,4 +119,28 @@ export const THREE_LITTLE_BIRDS: RepertoireSong = {
       { midi: 64, clef: 'treble', duration: 4, beat: 1, measure: 16, fingerRightHand: 3, noteName: 'E3' },
       { midi: 69, clef: 'treble', duration: 4, beat: 1, measure: 16, fingerRightHand: 5, noteName: 'A3' },
     ],
+    extension: {
+      credits: {
+        composer: 'Bob Marley',
+        lyricist: 'Bob Marley',
+        originalArtist: 'Bob Marley & The Wailers',
+        arrangementAuthor: 'Harmonia Music Master Series',
+        license: 'creative_commons',
+        publishedYear: 1977,
+        origin: 'Jamaica / Reggae & Kingston Roots',
+        notes: 'Arranjo com notação dupla didática e piano skank nos tempos 2 e 4.',
+      },
+      sections: [
+        { id: 'intro', label: 'Introdução Skank Reggae', startMeasure: 1, endMeasure: 1, dynamic: 'mf' },
+        { id: 'chorus', label: 'Refrão Positivo', startMeasure: 2, endMeasure: 9, dynamic: 'f' },
+        { id: 'verse', label: 'Verso dos Três Passarinhos', startMeasure: 10, endMeasure: 16, dynamic: 'mf' },
+      ],
+      lyrics: [
+        { text: "Don't worry about a thing", startBeat: 5, endBeat: 13, startMeasure: 2, lineType: 'chorus' },
+        { text: "'Cause every little thing gonna be alright", startBeat: 13, endBeat: 21, startMeasure: 4, lineType: 'chorus' },
+        { text: 'Rise up this mornin\', smiled with the risin\' sun', startBeat: 37, endBeat: 45, startMeasure: 10, lineType: 'verse' },
+        { text: 'Three little birds pitch by my doorstep', startBeat: 45, endBeat: 53, startMeasure: 12, lineType: 'verse' },
+        { text: 'Singin\' sweet songs of melodies pure and true', startBeat: 53, endBeat: 61, startMeasure: 14, lineType: 'verse' },
+      ],
+    },
   };

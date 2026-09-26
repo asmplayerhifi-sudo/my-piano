@@ -6,7 +6,7 @@ describe('Expanded Repertoire & Quality Standard', () => {
     // Pink Floyd
     { id: 'comfortably-numb', title: 'Comfortably Numb', artist: 'Pink Floyd' },
     { id: 'wish-you-were-here', title: 'Wish You Were Here', artist: 'Pink Floyd' },
-    { id: 'another-brick-in-the-wall', title: 'Another Brick in the Wall (Part 2)', artist: 'Pink Floyd' },
+    { id: 'another-brick-in-the-wall-pt2', title: 'Another Brick in the Wall (Part 2)', artist: 'Pink Floyd' },
     // The Doors
     { id: 'light-my-fire', title: 'Light My Fire', artist: 'The Doors' },
     { id: 'riders-on-the-storm', title: 'Riders on the Storm', artist: 'The Doors' },
@@ -69,7 +69,7 @@ describe('Expanded Repertoire & Quality Standard', () => {
       expect(song.biomechanicsTip.length).toBeGreaterThan(20);
 
       // Verify extension data
-      expect(song.extension).toBeDefined();
+      expect(song.extension, `${song.title} (${song.id}) must have extension`).toBeDefined();
       expect(song.extension?.credits.composer).toBeDefined();
       expect(song.extension?.sections.length).toBeGreaterThan(0);
       expect(song.extension?.lyrics?.length).toBeGreaterThan(0);
