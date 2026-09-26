@@ -170,4 +170,26 @@ describe('RepertoirePracticePolyphony - Validação Polifônica e Acordes no Mod
     musicalPlaybackEngine.setAudioEnabled(true);
     expect(musicalPlaybackEngine.isAudioEnabled()).toBe(true);
   });
+
+  it('deve pausar o motor de reprodução autônoma no Modo Espera (Wait) e permitir avanço no Modo Fluido (Flow)', async () => {
+    const { musicalPlaybackEngine } = await import('../../src/core/musicalPlaybackEngine');
+    const notes = odeToJoy.scoreTrack;
+    musicalPlaybackEngine.loadScore(notes, odeToJoy.timeSignature, 120);
+
+    // No Modo Fluido com prática iniciada:
+    musicalPlaybackEngine.play(0);
+    expect(musicalPlaybackEngine.getIsPlaying()).toBe(true);
+
+    // Ao alternar para Modo Espera: deve pausar o motor imediatamente para a partitura esperar o toque do usuário
+    musicalPlaybackEngine.pause();
+    expect(musicalPlaybackEngine.getIsPlaying()).toBe(false);
+
+    // Ao alternar de volta para Modo Fluido: retoma reprodução a partir da batida da nota atual
+    const currentStepBeat = 2; // Ex: compasso 1, tempo 3
+    musicalPlaybackEngine.play(currentStepBeat);
+    expect(musicalPlaybackEngine.getIsPlaying()).toBe(true);
+
+    musicalPlaybackEngine.stop();
+    expect(musicalPlaybackEngine.getIsPlaying()).toBe(false);
+  });
 });

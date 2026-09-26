@@ -204,16 +204,44 @@ export const RepertoireView: React.FC = () => {
       setIsPracticing(false);
       musicalPlaybackEngine.pause();
     } else {
-      setIsPracticing(true);
       setShowPracticeCompletionModal(false);
-      musicalPlaybackEngine.loadScore(sortedScoreTrack, activeSong.timeSignature, tempo);
-      musicalPlaybackEngine.setSustainMode(sustainOption);
-      musicalPlaybackEngine.setMetronomeEnabled(metronome.isPlaying);
-      musicalPlaybackEngine.setAudioEnabled(enableGuideAudio);
-      musicalPlaybackEngine.setLoopMode(playbackEndMode);
       const startIdx = currentNoteIdx >= sortedScoreTrack.length ? 0 : currentNoteIdx;
-      const startBeat = noteOffsets[startIdx] ?? 0;
-      musicalPlaybackEngine.play(startBeat);
+      if (startIdx !== currentNoteIdx) {
+        setCurrentNoteIdx(0);
+      }
+      setIsPracticing(true);
+      if (practiceType === 'flow') {
+        musicalPlaybackEngine.loadScore(sortedScoreTrack, activeSong.timeSignature, tempo);
+        musicalPlaybackEngine.setSustainMode(sustainOption);
+        musicalPlaybackEngine.setMetronomeEnabled(metronome.isPlaying);
+        musicalPlaybackEngine.setAudioEnabled(enableGuideAudio);
+        musicalPlaybackEngine.setLoopMode(playbackEndMode);
+        const startBeat = noteOffsets[startIdx] ?? 0;
+        musicalPlaybackEngine.play(startBeat);
+      } else {
+        musicalPlaybackEngine.pause();
+      }
+    }
+  };
+
+  const handleSelectPracticeType = (type: 'wait' | 'flow') => {
+    if (type === practiceType) return;
+    setPracticeType(type);
+    setSatisfiedStepIndices(new Set());
+
+    if (isPracticing) {
+      if (type === 'wait') {
+        musicalPlaybackEngine.pause();
+      } else {
+        musicalPlaybackEngine.loadScore(sortedScoreTrack, activeSong.timeSignature, tempo);
+        musicalPlaybackEngine.setSustainMode(sustainOption);
+        musicalPlaybackEngine.setMetronomeEnabled(metronome.isPlaying);
+        musicalPlaybackEngine.setAudioEnabled(enableGuideAudio);
+        musicalPlaybackEngine.setLoopMode(playbackEndMode);
+        const startIdx = currentNoteIdx >= sortedScoreTrack.length ? 0 : currentNoteIdx;
+        const startBeat = noteOffsets[startIdx] ?? 0;
+        musicalPlaybackEngine.play(startBeat);
+      }
     }
   };
 
@@ -486,6 +514,9 @@ export const RepertoireView: React.FC = () => {
     }
   };
 
+  const viewModeRef = useRef(viewMode);
+  viewModeRef.current = viewMode;
+
   // Sincronização estrita de ciclo de vida do player e evento de conclusão da obra (REQ-BUG-AUDIO-REPLAY-REPERTOIRE-01.2)
   useEffect(() => {
     const unsubState = musicalPlaybackEngine.onStateChange((playing) => {
@@ -497,9 +528,14 @@ export const RepertoireView: React.FC = () => {
 
     const unsubEnded = musicalPlaybackEngine.onTrackEnded(() => {
       setIsPlaying(false);
-      setCurrentNoteIdx(0);
       setActiveDemoMidi([]);
-      setShowCompletionBanner(true);
+      if (viewModeRef.current === 'practice') {
+        setIsPracticing(false);
+        setShowPracticeCompletionModal(true);
+      } else {
+        setCurrentNoteIdx(0);
+        setShowCompletionBanner(true);
+      }
     });
 
     return () => {
@@ -680,7 +716,7 @@ export const RepertoireView: React.FC = () => {
               {/* Seletor de Tipo de Prática: Modo Espera vs Modo Fluido */}
               <div className="flex items-center bg-black/60 p-1 rounded-2xl border border-white/10 text-xs shrink-0">
                 <button
-                  onClick={() => setPracticeType('wait')}
+                  onClick={() => handleSelectPracticeType('wait')}
                   className={`px-2.5 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
                     practiceType === 'wait'
                       ? 'bg-purple-600 text-white shadow-md'
@@ -691,7 +727,7 @@ export const RepertoireView: React.FC = () => {
                   Modo Espera
                 </button>
                 <button
-                  onClick={() => setPracticeType('flow')}
+                  onClick={() => handleSelectPracticeType('flow')}
                   className={`px-2.5 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
                     practiceType === 'flow'
                       ? 'bg-indigo-600 text-white shadow-md'
@@ -1272,7 +1308,7 @@ export const RepertoireView: React.FC = () => {
             }
           }}
           onTempoChange={(newBpm) => handleTempoChange(newBpm)}
-          currentMidiPressed={viewMode === 'playback' && isPlaying ? null : lastMidiEvent}
+          currentMidiPressed={viewMode === 'practice' && isPracticing ? lastMidiEvent : null}
         />
 
         {/* Teclado Virtual com Rastro Synthesia (100% da Largura, Zero Scroll, Bordas Sutis) */}

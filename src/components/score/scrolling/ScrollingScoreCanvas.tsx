@@ -151,20 +151,28 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
 
   // Sincroniza estado de reprodução (single source of time)
   useEffect(() => {
-    if (playback.isPlaying && !musicalPlaybackEngine.getIsPlaying()) {
-      const currentBeat = playback.scrollOffsetRef.current / pixelsPerBeat;
-      if (isMetronomeActive) {
-        metronomeEngine.setPlaybackDriven(true);
-        musicalPlaybackEngine.setMetronomeEnabled(true);
+    const isFlowing = isDemoMode || mode === 'flow';
+    if (isFlowing) {
+      if (playback.isPlaying && !musicalPlaybackEngine.getIsPlaying()) {
+        const currentBeat = playback.scrollOffsetRef.current / pixelsPerBeat;
+        if (isMetronomeActive) {
+          metronomeEngine.setPlaybackDriven(true);
+          musicalPlaybackEngine.setMetronomeEnabled(true);
+        }
+        musicalPlaybackEngine.play(currentBeat);
+      } else if (!playback.isPlaying && musicalPlaybackEngine.getIsPlaying()) {
+        musicalPlaybackEngine.pause();
+        if (metronomeEngine.getSnapshot().isPlaying) {
+          metronomeEngine.stop();
+        }
       }
-      musicalPlaybackEngine.play(currentBeat);
-    } else if (!playback.isPlaying && musicalPlaybackEngine.getIsPlaying()) {
-      musicalPlaybackEngine.pause();
-      if (metronomeEngine.getSnapshot().isPlaying) {
-        metronomeEngine.stop();
+    } else {
+      // No Modo Espera (Wait), o motor de reprodução autônoma DEVE estar pausado!
+      if (musicalPlaybackEngine.getIsPlaying()) {
+        musicalPlaybackEngine.pause();
       }
     }
-  }, [playback.isPlaying, pixelsPerBeat]);
+  }, [playback.isPlaying, pixelsPerBeat, mode, isDemoMode, isMetronomeActive]);
 
   const handleTogglePlay = async () => {
     await soundEngine.ensureAudioReady();
@@ -246,8 +254,9 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
     const render = () => {
       if (!active) return;
 
-      if (playback.isPlaying && !playback.isPausedWaitingRef.current) {
-        // Posição analítica de alta precisão derivada do motor de tempo universal
+      const isFlowing = isDemoMode || mode === 'flow';
+      if (isFlowing && playback.isPlaying && !playback.isPausedWaitingRef.current) {
+        // Posição analítica de alta precisão derivada do motor de tempo universal (Modo Fluido / Demonstração)
         const currentBeat = musicalPlaybackEngine.getCurrentBeat();
         playback.scrollOffsetRef.current = currentBeat * pixelsPerBeat;
 
@@ -258,6 +267,16 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
             playback.handleStepMissed?.(playback.currentIndex);
           }
           playback.setCurrentIndex(foundIdx);
+        }
+      } else if (!isFlowing) {
+        // MODO ESPERA: a partitura se alinha suavemente com a nota/acorde atual e aguarda a execução
+        const targetOffset = timeline.noteOffsets[playback.currentIndex] ?? 0;
+        const targetScroll = targetOffset * pixelsPerBeat;
+        const diff = targetScroll - playback.scrollOffsetRef.current;
+        if (Math.abs(diff) > 0.5) {
+          playback.scrollOffsetRef.current += diff * 0.2;
+        } else {
+          playback.scrollOffsetRef.current = targetScroll;
         }
       }
 
@@ -281,7 +300,7 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
       active = false;
       cancelAnimationFrame(animId);
     };
-  }, [playback, scoreTheme, displayOptions, containerWidth, timeline, restsList, notes, isDemoMode, instrument, beatsPerMeasure, activeSustainMode, isChordsSustain, pixelsPerBeat, attackLineX]);
+  }, [playback, scoreTheme, displayOptions, containerWidth, timeline, restsList, notes, isDemoMode, instrument, beatsPerMeasure, activeSustainMode, isChordsSustain, pixelsPerBeat, attackLineX, mode]);
 
   return (
     <div ref={containerRef} className="w-full flex flex-col rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-[#090814]">

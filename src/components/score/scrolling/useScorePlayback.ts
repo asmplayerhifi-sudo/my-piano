@@ -229,22 +229,28 @@ export function useScorePlayback({
     if (!note) return;
 
     if (!isDemoMode) {
-      const evaluation = evaluateStrikeUseCase.execute({
-        expectedTimeMs: 0,
-        actualTimeMs: diffMs,
-        currentBpm: tempo,
-        goodWindowMs: toleranceMs,
-      });
+      if (modeRef.current === 'wait') {
+        setFeedback({ text: 'CORRETO!', color: 'text-emerald-400' });
+        setScore(s => s + 100);
+        onNoteHitRef.current?.(note, 0);
+      } else {
+        const evaluation = evaluateStrikeUseCase.execute({
+          expectedTimeMs: 0,
+          actualTimeMs: diffMs,
+          currentBpm: tempo,
+          goodWindowMs: toleranceMs,
+        });
 
-      const colorMap = {
-        PERFECT: 'text-emerald-400',
-        GOOD: 'text-cyan-400',
-        OFF_TIME: 'text-amber-400',
-        MISSED: 'text-rose-400',
-      };
-      setFeedback({ text: `${evaluation.grade}! (±${Math.round(Math.abs(diffMs))}ms)`, color: colorMap[evaluation.grade] });
-      setScore(s => s + evaluation.scorePoints);
-      onNoteHitRef.current?.(note, diffMs);
+        const colorMap = {
+          PERFECT: 'text-emerald-400',
+          GOOD: 'text-cyan-400',
+          OFF_TIME: 'text-amber-400',
+          MISSED: 'text-rose-400',
+        };
+        setFeedback({ text: `${evaluation.grade}! (±${Math.round(Math.abs(diffMs))}ms)`, color: colorMap[evaluation.grade] });
+        setScore(s => s + evaluation.scorePoints);
+        onNoteHitRef.current?.(note, diffMs);
+      }
     }
 
     setLastError(null);
@@ -254,7 +260,7 @@ export function useScorePlayback({
   }, [notes, isDemoMode, tempo, toleranceMs, evaluateStrikeUseCase]);
 
   const handleStepMissed = useCallback((missedIndex: number) => {
-    if (isDemoMode) return;
+    if (isDemoMode || modeRef.current === 'wait') return;
     const note = notes[missedIndex];
     if (!note) return;
 
@@ -276,6 +282,15 @@ export function useScorePlayback({
     satisfiedIndicesRef.current.clear();
     setSatisfiedIndices(new Set());
   }, [notes, isDemoMode]);
+
+  // Alinha scroll imediatamente com o passo atual quando o modo for 'wait'
+  useEffect(() => {
+    if (mode === 'wait') {
+      const off = timeline.noteOffsets[currentIndex] ?? 0;
+      scrollOffsetRef.current = off * pixelsPerBeat;
+      isPausedWaitingRef.current = false;
+    }
+  }, [mode, currentIndex, timeline.noteOffsets, pixelsPerBeat]);
 
   useEffect(() => {
     if (currentNoteIndex !== undefined) {
