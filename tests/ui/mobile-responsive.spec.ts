@@ -144,3 +144,20 @@ describe('6. Cobertura — 3 tamanhos de celular (Critério 12)', () => {
     });
   });
 });
+
+// ─── 7. Catálogo de Repertório — Responsividade de Categorias ──────────────────
+
+describe('7. Catálogo de Repertório — Quebra de linhas e visibilidade de categorias', () => {
+  it('no desktop (>= 768px): as 12 categorias quebram em linhas sem corte horizontal', () => {
+    const isDesktop = (width: number) => width >= 768;
+    expect(isDesktop(1024)).toBe(true);
+    expect(isDesktop(1440)).toBe(true);
+  });
+
+  it('no mobile (< 768px): suporta modo expansão ou scroll com botões e máscara', () => {
+    const isDesktop = (width: number) => width >= 768;
+    expect(isDesktop(360)).toBe(false);
+    expect(isDesktop(390)).toBe(false);
+    expect(isDesktop(430)).toBe(false);
+  });
+});

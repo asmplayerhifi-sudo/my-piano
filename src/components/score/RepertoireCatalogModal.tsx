@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { REPERTOIRE_SONGS, REPERTOIRE_CATEGORIES } from '../../core/repertoireData';
 import type { RepertoireSong, SongGenre } from '../../core/repertoireData';
 import {
@@ -19,6 +19,8 @@ import {
   Waves,
   Globe,
   Flame,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 const CATEGORY_ICON_MAP: Record<string, React.ElementType> = {
@@ -51,6 +53,50 @@ export const RepertoireCatalogModal: React.FC<Props> = ({
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<SongGenre | 'Todos'>('Todos');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isExpandedCategories, setIsExpandedCategories] = useState<boolean>(false);
+  const [canScrollLeft, setCanScrollLeft] = useState<boolean>(false);
+  const [canScrollRight, setCanScrollRight] = useState<boolean>(false);
+  const categoryScrollRef = useRef<HTMLDivElement>(null);
+
+  const checkScroll = useCallback(() => {
+    const el = categoryScrollRef.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    setCanScrollLeft(scrollLeft > 4);
+    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const el = categoryScrollRef.current;
+    if (!el) return;
+    // Checagem imediata e com pequeno atraso para renderização do layout
+    checkScroll();
+    const timer = setTimeout(checkScroll, 100);
+    el.addEventListener('scroll', checkScroll, { passive: true });
+    window.addEventListener('resize', checkScroll);
+    return () => {
+      clearTimeout(timer);
+      el.removeEventListener('scroll', checkScroll);
+      window.removeEventListener('resize', checkScroll);
+    };
+  }, [isOpen, checkScroll, isExpandedCategories]);
+
+  const handleScroll = (direction: 'left' | 'right') => {
+    const el = categoryScrollRef.current;
+    if (!el) return;
+    const distance = 220;
+    el.scrollBy({
+      left: direction === 'left' ? -distance : distance,
+      behavior: 'smooth',
+    });
+  };
+
+  const handleCategoryWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (e.deltaY !== 0 && !e.shiftKey && !isExpandedCategories) {
+      e.currentTarget.scrollLeft += e.deltaY;
+    }
+  };
 
   // Fecha com a tecla ESC
   useEffect(() => {
@@ -138,35 +184,100 @@ export const RepertoireCatalogModal: React.FC<Props> = ({
             )}
           </div>
 
-          {/* Abas de Categorias */}
-          <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar pb-0.5">
-            {REPERTOIRE_CATEGORIES.map((cat) => {
-              const isSelected = selectedCategory === cat.id;
-              const Icon = CATEGORY_ICON_MAP[cat.id] || Music;
-              const count = cat.id === 'Todos'
-                ? REPERTOIRE_SONGS.length
-                : REPERTOIRE_SONGS.filter((s) => s.genre === cat.id).length;
+          {/* Header da Seção de Categorias */}
+          <div className="flex items-center justify-between gap-2 pt-0.5">
+            <div className="flex items-center gap-1.5 text-slate-400">
+              <LayoutGrid className="w-3.5 h-3.5 text-purple-400" />
+              <span className="text-[10px] sm:text-[11px] font-bold font-mono uppercase tracking-wider text-slate-300">
+                Gêneros ({REPERTOIRE_CATEGORIES.length - 1} Categorias)
+              </span>
+            </div>
 
-              return (
-                <button
-                  key={cat.id}
-                  onClick={() => setSelectedCategory(cat.id)}
-                  className={`px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl border text-[11px] sm:text-xs font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1 sm:gap-1.5 ${
-                    isSelected
-                      ? 'bg-purple-600/40 border-purple-500 text-white shadow-md'
-                      : 'bg-white/[0.02] border-white/5 text-slate-400 hover:text-white hover:bg-white/[0.05]'
-                  }`}
-                >
-                  <Icon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                  <span>{cat.shortLabel}</span>
-                  <span className={`text-[8px] sm:text-[9px] px-1 py-0.2 rounded ${
-                    isSelected ? 'bg-purple-500/40 text-purple-200' : 'bg-white/5 text-slate-500'
-                  }`}>
-                    {count} {count === 1 ? 'Obra' : 'Obras'}
-                  </span>
-                </button>
-              );
-            })}
+            {/* Alternador de visualização para telas compactas */}
+            <button
+              type="button"
+              onClick={() => setIsExpandedCategories((prev) => !prev)}
+              className="md:hidden text-[10px] font-bold text-purple-300 hover:text-white flex items-center gap-1 px-2 py-0.5 rounded-lg bg-purple-500/10 border border-purple-500/20 transition-colors cursor-pointer"
+            >
+              <span>{isExpandedCategories ? 'Linha Única' : 'Ver Todas'}</span>
+            </button>
+          </div>
+
+          {/* Abas de Categorias: No Desktop (>=md) sempre quebra em linhas organizadas (flex-wrap), no Mobile desliza com botões e expansão */}
+          <div className="relative">
+            {/* Botão de Rolagem Esquerda (Mobile / Telas menores quando não expandido) */}
+            {!isExpandedCategories && canScrollLeft && (
+              <button
+                type="button"
+                onClick={() => handleScroll('left')}
+                className="md:hidden absolute -left-1 sm:-left-2 top-1/2 -translate-y-1/2 z-20 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-purple-950/90 border border-purple-400/50 text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform cursor-pointer"
+                title="Rolar categorias para esquerda"
+              >
+                <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-200" />
+              </button>
+            )}
+
+            {/* Máscara de gradiente à esquerda */}
+            {!isExpandedCategories && canScrollLeft && (
+              <div className="md:hidden pointer-events-none absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[#0c0919] to-transparent z-10" />
+            )}
+
+            {/* Lista dos Chips de Categoria */}
+            <div
+              ref={categoryScrollRef}
+              onWheel={handleCategoryWheel}
+              className={`flex items-center gap-1.5 sm:gap-2 ${
+                isExpandedCategories
+                  ? 'flex-wrap'
+                  : 'overflow-x-auto no-scrollbar md:flex-wrap'
+              } pb-0.5`}
+            >
+              {REPERTOIRE_CATEGORIES.map((cat) => {
+                const isSelected = selectedCategory === cat.id;
+                const Icon = CATEGORY_ICON_MAP[cat.id] || Music;
+                const count = cat.id === 'Todos'
+                  ? REPERTOIRE_SONGS.length
+                  : REPERTOIRE_SONGS.filter((s) => s.genre === cat.id).length;
+
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => setSelectedCategory(cat.id)}
+                    title={`${cat.label} (${count} obras) — ${cat.description}`}
+                    className={`px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl border text-[11px] sm:text-xs font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1 sm:gap-1.5 active:scale-95 ${
+                      isSelected
+                        ? 'bg-gradient-to-r from-purple-600 to-indigo-600 border-purple-400 text-white shadow-lg shadow-purple-950/50 ring-1 ring-purple-400/40'
+                        : 'bg-white/[0.03] border-white/10 text-slate-300 hover:text-white hover:bg-white/[0.08] hover:border-white/20'
+                    }`}
+                  >
+                    <Icon className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${isSelected ? 'text-amber-300' : 'text-purple-400'}`} />
+                    <span>{cat.shortLabel}</span>
+                    <span className={`text-[8px] sm:text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-md ${
+                      isSelected ? 'bg-purple-950/80 text-purple-200 border border-purple-400/30' : 'bg-white/10 text-slate-400'
+                    }`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Máscara de gradiente à direita */}
+            {!isExpandedCategories && canScrollRight && (
+              <div className="md:hidden pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#0c0919] to-transparent z-10" />
+            )}
+
+            {/* Botão de Rolagem Direita (Mobile / Telas menores quando não expandido) */}
+            {!isExpandedCategories && canScrollRight && (
+              <button
+                type="button"
+                onClick={() => handleScroll('right')}
+                className="md:hidden absolute -right-1 sm:-right-2 top-1/2 -translate-y-1/2 z-20 w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-purple-950/90 border border-purple-400/50 text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform cursor-pointer"
+                title="Rolar categorias para direita"
+              >
+                <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-200" />
+              </button>
+            )}
           </div>
         </div>
 
