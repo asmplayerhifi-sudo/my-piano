@@ -72,10 +72,15 @@ export const RepertoireView: React.FC = () => {
     musicalPlaybackEngine.setSustainMode(mode);
   };
 
+  // Sincroniza modo de finalização (fim/repetição) em tempo real sem interromper playback
+  useEffect(() => {
+    musicalPlaybackEngine.setLoopMode(playbackEndMode);
+  }, [playbackEndMode]);
+
   // Atualiza tempo recomendado ao trocar de música
   const handleSelectSong = (song: RepertoireSong) => {
     setShowCompletionBanner(false);
-    soundEngine.stopAllNotes();
+    soundEngine.stopAllNotes(0.025);
     musicalPlaybackEngine.stop();
     setIsPlaying(false);
     setActiveDemoMidi([]);
@@ -308,7 +313,11 @@ export const RepertoireView: React.FC = () => {
 
             {/* Alternador de Modo de Fim vs Repetição */}
             <button
-              onClick={() => setPlaybackEndMode(m => m === 'end' ? 'repeat' : 'end')}
+              onClick={() => {
+                const nextMode = playbackEndMode === 'end' ? 'repeat' : 'end';
+                setPlaybackEndMode(nextMode);
+                musicalPlaybackEngine.setLoopMode(nextMode);
+              }}
               className={`px-3 py-2 rounded-2xl border text-xs font-bold font-mono flex items-center gap-1.5 transition-all cursor-pointer ${
                 playbackEndMode === 'repeat'
                   ? 'bg-purple-600/30 border-purple-500/50 text-purple-200'

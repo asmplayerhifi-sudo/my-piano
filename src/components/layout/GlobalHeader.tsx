@@ -13,15 +13,18 @@ import {
   Maximize,
   Minimize,
   Settings,
+  Cable,
 } from 'lucide-react';
 import type { TabId } from './Navigation';
 import { soundEngine } from '../../core/soundEngine';
 import { useOctaveStandard } from '../../core/octaveConfigStore';
 import { OctaveStandardModal } from './OctaveStandardModal';
 import { LatencyWizardModal } from '../rhythm/LatencyWizardModal';
+import { AudioInputConfigModal } from '../audio/AudioInputConfigModal';
 import { useAccompaniment } from '../../core/accompanimentStore';
 import { useFullscreen } from '../../hooks/useFullscreen';
 import { latencyManager } from '../../core/latencyManager';
+import { midiManager } from '../../core/midiManager';
 
 export interface GlobalHeaderProps {
   activeTab: TabId;
@@ -32,7 +35,9 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
   const [showDrawer, setShowDrawer] = useState<boolean>(false);
   const [showOctaveModal, setShowOctaveModal] = useState<boolean>(false);
   const [showLatencyModal, setShowLatencyModal] = useState<boolean>(false);
+  const [showInputModal, setShowInputModal] = useState<boolean>(false);
   const [showVolumeSlider, setShowVolumeSlider] = useState<boolean>(false);
+  const [hasMidiDevices, setHasMidiDevices] = useState<boolean>(false);
   const [volume, setVolume] = useState<number>(soundEngine.getVolume());
   const [isMuted, setIsMuted] = useState<boolean>(soundEngine.isSoundMuted());
   const [currentOffset, setCurrentOffset] = useState<number>(latencyManager.getOffsetMs());
@@ -41,6 +46,19 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
   const accState = useAccompaniment();
   const { isFullscreen, toggleFullscreen } = useFullscreen();
   const volumeMenuRef = useRef<HTMLDivElement>(null);
+
+  // Monitora teclados e controladores MIDI conectados
+  useEffect(() => {
+    if (midiManager.checkSupport()) {
+      midiManager.initialize().then(() => {
+        setHasMidiDevices(midiManager.getDevices().length > 0);
+      });
+    }
+    const unsub = midiManager.subscribeDevices((devs) => {
+      setHasMidiDevices(devs.length > 0);
+    });
+    return () => unsub();
+  }, []);
 
   // Fecha popovers ao clicar fora ou ao pressionar Escape
   useEffect(() => {
@@ -313,6 +331,20 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
           >
             <span>🎹</span>
             <span className="font-bold text-indigo-300">({octaveStandard})</span>
+          </button>
+
+          {/* Botão de Configuração de Entradas: [🎙️/🔌 Entradas] */}
+          <button
+            id="btn-global-input-settings"
+            onClick={() => setShowInputModal(true)}
+            className="h-7.5 sm:h-8 flex items-center gap-1.5 px-2 sm:px-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-200 hover:text-white transition-all cursor-pointer group"
+            title="Configuração de Entradas: Microfone, Cabo Auxiliar, Interface USB, MIDI e Latência"
+          >
+            <Cable className="w-3.5 h-3.5 text-cyan-400 group-hover:text-cyan-300 shrink-0" />
+            <span className="hidden sm:inline text-slate-200 font-sans text-xs">Entradas</span>
+            {hasMidiDevices && (
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" title="Teclado MIDI Conectado" />
+            )}
           </button>
 
           {/* Botão de Metrônomo Global: [⏱️ 97 BPM] */}
@@ -658,6 +690,24 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
                   </div>
 
                   <div className="space-y-2 pl-1">
+                    {/* Configuração de Entradas (Mic / MIDI / USB) */}
+                    <button
+                      onClick={() => {
+                        setShowDrawer(false);
+                        setShowInputModal(true);
+                      }}
+                      className="w-full p-2.5 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/10 flex items-center justify-between text-xs transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2 text-slate-300">
+                        <Cable className="w-4 h-4 text-cyan-400" />
+                        <span>Configuração de Entradas:</span>
+                      </div>
+                      <span className="font-mono font-bold text-cyan-300 bg-cyan-500/20 px-2 py-0.5 rounded border border-cyan-500/30 flex items-center gap-1.5">
+                        {hasMidiDevices && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
+                        Mic / MIDI / USB
+                      </span>
+                    </button>
+
                     {/* Dó Central */}
                     <button
                       onClick={() => {
@@ -709,6 +759,12 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
         )}
 
       {/* ── Modais Auxiliares Globais ── */}
+      <AudioInputConfigModal
+        isOpen={showInputModal}
+        onClose={() => setShowInputModal(false)}
+        onOpenLatencyWizard={() => setShowLatencyModal(true)}
+      />
+
       <OctaveStandardModal
         isOpen={showOctaveModal}
         onClose={() => setShowOctaveModal(false)}

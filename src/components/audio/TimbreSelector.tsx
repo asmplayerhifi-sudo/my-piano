@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { soundEngine, TIMBRES, type TimbreId } from '../../core/soundEngine';
+import { musicalPlaybackEngine } from '../../core/musicalPlaybackEngine';
 
 interface TimbreSelectorProps {
   /** Posição compacta: exibe apenas o badge com timbre atual + dropdown */
@@ -133,16 +134,21 @@ export const TimbreSelector: React.FC<TimbreSelectorProps> = ({
     soundEngine.setTimbre(id);
     onTimbreChange?.(id);
     setOpen(false);
-    soundEngine.ensureAudioReady().then(() => {
-      soundEngine.playPianoNote(60, 0.6);
-    });
+    // Toca a nota de demonstração apenas se o player musical NÃO estiver reproduzindo
+    if (!musicalPlaybackEngine.getIsPlaying()) {
+      soundEngine.ensureAudioReady().then(() => {
+        soundEngine.playPianoNote(60, 0.6);
+      });
+    }
   };
 
   const handleHover = (id: TimbreId) => {
     if (preview !== id) {
       setPreview(id);
       soundEngine.setTimbre(id);
-      soundEngine.playPianoNote(60, 0.35);
+      if (!musicalPlaybackEngine.getIsPlaying()) {
+        soundEngine.playPianoNote(60, 0.35);
+      }
       setTimeout(() => {
         setPreview(prev => {
           if (prev === id) soundEngine.setTimbre(selected);

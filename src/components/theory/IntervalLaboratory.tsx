@@ -417,10 +417,10 @@ export const IntervalLaboratory: React.FC<Props> = ({
     };
   }, [rootMidi, targetMidi, activeSoundingMidis, octaveStandard, containerWidth]);
 
-  // Container width limit: 650px when inside Theory Grid, 1200px when standalone
+  // Container width limit: full width when inside Theory Grid, max-w-[1400px] when standalone
   const containerConstraintClass = inTheoryGrid
-    ? 'max-w-[650px] mx-auto'
-    : 'max-w-[1200px] mx-auto';
+    ? 'w-full'
+    : 'w-full max-w-[1400px] mx-auto';
 
   return (
     <div

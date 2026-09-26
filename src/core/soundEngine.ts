@@ -242,8 +242,8 @@ class SoundEngine {
   }
 
   public setTimbre(id: TimbreId) {
-    // Interrompe imediatamente todas as vozes ativas do timbre anterior (previne acúmulo de notas e sustain infinito)
-    this.stopAllNotes(0.005);
+    // Interrompe com fade-out suave de 25ms as vozes do timbre anterior para prevenir cliques/pops
+    this.stopAllNotes(0.025);
     this.currentTimbre = id;
 
     // Ajusta o nível de reverb por timbre
@@ -948,7 +948,7 @@ class SoundEngine {
    * Cancela todas as notas atualmente sustentadas pelo pedal com fade-out suave de 10ms
    * e desconexão de nós WebAudio. Previne acúmulo e sobreposição ao desativar o sustain.
    */
-  public cancelSustainedNotes(fadeDuration = 0.010) {
+  public cancelSustainedNotes(fadeDuration = 0.025) {
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
     const sustained = this.activeVoiceList.filter(v => v.isSustained && !v.released);
@@ -1043,7 +1043,7 @@ class SoundEngine {
    * Para todas as vozes e notas ativas imediatamente (Rotina Global de Limpeza / Panic Function).
    * Elimina notas presas (stuck notes) e acúmulo de vozes ao trocar de instrumento, pausar ou trocar de lição.
    */
-  public stopAllNotes(releaseDuration = 0.005) {
+  public stopAllNotes(releaseDuration = 0.025) {
     if (this.ctx) {
       const now = this.ctx.currentTime;
 
@@ -1078,7 +1078,7 @@ class SoundEngine {
 
   /** Alias padrão MIDI: allNotesOff */
   public allNotesOff() {
-    this.stopAllNotes(0.005);
+    this.stopAllNotes(0.025);
   }
 
   /** Rotina Global de Limpeza de Áudio (Panic Function) */
@@ -1088,7 +1088,7 @@ class SoundEngine {
 
   /** Restaura o motor de áudio a zero e reabre sem estalidos */
   public resetAudioEngine() {
-    this.stopAllNotes(0.005);
+    this.stopAllNotes(0.025);
     if (this.masterGain && this.ctx) {
       try {
         const now = this.ctx.currentTime;

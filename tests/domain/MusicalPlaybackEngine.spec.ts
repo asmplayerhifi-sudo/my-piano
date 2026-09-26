@@ -161,4 +161,36 @@ describe('MusicalPlaybackEngine - Single Source of Time & Sync', () => {
     expect(engine.getIsPlaying()).toBe(true);
     expect(engine.getPosition().currentBeat).toBe(0);
   });
+
+  it('preserva o playback ativo de forma transparente e contínua ao alterar opções da barra de ferramentas (REQ-BUG-TOOLBAR-AUDIO-PLAYBACK)', () => {
+    engine.play(0);
+    expect(engine.getIsPlaying()).toBe(true);
+
+    // Avança 1 segundo (1 beat a 60 BPM)
+    vi.advanceTimersByTime(1000);
+    const beatBefore = engine.getCurrentBeat();
+    expect(Math.round(beatBefore)).toBe(1);
+
+    // 1. Altera sustain mid-playback
+    engine.setSustainMode('chords');
+    expect(engine.getIsPlaying()).toBe(true);
+
+    // 2. Altera instrumento mid-playback
+    engine.setInstrument('guitar');
+    expect(engine.getIsPlaying()).toBe(true);
+
+    // 3. Altera metrônomo mid-playback
+    engine.setMetronomeEnabled(true);
+    expect(engine.getIsPlaying()).toBe(true);
+
+    // 4. Altera modo de repetição/fim mid-playback
+    engine.setLoopMode('repeat');
+    expect(engine.getIsPlaying()).toBe(true);
+
+    // 5. Re-execução de loadScore com a mesma partitura (ex: re-render de componente pai)
+    engine.loadScore(mockNotes, '4/4', 80);
+    expect(engine.getIsPlaying()).toBe(true);
+    expect(engine.getBpm()).toBe(80);
+    expect(Math.round(engine.getCurrentBeat())).toBe(1);
+  });
 });

@@ -69,7 +69,25 @@ export class MusicalPlaybackEngine {
   }
 
   public loadScore(notes: ScoreNote[], timeSignature = '4/4', bpm = 84) {
-    soundEngine.stopAllNotes();
+    // Se a mesma partitura (mesmas notas e compasso) já estiver carregada, preserva o playback em andamento
+    // sem interrupções nem cliques/pops (Seamless Hot-Reload)
+    const isSameNotes = this.notes === notes || (
+      this.notes.length === notes.length &&
+      this.notes.length > 0 &&
+      this.notes[0]?.midi === notes[0]?.midi &&
+      this.notes[0]?.measure === notes[0]?.measure &&
+      this.notes[this.notes.length - 1]?.midi === notes[notes.length - 1]?.midi &&
+      this.notes[this.notes.length - 1]?.measure === notes[notes.length - 1]?.measure
+    );
+
+    if (isSameNotes && this.timeSignature === timeSignature) {
+      if (this.bpm !== Math.round(bpm)) {
+        this.setBpm(bpm);
+      }
+      return;
+    }
+
+    soundEngine.stopAllNotes(0.025);
     this.notes = notes;
     this.updateTimeSignature(timeSignature);
     this.bpm = Math.max(30, Math.min(280, Math.round(bpm)));
@@ -81,14 +99,16 @@ export class MusicalPlaybackEngine {
     if (this.sustainMode !== mode) {
       this.sustainMode = mode;
       if (mode === 'off') {
-        soundEngine.cancelSustainedNotes(0.010);
+        soundEngine.cancelSustainedNotes(0.025);
       }
     }
   }
 
   public setInstrument(inst: 'piano' | 'guitar') {
     if (this.instrument !== inst) {
-      soundEngine.stopAllNotes();
+      if (!this.isPlaying) {
+        soundEngine.stopAllNotes(0.025);
+      }
       this.instrument = inst;
     }
   }

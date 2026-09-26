@@ -217,8 +217,8 @@ export const TheoryStudyAcademy: React.FC = () => {
       />
 
       {/* 3. CONTEÚDO PRINCIPAL — TEORIA SEMPRE 100% HORIZONTAL / PRÁTICA LADO A LADO */}
-      <div className="flex-1 w-full p-3 sm:p-6 overflow-y-auto">
-        <div className="w-full max-w-[1600px] mx-auto space-y-8">
+      <div className="flex-1 w-full p-3 sm:p-5 md:p-6 overflow-y-auto">
+        <div className="w-full space-y-6 sm:space-y-8">
           {/* Helper: Bloco da Teoria — Ocupa SEMPRE 100% Horizontalmente */}
           {(() => {
             const renderTheoryCard = () => (
@@ -306,6 +306,8 @@ export const TheoryStudyAcademy: React.FC = () => {
                       {sec.bulletPoints && (
                         <ul
                           className={`gap-2.5 pt-1 ${sec.bulletPoints.length >= 4
+                              ? 'grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-4'
+                              : sec.bulletPoints.length >= 2
                               ? 'grid grid-cols-1 md:grid-cols-2'
                               : 'space-y-1.5'
                             }`}
@@ -547,9 +549,9 @@ export const TheoryStudyAcademy: React.FC = () => {
                 {/* MODO 2: APENAS TEORIA & EXERCÍCIOS */}
                 {academyTab === 'theory' && (
                   <div className="w-full space-y-8">
-                    {/* <section className="w-full">
-                    {renderTheoryCard()}
-                  </section> */}
+                    <section className="w-full">
+                      {renderTheoryCard()}
+                    </section>
 
                     <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full items-start">
                       {activeLesson.audioExamples && activeLesson.audioExamples.length > 0 && (

@@ -5,6 +5,7 @@ import { polyphonicChordDetector } from '../../core/chordDetector';
 import type { DetectedChord } from '../../core/chordDetector';
 import { getNoteInfo, identifyChordFromMidi, type IdentifiedChord } from '../../core/musicTheory';
 import { octaveConfigStore, useOctaveStandard } from '../../core/octaveConfigStore';
+import { audioInputConfigStore, useAudioInputConfig } from '../../core/audioInputConfigStore';
 import { Mic, MicOff, Activity, Radio, ShieldAlert, Cable, Sliders } from 'lucide-react';
 
 interface Props {
@@ -47,9 +48,10 @@ export const MicrophonePitchBar: React.FC<Props> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [currentPitch, setCurrentPitch] = useState<DetectedPitch | null>(null);
   const [volumeLevel, setVolumeLevel] = useState<number>(0);
-  const [sensitivityPercent, setSensitivityPercent] = useState<number>(() => micPitchDetector.getSensitivityPercent());
+  const inputConfig = useAudioInputConfig();
+  const sensitivityPercent = inputConfig.sensitivityPercent;
+  const selectedDeviceId = inputConfig.selectedDeviceId;
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
   const [recentAcousticNotes, setRecentAcousticNotes] = useState<Map<number, number>>(new Map());
   // Acorde detectado polifonicamente via PCP/Chroma (FFT) — mais preciso para acordes simultâneos
   const [polyphonicChord, setPolyphonicChord] = useState<DetectedChord | null>(null);
@@ -129,8 +131,8 @@ export const MicrophonePitchBar: React.FC<Props> = ({
   useEffect(() => {
     MicrophonePitchDetector.getAvailableAudioDevices().then((devices) => {
       setAudioDevices(devices);
-      if (devices.length > 0 && !selectedDeviceId) {
-        setSelectedDeviceId(devices[0].deviceId);
+      if (devices.length > 0 && !audioInputConfigStore.getSnapshot().selectedDeviceId) {
+        audioInputConfigStore.setSelectedDeviceId(devices[0].deviceId);
       }
     });
   }, []);
@@ -213,16 +215,11 @@ export const MicrophonePitchBar: React.FC<Props> = ({
   };
 
   const handleSensitivityPercentChange = (val: number) => {
-    const clamped = Math.max(5, Math.min(100, val));
-    setSensitivityPercent(clamped);
-    micPitchDetector.setSensitivityPercent(clamped);
+    audioInputConfigStore.setSensitivityPercent(val);
   };
 
   const handleSensitivityPreset = (preset: 'low' | 'normal' | 'high') => {
-    let p = 55;
-    if (preset === 'low') p = 25;
-    if (preset === 'high') p = 85;
-    handleSensitivityPercentChange(p);
+    audioInputConfigStore.setPreset(preset);
   };
 
   useEffect(() => {
@@ -302,7 +299,7 @@ export const MicrophonePitchBar: React.FC<Props> = ({
               <select
                 value={selectedDeviceId}
                 onChange={(e) => {
-                  setSelectedDeviceId(e.target.value);
+                  audioInputConfigStore.setSelectedDeviceId(e.target.value);
                   if (isActive) {
                     handleToggleMic();
                   }

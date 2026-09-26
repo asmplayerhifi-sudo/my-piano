@@ -106,13 +106,30 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
     sustainMode: activeSustainMode,
   });
 
-  // Carrega e sincroniza o motor universal com as propriedades musicais
+  // 1. Carrega e prepara a partitura apenas quando as notas ou o compasso realmente mudarem
   useEffect(() => {
     musicalPlaybackEngine.loadScore(notes, timeSignature, playback.tempo);
+  }, [notes, timeSignature]);
+
+  // 2. Sincroniza andamento (BPM) de forma contínua sem resetar o relógio de reprodução
+  useEffect(() => {
+    musicalPlaybackEngine.setBpm(playback.tempo);
+  }, [playback.tempo]);
+
+  // 3. Sincroniza modo de sustain em tempo real sem interrupção de áudio
+  useEffect(() => {
     musicalPlaybackEngine.setSustainMode(activeSustainMode);
+  }, [activeSustainMode]);
+
+  // 4. Sincroniza instrumento em tempo real sem interrupção de áudio
+  useEffect(() => {
     musicalPlaybackEngine.setInstrument(instrument);
+  }, [instrument]);
+
+  // 5. Sincroniza estado sonoro do metrônomo em tempo real
+  useEffect(() => {
     musicalPlaybackEngine.setMetronomeEnabled(isMetronomeActive);
-  }, [notes, timeSignature, activeSustainMode, instrument, isMetronomeActive, playback.tempo]);
+  }, [isMetronomeActive]);
 
   // Observa batidas e notas ativas para notificar a UI e componentes pais
   useEffect(() => {
@@ -143,7 +160,7 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
         metronomeEngine.stop();
       }
     }
-  }, [playback.isPlaying, pixelsPerBeat, isMetronomeActive]);
+  }, [playback.isPlaying, pixelsPerBeat]);
 
   const handleTogglePlay = async () => {
     await soundEngine.ensureAudioReady();
