@@ -47,6 +47,7 @@ import {
   getRecommendedGuitarTimbre,
 } from '../../core/guitarArrangementEngine';
 import { GuitarChordStrip } from '../guitar/GuitarChordDiagram';
+import { getCachedEnrichment } from '../../core/repertoireLyricEnricher';
 
 export const RepertoireView: React.FC = () => {
   const [activeSong, setActiveSong] = useState<RepertoireSong>(REPERTOIRE_SONGS[0]);
@@ -339,6 +340,25 @@ export const RepertoireView: React.FC = () => {
   const noteOffsets = useMemo(() => {
     return computeNoteOffsets(sortedScoreTrack, activeSong.timeSignature);
   }, [sortedScoreTrack, activeSong.timeSignature]);
+
+  /**
+   * Enriquecimento de letra: converte o modelo legado (LyricLine[]) para o modelo
+   * estruturado (EnrichedLyricLine[]) com sílabas associadas a notas.
+   * Recalcula apenas quando a música ativa muda.
+   * Usa cache de sessão para evitar reprocessamento.
+   */
+  const activeSongEnrichedLyrics = useMemo(() => {
+    const result = getCachedEnrichment(activeSong);
+    if (result.syncLevel === 'unavailable') return undefined;
+    if (result.enrichedLines.length === 0) return undefined;
+    return result.enrichedLines;
+  }, [activeSong]);
+
+  /** Há letra disponível (enriquecida ou legado)? */
+  const hasAnyLyrics = Boolean(
+    (activeSongEnrichedLyrics && activeSongEnrichedLyrics.length > 0) ||
+    (activeSong.extension?.lyrics && activeSong.extension.lyrics.length > 0)
+  );
 
   // Dedo da nota atual em execução na partitura para a tag abaixo do teclado
   const currentSongTargetNote = sortedScoreTrack[currentNoteIdx] || sortedScoreTrack[0];
@@ -1088,7 +1108,7 @@ export const RepertoireView: React.FC = () => {
 
           <div className="flex items-center gap-2">
             {/* Botão Discreto: Exibir/Ocultar Letra Sincronizada */}
-            {activeSong.extension?.lyrics && activeSong.extension.lyrics.length > 0 && (
+            {hasAnyLyrics && (
               <button
                 onClick={toggleShowLyrics}
                 className={`p-1.5 px-2.5 rounded-xl border text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
@@ -1317,7 +1337,7 @@ export const RepertoireView: React.FC = () => {
           }}
           onTempoChange={(newBpm) => handleTempoChange(newBpm)}
           currentMidiPressed={viewMode === 'practice' && isPracticing ? lastMidiEvent : null}
-          lyrics={showLyrics ? activeSong.extension?.lyrics : undefined}
+          lyrics={showLyrics ? (activeSongEnrichedLyrics ?? activeSong.extension?.lyrics) : undefined}
         />
 
         {/* Teclado Virtual com Rastro Synthesia (100% da Largura, Zero Scroll, Bordas Sutis) */}

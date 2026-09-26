@@ -18,6 +18,11 @@
  */
 
 import type { AccompanimentStyleId } from './accompanimentStyles';
+import type { EnrichedLyricLine } from './lyricSyllableTypes';
+import type { LyricEnrichmentResult } from './lyricSyllableTypes';
+
+/** Nível de sincronização de letra — espelho do syncLevel de LyricEnrichmentResult. */
+type LyricSyncLevel = LyricEnrichmentResult['syncLevel'];
 
 // ─── Sincronização de Letra ───────────────────────────────────────────────────
 
@@ -218,6 +223,14 @@ export interface SongAuditInfo {
   rhythmVerified: boolean;
   /** Estrutura formal da obra (ex: A-B-A, Intro-Verso-Refrão, Rondó, Tema com Variações) */
   musicalForm?: string;
+  /**
+   * Nível de sincronização da letra com a partitura após enriquecimento.
+   * - synchronized: ≥90% das sílabas associadas a notas
+   * - partial: 50-89% das sílabas associadas
+   * - text_only: texto presente mas sem associação nota-por-nota
+   * - unavailable: sem letra (instrumental ou dados insuficientes)
+   */
+  lyricSyncLevel?: LyricSyncLevel;
 }
 
 // ─── Extensão Principal ───────────────────────────────────────────────────────
@@ -228,9 +241,17 @@ export interface SongAuditInfo {
  * Adicionado como campo `extension?: SongExtension` ao tipo existente,
  * sem quebrar compatibilidade com músicas que não possuem esses dados.
  */
+
 export interface SongExtension {
-  /** Letra sincronizada com a partitura, linha a linha */
+  /** Letra no formato legado: linhas com beats, sem associação nota-por-nota */
   lyrics?: LyricLine[];
+  /**
+   * Letra enriquecida no padrão MusicXML-inspired: cada sílaba associada a
+   * uma NoteRef (measure, beat, midi, absoluteBeat, duration).
+   * Quando presente, tem precedência sobre `lyrics` para renderização e prática.
+   * `lyrics` é preservado como fallback de compatibilidade.
+   */
+  enrichedLyrics?: EnrichedLyricLine[];
   /** Seções estruturais da música */
   sections?: SongSection[];
   /** Arranjos disponíveis para esta música */
