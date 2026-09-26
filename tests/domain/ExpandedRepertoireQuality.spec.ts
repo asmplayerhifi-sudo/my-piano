@@ -82,4 +82,8 @@ describe('Expanded Repertoire & Quality Standard', () => {
       expect(categoryIds.has(song.genre), `Song ${song.title} has valid genre: ${song.genre}`).toBe(true);
     }
   });
+
+  it('contém exatamente 58 obras completas no catálogo de repertório', () => {
+    expect(REPERTOIRE_SONGS.length).toBe(58);
+  });
 });

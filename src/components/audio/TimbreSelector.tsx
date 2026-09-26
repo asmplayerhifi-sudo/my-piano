@@ -10,6 +10,7 @@ import {
 } from '../../core/soundEngineTypes';
 import { TimbreIcon } from './TimbreIcons';
 import { musicalPlaybackEngine } from '../../core/musicalPlaybackEngine';
+import { ChevronDown, LayoutGrid, ListFilter } from 'lucide-react';
 
 interface TimbreSelectorProps {
   /** Posição compacta: exibe apenas o badge com timbre atual + dropdown */
@@ -101,6 +102,7 @@ export const TimbreSelector: React.FC<TimbreSelectorProps> = ({
   const [open, setOpen] = useState(false);
   const [preview, setPreview] = useState<TimbreId | null>(null);
   const [activeCategory, setActiveCategory] = useState<TimbreCategory | 'all'>('all');
+  const [categoryViewMode, setCategoryViewMode] = useState<'wrap' | 'select'>('wrap');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Posição dinâmica do modal/dropdown
@@ -257,7 +259,7 @@ export const TimbreSelector: React.FC<TimbreSelectorProps> = ({
                   <h3 className="text-sm font-black tracking-wide text-white flex items-center gap-2">
                     Estúdio de Timbres
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                      34 Instrumentos
+                      {TIMBRES.length} Instrumentos
                     </span>
                   </h3>
                   <p className="text-[11px] text-slate-300">
@@ -304,39 +306,103 @@ export const TimbreSelector: React.FC<TimbreSelectorProps> = ({
               )}
             </div>
 
-            {/* Chips de Categoria */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-              <button
-                onClick={() => setActiveCategory('all')}
-                className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${
-                  activeCategory === 'all'
-                    ? 'bg-white/20 text-white border-white/40 shadow-sm'
-                    : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10 hover:text-white'
-                }`}
-              >
-                Todos ({TIMBRES.length})
-              </button>
-              {TIMBRE_CATEGORIES.map(cat => {
-                const isCatActive = activeCategory === cat.id;
-                const catColor = CATEGORY_COLORS[cat.id];
-                const count = TIMBRES.filter(t => t.category === cat.id).length;
-                return (
-                  <button
-                    key={cat.id}
-                    onClick={() => setActiveCategory(cat.id)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 border ${
-                      isCatActive
-                        ? `${catColor.badge} font-bold ring-1 ${catColor.ring}`
-                        : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10 hover:text-white'
-                    }`}
-                  >
-                    <span className={`w-1.5 h-1.5 rounded-full ${catColor.dot}`} />
-                    <span>{cat.shortLabel}</span>
-                    <span className="text-[10px] opacity-75 font-mono">({count})</span>
-                  </button>
-                );
-              })}
+            {/* Barra de Título / Alternador de Modo de Grupos */}
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold flex items-center gap-1.5">
+                <span>Grupos de Instrumentos:</span>
+              </span>
+
+              {/* Botões para alternar entre Quebra de Linhas (Chips) e Dropdown Select */}
+              <div className="flex items-center gap-1 bg-black/40 p-0.5 rounded-lg border border-white/10 text-[10px] font-bold">
+                <button
+                  type="button"
+                  onClick={() => setCategoryViewMode('wrap')}
+                  className={`px-2 py-0.5 rounded transition-all cursor-pointer flex items-center gap-1 ${
+                    categoryViewMode === 'wrap'
+                      ? 'bg-indigo-600 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                  title="Exibir todos os grupos em chips com quebra de linha"
+                >
+                  <LayoutGrid className="w-3 h-3" />
+                  <span>Chips</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setCategoryViewMode('select')}
+                  className={`px-2 py-0.5 rounded transition-all cursor-pointer flex items-center gap-1 ${
+                    categoryViewMode === 'select'
+                      ? 'bg-indigo-600 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                  title="Exibir como menu dropdown suspenso (Select)"
+                >
+                  <ListFilter className="w-3 h-3" />
+                  <span>Select</span>
+                </button>
+              </div>
             </div>
+
+            {/* Visualização 1: Modo Select Dropdown */}
+            {categoryViewMode === 'select' ? (
+              <div className="relative w-full">
+                <select
+                  value={activeCategory}
+                  onChange={(e) => setActiveCategory(e.target.value as TimbreCategory | 'all')}
+                  className="w-full appearance-none bg-black/50 border border-white/20 hover:border-white/30 rounded-xl px-3.5 py-2 text-xs font-bold text-white focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 cursor-pointer transition-all shadow-inner"
+                >
+                  <option value="all" className="bg-[#0b0c1d] text-white">
+                    📂 Todos os Instrumentos ({TIMBRES.length})
+                  </option>
+                  {TIMBRE_CATEGORIES.map((cat) => {
+                    const count = TIMBRES.filter((t) => t.category === cat.id).length;
+                    return (
+                      <option key={cat.id} value={cat.id} className="bg-[#0b0c1d] text-white">
+                        {cat.label} ({count})
+                      </option>
+                    );
+                  })}
+                </select>
+                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-2.5 pointer-events-none" />
+              </div>
+            ) : (
+              /* Visualização 2: Modo Chips com Quebra de Linha (flex-wrap) */
+              <div className="flex flex-wrap items-center gap-1.5 pb-0.5">
+                <button
+                  type="button"
+                  onClick={() => setActiveCategory('all')}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
+                    activeCategory === 'all'
+                      ? 'bg-white/20 text-white border-white/40 shadow-sm'
+                      : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10 hover:text-white'
+                  }`}
+                >
+                  Todos ({TIMBRES.length})
+                </button>
+                {TIMBRE_CATEGORIES.map(cat => {
+                  const isCatActive = activeCategory === cat.id;
+                  const catColor = CATEGORY_COLORS[cat.id];
+                  const count = TIMBRES.filter(t => t.category === cat.id).length;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setActiveCategory(cat.id)}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 border cursor-pointer ${
+                        isCatActive
+                          ? `${catColor.badge} font-bold ring-1 ${catColor.ring}`
+                          : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${catColor.dot}`} />
+                      <span>{cat.shortLabel}</span>
+                      <span className="text-[10px] opacity-75 font-mono">({count})</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* ── Lista de Cards de Instrumentos ─────────────────────────── */}

@@ -216,5 +216,28 @@ describe('Redesenho Responsivo & Pixel Budget (PRD HARMONIA)', () => {
       expect(getResponsiveDefaultOctaveCount(3, 1920)).toBe(3);
     });
   });
+
+  describe('Estabilidade Vertical do Painel de Feedback no Teclado Livre (REQ-PIANO-MODULE-STABILITY-01)', () => {
+    it('o card de detecção de acorde escutado deve possuir altura fixa e largura expandida para evitar Layout Shift (CLS)', async () => {
+      const fs = await import('fs');
+      const path = await import('path');
+      const modulePath = path.resolve(__dirname, '../../src/components/piano/PianoModule.tsx');
+      const source = fs.readFileSync(modulePath, 'utf8');
+
+      // Garante que o card possui altura fixa para nunca empurrar o teclado ou metrônomo ao detectar acordes
+      expect(source).toContain('h-[86px]');
+      expect(source).toContain('min-h-[86px]');
+      expect(source).toContain('max-h-[86px]');
+
+      // Garante largura expandida para caber nomes de acordes e listas de notas sem quebra vertical
+      expect(source).toContain('min-w-[360px]');
+      expect(source).toContain('md:min-w-[440px]');
+      expect(source).toContain('lg:min-w-[480px]');
+
+      // Garante que o container da linha também possui altura estável
+      expect(source).toContain('min-h-[102px]');
+    });
+  });
 });
+
 

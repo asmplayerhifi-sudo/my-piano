@@ -32,8 +32,15 @@ import {
   Volume2,
   VolumeX,
   Sparkles,
+  Guitar,
+  Layers,
 } from 'lucide-react';
-
+import {
+  generateGuitarArrangementForKeyboard,
+  getGuitarArrangementInfo,
+  getRecommendedGuitarTimbre,
+} from '../../core/guitarArrangementEngine';
+import { GuitarChordStrip } from '../guitar/GuitarChordDiagram';
 
 export const RepertoireView: React.FC = () => {
   const [activeSong, setActiveSong] = useState<RepertoireSong>(REPERTOIRE_SONGS[0]);
@@ -47,6 +54,11 @@ export const RepertoireView: React.FC = () => {
   const [micHearingMidi, setMicHearingMidi] = useState<number | null>(null);
   const { isFullscreen: isFullscreenStage, toggleFullscreen: toggleFullscreenStage } = useFullscreen();
 
+  // Modo de Arranjo: 'piano' (Pianístico Tradicional) vs 'guitar' (Violão no Teclado)
+  const [arrangementMode, setArrangementMode] = useState<'piano' | 'guitar'>('piano');
+  const [showGuitarDiagrams, setShowGuitarDiagrams] = useState<boolean>(true);
+  const [showGuitarToast, setShowGuitarToast] = useState<boolean>(false);
+
   // Modos de Finalização da Reprodução: 'end' (cessa no final real da música) ou 'repeat' (loop contínuo)
   const [playbackEndMode, setPlaybackEndMode] = useState<'end' | 'repeat'>('end');
 
@@ -59,12 +71,24 @@ export const RepertoireView: React.FC = () => {
 
   // Metrônomo Musical Conectado ao Engine Global
   const metronome = useMetronome();
-  const [mobileContextTab, setMobileContextTab] = useState<'context' | 'tips' | 'chords'>('context');
+  const [mobileContextTab, setMobileContextTab] = useState<'context' | 'tips' | 'chords' | 'guitar'>('context');
 
   const octaveStandard = useOctaveStandard();
 
-
   const [showCompletionBanner, setShowCompletionBanner] = useState<boolean>(false);
+
+  // Metadados do arranjo de violão
+  const guitarInfo = useMemo(() => {
+    return getGuitarArrangementInfo(activeSong);
+  }, [activeSong]);
+
+  // Faixa de notas ativas: pianística original ou transcrição idiomática de violão
+  const rawScoreTrack = useMemo(() => {
+    if (arrangementMode === 'guitar') {
+      return generateGuitarArrangementForKeyboard(activeSong);
+    }
+    return activeSong.scoreTrack;
+  }, [activeSong, arrangementMode]);
 
   // Sincroniza sustain com o motor musical unificado
   const handleSustainOptionChange = (mode: ScoreSustainMode) => {
@@ -89,7 +113,43 @@ export const RepertoireView: React.FC = () => {
     setTempo(song.recommendedBpm);
     metronomeEngine.setBpm(song.recommendedBpm);
     metronomeEngine.setTimeSignature(song.timeSignature);
-    musicalPlaybackEngine.loadScore(song.scoreTrack, song.timeSignature, song.recommendedBpm);
+
+    if (arrangementMode === 'guitar') {
+      const recTimbre = getRecommendedGuitarTimbre(song.genre);
+      soundEngine.setTimbre(recTimbre);
+    }
+
+    const activeTrack = arrangementMode === 'guitar'
+      ? generateGuitarArrangementForKeyboard(song)
+      : song.scoreTrack;
+    musicalPlaybackEngine.loadScore(activeTrack, song.timeSignature, song.recommendedBpm);
+  };
+
+  // Alternador de Modo de Arranjo: Teclado/Piano vs Violão no Teclado
+  const handleArrangementModeToggle = async (mode: 'piano' | 'guitar') => {
+    if (mode === arrangementMode) return;
+    await soundEngine.ensureAudioReady();
+    soundEngine.stopAllNotes(0.025);
+    musicalPlaybackEngine.stop();
+    setIsPlaying(false);
+    setActiveDemoMidi([]);
+    setCurrentNoteIdx(0);
+    setArrangementMode(mode);
+
+    if (mode === 'guitar') {
+      const recTimbre = getRecommendedGuitarTimbre(activeSong.genre);
+      soundEngine.setTimbre(recTimbre);
+      setShowGuitarToast(true);
+      setTimeout(() => setShowGuitarToast(false), 5000);
+    } else {
+      soundEngine.setTimbre('grand_piano');
+      setShowGuitarToast(false);
+    }
+
+    const nextTrack = mode === 'guitar'
+      ? generateGuitarArrangementForKeyboard(activeSong)
+      : activeSong.scoreTrack;
+    musicalPlaybackEngine.loadScore(nextTrack, activeSong.timeSignature, tempo);
   };
 
   const handleNoteInput = (midi: number) => {
@@ -104,7 +164,7 @@ export const RepertoireView: React.FC = () => {
     let bpm = num;
     if (den === 8 && num >= 6) bpm = num / 3;
 
-    return [...activeSong.scoreTrack].sort((a, b) => {
+    return [...rawScoreTrack].sort((a, b) => {
       const mA = Math.max(1, a.measure || 1);
       const mB = Math.max(1, b.measure || 1);
       const bA = (a.beat !== undefined ? Math.max(0, a.beat - 1) : 0);
@@ -119,7 +179,7 @@ export const RepertoireView: React.FC = () => {
       if (a.clef !== 'bass' && b.clef === 'bass') return 1;
       return (a.midi || 0) - (b.midi || 0);
     });
-  }, [activeSong]);
+  }, [rawScoreTrack, activeSong.timeSignature]);
 
   // Pré-computa os tempos métricos exatos das notas para sincronização polifônica precisa
   const noteOffsets = useMemo(() => {
@@ -131,15 +191,29 @@ export const RepertoireView: React.FC = () => {
   // Dedo da nota atual em execução na partitura para a tag abaixo do teclado
   const currentSongTargetNote = sortedScoreTrack[currentNoteIdx] || sortedScoreTrack[0];
 
+  // Compasso atual e linha de letra sincronizada
+  const currentMeasure = currentSongTargetNote?.measure || 1;
+  const currentLyricLine = useMemo(() => {
+    const lyrics = activeSong.extension?.lyrics;
+    if (!lyrics || lyrics.length === 0) return null;
+    return (
+      lyrics.find(
+        (l) =>
+          currentMeasure >= l.startMeasure &&
+          (!l.endBeat || currentMeasure <= l.startMeasure + 2)
+      ) || lyrics[0]
+    );
+  }, [activeSong, currentMeasure]);
+
   // Apontamento de dedos para as teclas do piano com foco apenas na nota atual da música
   const highlightedSongKeys = useMemo(() => {
     if (!currentSongTargetNote) return [];
     return [{
       midi: currentSongTargetNote.midi,
       finger: currentSongTargetNote.fingerRightHand || currentSongTargetNote.fingerLeftHand,
-      color: '#6366f1',
+      color: arrangementMode === 'guitar' ? '#f59e0b' : '#6366f1',
     }];
-  }, [currentSongTargetNote]);
+  }, [currentSongTargetNote, arrangementMode]);
 
   const activeFingerPrompt = useMemo(() => {
     if (!currentSongTargetNote) return null;
@@ -148,14 +222,30 @@ export const RepertoireView: React.FC = () => {
     const names = ['', 'Polegar', 'Indicador', 'Médio', 'Anelar', 'Mínimo'];
     const colors = ['', '#f59e0b', '#38bdf8', '#10b981', '#c084fc', '#f43f5e'];
     const f = fingerNum || (hand === 'MD' ? (currentSongTargetNote.midi === 60 ? 1 : 2) : 5);
+
+    let pimaLabel = '';
+    if (arrangementMode === 'guitar') {
+      if (currentSongTargetNote.clef === 'bass') {
+        pimaLabel = 'P (Polegar - Baixo)';
+      } else if (f === 2) {
+        pimaLabel = 'I (Indicador)';
+      } else if (f === 3) {
+        pimaLabel = 'M (Médio)';
+      } else if (f === 4) {
+        pimaLabel = 'A (Anelar)';
+      } else if (f === 1) {
+        pimaLabel = 'P (Polegar)';
+      }
+    }
+
     return {
       finger: f,
       label: `${f}`,
-      fingerName: names[f] || `D${f}`,
+      fingerName: pimaLabel || names[f] || `D${f}`,
       noteName: octaveConfigStore.midiToNoteName(currentSongTargetNote.midi, octaveStandard),
-      color: colors[f] || '#38bdf8',
+      color: arrangementMode === 'guitar' ? '#f59e0b' : (colors[f] || '#38bdf8'),
     };
-  }, [currentSongTargetNote, octaveStandard]);
+  }, [currentSongTargetNote, octaveStandard, arrangementMode]);
 
   // Controles de Reprodução Unificados pelo Motor Central (Single Source of Time)
   const handleTogglePlayPause = async () => {
@@ -285,6 +375,33 @@ export const RepertoireView: React.FC = () => {
 
         {/* Lado Direito: Controles Globais de Play / Pause, Timbre, Modo Fim/Loop, Sustain e Metrônomo */}
         <div className="flex flex-wrap items-center gap-2.5 self-start lg:self-auto">
+          {/* Seletor de Modo de Arranjo: Teclado vs Violão no Teclado */}
+          <div className="flex items-center bg-black/60 p-1 rounded-2xl border border-white/10 shadow-lg shrink-0">
+            <button
+              onClick={() => handleArrangementModeToggle('piano')}
+              className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                arrangementMode === 'piano'
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-900/40 ring-1 ring-purple-400'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Arranjo Pianístico / Teclado Tradicional"
+            >
+              <span>🎹 Arranjo Teclado</span>
+            </button>
+            <button
+              onClick={() => handleArrangementModeToggle('guitar')}
+              className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                arrangementMode === 'guitar'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black shadow-md shadow-amber-900/40 ring-1 ring-amber-300'
+                  : 'text-slate-400 hover:text-amber-300'
+              }`}
+              title="Modo Arranjo de Violão no Teclado: Dedilhados (P-I-M-A), Baixarias de 7 Cordas e Batidas Rítmicas"
+            >
+              <Guitar className="w-3.5 h-3.5" />
+              <span>🎸 Arranjo Violão no Teclado</span>
+            </button>
+          </div>
+
           {/* Seletor de Timbre */}
           <TimbreSelector compact />
 
@@ -533,6 +650,80 @@ export const RepertoireView: React.FC = () => {
         </div>
       )}
 
+      {/* Toast Informativo do Modo Violão no Teclado */}
+      {showGuitarToast && (
+        <div className="p-3.5 px-4 sm:px-5 rounded-2xl bg-gradient-to-r from-amber-950/90 via-[#261608]/95 to-[#120803]/90 border border-amber-500/40 shadow-2xl backdrop-blur-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex items-center gap-3">
+            <span className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0">
+              <Guitar className="w-4 h-4 text-amber-400 animate-bounce" />
+            </span>
+            <div className="text-xs">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-amber-200">
+                  Modo Arranjo de Violão no Teclado Ativado
+                </span>
+                <span className="px-2 py-0.2 rounded-md bg-amber-500/20 text-amber-300 text-[10px] font-mono font-bold">
+                  {guitarInfo.styleBadge}
+                </span>
+              </div>
+              <p className="text-amber-300/80 text-[11px] mt-0.5">
+                Partitura adaptada com {guitarInfo.styleLabel}. Timbre selecionado:{' '}
+                <strong className="text-white font-bold">{guitarInfo.recommendedTimbreName}</strong>.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowGuitarToast(false)}
+            className="p-1.5 rounded-xl text-amber-400/70 hover:text-white hover:bg-white/5 transition-colors cursor-pointer self-end sm:self-auto"
+            title="Fechar notificação"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Banner Persistente de Estilo e Técnica de Violão quando em Modo Violão */}
+      {arrangementMode === 'guitar' && (
+        <div className="p-3 px-4 rounded-2xl bg-gradient-to-r from-amber-950/40 via-[#1a0f05]/60 to-[#0d0703]/80 border border-amber-500/20 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 backdrop-blur-md">
+          <div className="flex items-center gap-3">
+            <span className="w-7 h-7 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0">
+              <Guitar className="w-3.5 h-3.5 text-amber-400" />
+            </span>
+            <div className="text-xs">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-bold text-amber-300">
+                  {guitarInfo.styleLabel}
+                </span>
+                <span className="text-[10px] px-2 py-0.2 rounded-full bg-amber-500/10 text-amber-400 font-mono font-bold border border-amber-500/20">
+                  {guitarInfo.styleBadge}
+                </span>
+                <span className="text-[11px] text-slate-400 font-mono hidden lg:inline">
+                  • {guitarInfo.description}
+                </span>
+              </div>
+              <p className="text-slate-300 text-[11px] mt-0.5">
+                {guitarInfo.techniqueSummary}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-end md:self-auto shrink-0">
+            <button
+              onClick={() => setShowGuitarDiagrams(!showGuitarDiagrams)}
+              className={`px-3 py-1.5 rounded-xl border text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                showGuitarDiagrams
+                  ? 'bg-amber-500/20 border-amber-500/40 text-amber-200'
+                  : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
+              }`}
+              title="Exibir ou ocultar diagramas e tablaturas de acordes de violão"
+            >
+              <Layers className="w-3.5 h-3.5 text-amber-400" />
+              <span>{showGuitarDiagrams ? 'Ocultar Diagramas' : 'Ver Diagramas de Acordes'}</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 2. Informações de Contexto & Acordes (Layout Adaptativo: Abas no Mobile, 3 Colunas no Tablet/Desktop) */}
       {/* Visualização para Telas Maiores (Tablet / Computador >= 768px) */}
       <div className="hidden md:grid md:grid-cols-3 gap-2.5 text-xs">
@@ -573,6 +764,17 @@ export const RepertoireView: React.FC = () => {
         </div>
       </div>
 
+      {/* Faixa Superior de Diagramas de Acordes de Violão (Widescreen / Desktop) */}
+      {arrangementMode === 'guitar' && showGuitarDiagrams && (
+        <div className="hidden md:block animate-in fade-in duration-300">
+          <GuitarChordStrip
+            chords={activeSong.chords}
+            title={`Diagramas de Acordes de Violão (${guitarInfo.styleBadge}) — "${activeSong.title}":`}
+            badge="6 Cordas & Pestanas"
+          />
+        </div>
+      )}
+
       {/* Visualização Adaptativa para Celulares (< 768px) com Abas Compactas */}
       <div className="md:hidden space-y-2 text-xs">
         <div className="flex items-center gap-1 bg-black/40 p-1 rounded-2xl border border-white/5">
@@ -610,6 +812,20 @@ export const RepertoireView: React.FC = () => {
           >
             <span>Acordes ({activeSong.chords.length})</span>
           </button>
+
+          {arrangementMode === 'guitar' && (
+            <button
+              onClick={() => setMobileContextTab('guitar')}
+              className={`flex-1 py-1.5 rounded-xl font-bold text-[11px] flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                mobileContextTab === 'guitar'
+                  ? 'bg-amber-500/30 text-amber-300 border border-amber-500/40 font-black'
+                  : 'text-slate-400 hover:text-amber-300'
+              }`}
+            >
+              <Guitar className="w-3.5 h-3.5 text-amber-400" />
+              <span>Violão</span>
+            </button>
+          )}
         </div>
 
         {mobileContextTab === 'context' && (
@@ -642,6 +858,16 @@ export const RepertoireView: React.FC = () => {
             </div>
           </div>
         )}
+
+        {mobileContextTab === 'guitar' && (
+          <div className="animate-in fade-in duration-200">
+            <GuitarChordStrip
+              chords={activeSong.chords}
+              title={`Acordes de Violão — ${activeSong.title}`}
+              badge={guitarInfo.styleBadge}
+            />
+          </div>
+        )}
       </div>
 
       {/* 3. Palco Total: Partitura Deslizante (Widescreen 100% com Bordas Sutis) */}
@@ -658,7 +884,7 @@ export const RepertoireView: React.FC = () => {
               Palco de Execução &amp; Partitura
             </span>
             <span className="text-[10px] text-slate-400 font-mono">
-              • {activeSong.title} ({activeSong.recommendedBpm} BPM)
+              • {activeSong.title} ({activeSong.recommendedBpm} BPM) {arrangementMode === 'guitar' ? '• [🎸 Arranjo de Violão no Teclado]' : ''}
             </span>
           </div>
 
@@ -685,6 +911,23 @@ export const RepertoireView: React.FC = () => {
           </button>
         </div>
 
+        {/* Letra Sincronizada com o Compasso em Tempo Real */}
+        {activeSong.extension?.lyrics && activeSong.extension.lyrics.length > 0 && (
+          <div className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-purple-950/40 via-black/50 to-indigo-950/40 border border-purple-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-lg backdrop-blur-sm">
+            <div className="flex items-center gap-2.5 overflow-hidden">
+              <span className="px-2 py-0.5 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-mono font-bold uppercase tracking-wider shrink-0 flex items-center gap-1">
+                <span>🎤 Letra</span>
+              </span>
+              <p className="text-sm font-display font-medium text-white truncate">
+                "{currentLyricLine?.text || activeSong.extension.lyrics[0].text}"
+              </p>
+            </div>
+            <span className="text-[10px] font-mono text-slate-400 shrink-0 self-end sm:self-auto">
+              Compasso {currentMeasure}
+            </span>
+          </div>
+        )}
+
         {/* Barra de Escuta do Microfone (Acústico) - Pausada durante a demonstração sonora */}
         <MicrophonePitchBar
           disabled={isPlaying}
@@ -699,13 +942,14 @@ export const RepertoireView: React.FC = () => {
 
         {/* Partitura Deslizante 60 FPS com Divisão de Compasso em Modo Demonstração */}
         <ScrollingScoreCanvas
-          key={activeSong.id}
+          key={`${activeSong.id}-${arrangementMode}`}
           notes={sortedScoreTrack}
           timeSignature={activeSong.timeSignature}
           bpm={tempo}
           isPlaying={isPlaying}
           isDemoMode={true}
           autoPlayAudio={true}
+          instrument={arrangementMode === 'guitar' ? 'guitar' : 'piano'}
           enableMetronomeSound={metronome.isPlaying}
           hidePlaybackControls={true}
           currentNoteIndex={currentNoteIdx}

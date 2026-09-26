@@ -14,6 +14,7 @@ import {
   Drum,
   Sparkles,
   Wand2,
+  BookOpen,
 } from 'lucide-react';
 
 export type TabId =
@@ -23,6 +24,7 @@ export type TabId =
   | 'repertoire'
   | 'rhythm'
   | 'theory-practice'
+  | 'sight-reading'
   | 'piano'
   | 'guitar'
   | 'score-editor'
@@ -115,8 +117,8 @@ export const TABS: NavTabItem[] = [
     mediumLabel: 'Obras',
     shortLabel: 'Obras',
     fullName: 'Repertório & Partituras Completas',
-    desc: '28 Obras Polifônicas com Ambas as Mãos e Cifra',
-    badge: '28 Obras',
+    desc: '58 Obras Polifônicas com Ambas as Mãos e Cifra',
+    badge: '58 Obras',
     category: 'practice',
     categoryLabel: 'Prática',
     icon: Music,
@@ -159,6 +161,23 @@ export const TABS: NavTabItem[] = [
     activeBorder: 'border-cyan-500/60',
     activeText: 'text-cyan-200 font-bold',
     iconActiveBg: 'bg-cyan-600 text-white shadow-md shadow-cyan-500/40',
+  },
+  {
+    id: 'sight-reading',
+    label: 'Treino Partitura',
+    mediumLabel: 'Leitura',
+    shortLabel: 'Partitura',
+    fullName: 'Treino de Leitura de Partitura (Claves de Sol & Fá)',
+    desc: 'Fixação Visual de Pautas, Claves, Acidentes e Intervalos',
+    badge: 'Novo',
+    category: 'practice',
+    categoryLabel: 'Prática',
+    icon: BookOpen,
+    accentColor: 'indigo',
+    activeBg: 'bg-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.25)]',
+    activeBorder: 'border-indigo-500/60',
+    activeText: 'text-indigo-200 font-bold',
+    iconActiveBg: 'bg-indigo-600 text-white shadow-md shadow-indigo-500/40',
   },
   {
     id: 'piano',

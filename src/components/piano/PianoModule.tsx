@@ -143,8 +143,8 @@ export const PianoModule: React.FC = () => {
 
       {/* Visualizador de Teclado Interativo */}
       <div className="glass-card rounded-3xl p-6 border border-white/10">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 pb-4 border-b border-white/5">
-          <div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 pb-4 border-b border-white/5 min-h-[102px]">
+          <div className="flex flex-col justify-center">
             <span className="text-[11px] font-mono text-indigo-400 uppercase tracking-wider font-bold">
               Acorde em Exibição
             </span>
@@ -157,40 +157,47 @@ export const PianoModule: React.FC = () => {
             </div>
           </div>
 
-          {/* Painel do Acorde / Nota Escutada em Tempo Real */}
-          <div className="p-3 rounded-2xl bg-black/40 border border-white/10 min-w-[240px]">
-            <div className="flex items-center justify-between gap-2 mb-1">
+          {/* Painel do Acorde / Nota Escutada em Tempo Real - Altura fixa e largura estendida para evitar Layout Shift (CLS) */}
+          <div className="p-3.5 rounded-2xl bg-black/40 border border-white/10 w-full sm:w-auto sm:min-w-[360px] md:min-w-[440px] lg:min-w-[480px] xl:min-w-[520px] h-[86px] min-h-[86px] max-h-[86px] flex flex-col justify-between shrink-0 shadow-inner">
+            <div className="flex items-center justify-between gap-2 h-5">
               <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider font-bold flex items-center gap-1.5">
-                <Radio className={`w-3.5 h-3.5 ${liveIdentifiedChord ? 'text-amber-400 animate-pulse' : 'text-slate-500'}`} />
+                <Radio className={`w-3.5 h-3.5 shrink-0 ${liveIdentifiedChord ? 'text-amber-400 animate-pulse' : 'text-slate-500'}`} />
                 <span>Escutado no Momento</span>
               </span>
-              {isChordMatching && (
-                <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+              {isChordMatching ? (
+                <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1 animate-in fade-in duration-150">
                   <CheckCircle2 className="w-2.5 h-2.5" />
                   <span>Confere!</span>
                 </span>
-              )}
+              ) : liveIdentifiedChord ? (
+                <span className="text-[9px] font-mono text-slate-400">
+                  Tempo Real
+                </span>
+              ) : null}
             </div>
 
-            {liveIdentifiedChord ? (
-              <div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-xl font-black font-display text-amber-400">
-                    {liveIdentifiedChord.symbol}
-                  </span>
-                  <span className="text-xs text-slate-300 font-medium">
-                    {liveIdentifiedChord.namePt}
-                  </span>
+            <div className="flex-1 flex flex-col justify-center min-h-0">
+              {liveIdentifiedChord ? (
+                <div className="animate-in fade-in duration-100">
+                  <div className="flex items-baseline gap-2 truncate">
+                    <span className="text-xl font-black font-display text-amber-400 leading-tight shrink-0">
+                      {liveIdentifiedChord.symbol}
+                    </span>
+                    <span className="text-xs text-slate-300 font-medium truncate">
+                      {liveIdentifiedChord.namePt}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-slate-400 font-mono truncate mt-0.5">
+                    Notas detectadas: <span className="text-white font-bold">{liveIdentifiedChord.notesPt.join(' • ')}</span>
+                  </div>
                 </div>
-                <div className="text-[11px] text-slate-400 font-mono mt-0.5">
-                  Notas detectadas: <span className="text-white font-bold">{liveIdentifiedChord.notesPt.join(' • ')}</span>
+              ) : (
+                <div className="text-xs text-slate-500 italic flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-600 animate-pulse shrink-0" />
+                  <span className="truncate">Toque no teclado ou produza som no instrumento...</span>
                 </div>
-              </div>
-            ) : (
-              <div className="text-xs text-slate-500 italic py-1">
-                Toque no teclado ou produza som no instrumento...
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
 

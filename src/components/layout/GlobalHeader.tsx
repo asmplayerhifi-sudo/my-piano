@@ -26,6 +26,7 @@ import { useFullscreen } from '../../hooks/useFullscreen';
 import { latencyManager } from '../../core/latencyManager';
 import { midiManager } from '../../core/midiManager';
 import { useAudioInputConfig } from '../../core/audioInputConfigStore';
+import { REPERTOIRE_SONGS } from '../../core/repertoireData';
 
 export interface GlobalHeaderProps {
   activeTab: TabId;
@@ -219,12 +220,12 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
                   ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
                   : 'text-slate-300 hover:text-white hover:bg-white/5'
               }`}
-              title="Repertório Completo (28 Obras)"
+              title={`Repertório Completo (${REPERTOIRE_SONGS.length} Obras)`}
             >
               <span>🎶</span>
               <span className="hidden xl:inline">Repertório</span>
               <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-white/15 text-white font-bold">
-                28
+                {REPERTOIRE_SONGS.length}
               </span>
             </button>
 
@@ -254,6 +255,20 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
             >
               <span>📐</span>
               <span className="hidden xl:inline">Prática Teórica</span>
+            </button>
+
+            {/* Treino de Partitura */}
+            <button
+              onClick={() => handleTabClick('sight-reading')}
+              className={`h-7.5 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
+                activeTab === 'sight-reading'
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                  : 'text-slate-300 hover:text-white hover:bg-white/5'
+              }`}
+              title="Treino de Leitura de Partitura (Claves de Sol & Fá)"
+            >
+              <span>🎼</span>
+              <span className="hidden xl:inline">Partitura</span>
             </button>
 
             {/* Teclado Livre */}
@@ -600,7 +615,7 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
                         </div>
                       </div>
                       <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                        28 OBRAS
+                        {REPERTOIRE_SONGS.length} OBRAS
                       </span>
                     </button>
 
@@ -643,6 +658,27 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
                       </div>
                       <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
                         TEORIA
+                      </span>
+                    </button>
+
+                    {/* Treino de Partitura */}
+                    <button
+                      onClick={() => handleTabClick('sight-reading')}
+                      className={`w-full p-3 rounded-2xl border text-left text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
+                        activeTab === 'sight-reading'
+                          ? 'bg-indigo-600/30 border-indigo-500/50 text-white'
+                          : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-base">🎼</span>
+                        <div>
+                          <p className="font-bold text-white text-xs">Treino de Partitura</p>
+                          <p className="text-[11px] text-slate-400 font-normal">Claves de Sol e Fá Interativas</p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                        LEITURA
                       </span>
                     </button>
 

@@ -25,7 +25,7 @@ describe('Prática Teórica — Integração no Menu PRÁTICA & Hub Interativo',
       expect(theoryPracticeTab?.category).toBe('practice');
     });
 
-    it('deve seguir a ordenação requerida no menu PRÁTICA: Repertório -> Lab Rítmico -> Prática Teórica -> Teclado Livre -> Braço Violão', () => {
+    it('deve seguir a ordenação requerida no menu PRÁTICA: Repertório -> Lab Rítmico -> Prática Teórica -> Treino Partitura -> Teclado Livre -> Braço Violão', () => {
       const practiceTabs = TABS.filter(t => t.category === 'practice');
       const ids = practiceTabs.map(t => t.id);
 
@@ -33,6 +33,7 @@ describe('Prática Teórica — Integração no Menu PRÁTICA & Hub Interativo',
         'repertoire',
         'rhythm',
         'theory-practice',
+        'sight-reading',
         'piano',
         'guitar',
       ]);

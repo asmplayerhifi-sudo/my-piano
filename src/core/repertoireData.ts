@@ -30,7 +30,7 @@ export const REPERTOIRE_CATEGORIES: CategoryInfo[] = [
     label: 'Todas as Obras',
     shortLabel: 'Todas',
     iconName: 'LayoutGrid',
-    badge: '28 Obras',
+    badge: '58 Obras',
     description: 'Catálogo completo de partituras autênticas com rolagem interativa e arranjos fiéis.',
   },
   {
@@ -137,6 +137,8 @@ export interface RepertoireSong {
   biomechanicsTip: string;
   chords: string[];
   scoreTrack: ScoreNote[];
+  /** Arranjo opcional de violão para execução no teclado (P-I-M-A, baixarias de 7 cordas, levadas) */
+  guitarScoreTrack?: ScoreNote[];
   /** Extensão opcional: letra, seções, arranjos, créditos e progressão harmônica */
   extension?: SongExtension;
 }
