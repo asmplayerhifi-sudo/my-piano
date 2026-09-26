@@ -238,10 +238,12 @@ export function enrichRepertoireSong(song: RepertoireSong): RepertoireLyricEnric
   if (song.extension?.enrichedLyrics && song.extension.enrichedLyrics.length > 0) {
     const lines = song.extension.enrichedLyrics;
     const total = lines.reduce((s, l) => s + l.syllables.length, 0);
-    const resolved = lines.reduce((s, l) => s + l.syllables.filter(sy => sy.state === 'resolved').length, 0);
+    const resolved = lines.reduce((s, l) => s + l.syllables.filter(sy => sy.state === 'confirmed' || sy.state === 'inferred').length, 0);
+    const syncRatio = total > 0 ? resolved / total : 0;
+    const syncLevel: LyricSyncLevel = syncRatio >= 0.9 ? 'synchronized' : syncRatio >= 0.5 ? 'partial' : 'text_only';
     return {
       songId,
-      syncLevel: lines[0]?.syncLevel ?? 'partial',
+      syncLevel,
       enrichedLines: lines,
       totalSyllables: total,
       resolvedSyllables: resolved,

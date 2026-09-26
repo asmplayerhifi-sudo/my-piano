@@ -29,8 +29,8 @@
 
 import React, { useRef, useEffect, useCallback } from 'react';
 import type { LyricLine } from '../../../core/repertoireTypes';
-import type { EnrichedLyricLine, LyricSyllable } from '../../../core/lyricSyllableTypes';
-import { findActiveSyllable, isSyllableActive } from '../../../core/lyricSyllableTypes';
+import type { EnrichedLyricLine } from '../../../core/lyricSyllableTypes';
+import { findActiveSyllable } from '../../../core/lyricSyllableTypes';
 
 // ─── Tipos Públicos ────────────────────────────────────────────────────────────
 
@@ -241,7 +241,7 @@ function drawPartialLine(
 
   for (const word of line.structuredWords) {
     const xWorld  = beatToCanvasX(word.startBeat, pixelsPerBeat, attackLineX);
-    const xScreen = word.startBeat ? xWorld - scrollOff : (accumX ?? 8);
+    const xScreen: number = word.startBeat ? xWorld - scrollOff : (accumX ?? 8);
 
     if (xScreen < -120 || xScreen > cssW + 20) {
       accumX = xScreen;

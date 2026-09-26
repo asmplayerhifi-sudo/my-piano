@@ -1044,8 +1044,9 @@ export const SightReadingView: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>{/* /accordion-content */}
-      </div>{/* /glass-card config */}
+        </div>
+      </div>{/* /accordion-content */}
+    </div>{/* /glass-card config */}
 
       {/* ── PAINEL CENTRAL: PALCO DE LEITURA (PAUTA GRÁFICA PRIORITÁRIA) ────── */}
       <div className="glass-card rounded-3xl p-4 sm:p-5 border border-white/10 shadow-2xl relative flex flex-col gap-3">

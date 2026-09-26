@@ -139,108 +139,6 @@ function beatDurationSec(bpm: number) {
   return 60 / bpm;
 }
 
-/** Gera bytes de arquivo MIDI 0 */
-function projectToMidi(project: ScoreProject): Uint8Array {
-  const bpm = project.bpm;
-  const microsecsPerBeat = Math.round(60_000_000 / bpm);
-  const ticksPerBeat = 480;
-
-  const bytes: number[] = [];
-
-  const writeVarLen = (val: number) => {
-    const buf: number[] = [];
-    buf.unshift(val & 0x7f);
-    val >>= 7;
-    while (val > 0) {
-      buf.unshift((val & 0x7f) | 0x80);
-      val >>= 7;
-    }
-    buf.forEach(b => bytes.push(b));
-  };
-
-  const writeU16BE = (v: number) => { bytes.push((v >> 8) & 0xff, v & 0xff); };
-  const writeU32BE = (v: number) => {
-    bytes.push((v >> 24) & 0xff, (v >> 16) & 0xff, (v >> 8) & 0xff, v & 0xff);
-  };
-
-  // ── MIDI Header Chunk ──
-  bytes.push(0x4D, 0x54, 0x68, 0x64); // "MThd"
-  writeU32BE(6);
-  writeU16BE(0);           // Format 0
-  writeU16BE(1);           // 1 track
-  writeU16BE(ticksPerBeat);
-
-  // ── Track Chunk (collect events first) ──
-  const trackEvents: Array<{ tick: number; data: number[] }> = [];
-
-  // Tempo
-  trackEvents.push({
-    tick: 0,
-    data: [0xff, 0x51, 0x03,
-      (microsecsPerBeat >> 16) & 0xff,
-      (microsecsPerBeat >> 8) & 0xff,
-      microsecsPerBeat & 0xff,
-    ],
-  });
-
-  // Time Signature
-  const [num, den] = project.timeSignature;
-  const denPow = Math.log2(den);
-  trackEvents.push({
-    tick: 0,
-    data: [0xff, 0x58, 0x04, num, denPow, 24, 8],
-  });
-
-  // Notes — sorted by beat
-  const sorted = [...project.notes].sort((a, b) => a.beat - b.beat);
-
-  for (const note of sorted) {
-    const startTick = Math.round(note.beat * ticksPerBeat);
-    const durTicks = Math.round(note.duration * ticksPerBeat);
-    const vel = 90;
-
-    trackEvents.push({ tick: startTick, data: [0x90, note.midi, vel] });
-    trackEvents.push({ tick: startTick + durTicks, data: [0x80, note.midi, 0] });
-  }
-
-  // Sort all events by tick
-  trackEvents.sort((a, b) => a.tick - b.tick);
-
-  // Build delta-timed track bytes
-  const trackBytes: number[] = [];
-  let currentTick = 0;
-
-  const writeVarLenTo = (val: number, arr: number[]) => {
-    const buf: number[] = [];
-    buf.unshift(val & 0x7f);
-    val >>= 7;
-    while (val > 0) {
-      buf.unshift((val & 0x7f) | 0x80);
-      val >>= 7;
-    }
-    buf.forEach(b => arr.push(b));
-  };
-
-  for (const ev of trackEvents) {
-    const delta = ev.tick - currentTick;
-    currentTick = ev.tick;
-    writeVarLenTo(delta, trackBytes);
-    ev.data.forEach(b => trackBytes.push(b));
-  }
-
-  // End of track
-  writeVarLenTo(0, trackBytes);
-  trackBytes.push(0xff, 0x2f, 0x00);
-
-  // Track header
-  bytes.push(0x4D, 0x54, 0x72, 0x6B); // "MTrk"
-  writeU32BE(trackBytes.length);
-  trackBytes.forEach(b => bytes.push(b));
-
-  void writeVarLen; // suppress unused warning
-
-  return new Uint8Array(bytes);
-}
 
 // ────────────────────────────────────────────────────────────────────────────
 // Componente: Pauta de Notas (Piano Roll estilo lista)
@@ -848,28 +746,6 @@ export const ScoreEditor: React.FC = () => {
     }
   }, [studioStorage, currentProjectId]);
 
-  const exportMidi = useCallback(() => {
-    const midi = projectToMidi(projectRef.current);
-    const blob = new Blob([midi.buffer as ArrayBuffer], { type: 'audio/midi' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${projectRef.current.title.replace(/\s+/g, '_')}.mid`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, []);
-
-  const exportJson = useCallback(() => {
-    // Mantido para atalhos de teclado legados se necessário; o StudioImportExportBar é o caminho preferido.
-    const json = JSON.stringify(projectRef.current, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${projectRef.current.title.replace(/\s+/g, '_')}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, []);
 
   // ── Envelope atual do projeto para o StudioImportExportBar ──────────────────
 

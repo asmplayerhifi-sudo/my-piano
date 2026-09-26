@@ -104,17 +104,6 @@ export const RepertoireView: React.FC = () => {
     });
   }, []);
 
-  // Monitoramento contínuo em tempo real do beat musical para sincronização da letra
-  const [playbackBeat, setPlaybackBeat] = useState<number>(1);
-  const [playbackMeasure, setPlaybackMeasure] = useState<number>(1);
-
-  useEffect(() => {
-    const unsub = musicalPlaybackEngine.onPositionTick((pos) => {
-      setPlaybackBeat(pos.currentBeat + 1);
-      setPlaybackMeasure(pos.currentMeasure);
-    });
-    return unsub;
-  }, []);
 
   // Modos de Finalização da Reprodução: 'end' (cessa no final real da música) ou 'repeat' (loop contínuo)
   const [playbackEndMode, setPlaybackEndMode] = useState<'end' | 'repeat'>('end');
@@ -366,13 +355,6 @@ export const RepertoireView: React.FC = () => {
   // Compasso atual e offset métrico unificado da partitura
   const currentMeasure = currentSongTargetNote?.measure || 1;
   const currentTargetOffset = noteOffsets[currentNoteIdx] ?? 0;
-
-  // Posição temporal precisa unificada para o Card de Letras:
-  // Em playback contínuo: usa o beat analítico 60 FPS do motor musical (zero drift).
-  // Em pausa ou modo prática (wait): usa o offset exato da nota/acorde aguardado (imutável até acerto).
-  const isPlaybackActive = viewMode === 'playback' && isPlaying;
-  const currentAbsoluteBeat = isPlaybackActive ? playbackBeat : (currentTargetOffset + 1);
-  const effectiveMeasure = isPlaybackActive ? playbackMeasure : currentMeasure;
 
   // Passo ativo: identifica todas as notas do mesmo instante métrico (acordes e multi-mãos)
   const currentStepNotes = useMemo(() => {

@@ -239,7 +239,7 @@ function buildSyllable(
 function annotateMelismas(
   syllables: LyricSyllable[],
   noteAssignment: Array<ScoreNote | null>,
-  beatsPerMeasure: number
+  _beatsPerMeasure?: number
 ): void {
   for (let i = 0; i < syllables.length - 1; i++) {
     const curr = syllables[i];
@@ -280,7 +280,7 @@ function processLine(
   rawLine: RawLyricLine,
   lineIndex: number,
   notes: ScoreNote[],
-  allLines: RawLyricLine[],
+  _allLines: RawLyricLine[],
   config: LyricEnrichmentConfig,
   noteOffset: { value: number }
 ): EnrichedLyricLine {
@@ -581,7 +581,7 @@ export function enrichFromLyricLines(
   lines: import('./repertoireTypes').LyricLine[],
   source: LyricSource
 ): LyricEnrichmentResult {
-  const enrichedLines: EnrichedLyricLine[] = lines.map((line, idx) => {
+  const enrichedLines: EnrichedLyricLine[] = lines.map((line) => {
     const structuredWords: StructuredLyricWord[] = (line.words ?? []).map(w => ({
       id: uid(),
       fullText: w.text,

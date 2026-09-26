@@ -400,7 +400,9 @@ export function buildMidiFromEnvelope(envelope: StudioProjectEnvelope<unknown>):
     buf.forEach((b) => arr.push(b));
   };
 
-  const writeU16 = (v: number, arr: number[]): void => arr.push((v >> 8) & 0xff, v & 0xff);
+  const writeU16 = (v: number, arr: number[]): void => {
+    arr.push((v >> 8) & 0xff, v & 0xff);
+  };
   const writeU32 = (v: number, arr: number[]): void => {
     arr.push((v >> 24) & 0xff, (v >> 16) & 0xff, (v >> 8) & 0xff, v & 0xff);
   };
