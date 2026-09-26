@@ -125,7 +125,7 @@ export const GuitarCourseView: React.FC = () => {
   const [selectedModule, setSelectedModule] = useState<CourseModule>(GUITAR_COURSE_MODULES[0]);
   const [activeLesson, setActiveLesson] = useState<CourseLesson>(GUITAR_COURSE_MODULES[0].lessons[0]);
   const [completedLessonIds, setCompletedLessonIds] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<'all' | 'theory' | 'score' | 'fretboard' | 'transitions'>('all');
+  const [activeTab, setActiveTab] = useState<'theory' | 'all' | 'transitions' | 'fretboard' | 'score'>('theory');
   const [selectedChordKey, setSelectedChordKey] = useState<string>('C');
   const [selectedCagedLetter, setSelectedCagedLetter] = useState<'C' | 'A' | 'G' | 'E' | 'D'>('C');
   const [isTrailModalOpen, setIsTrailModalOpen] = useState<boolean>(false);
@@ -174,7 +174,7 @@ export const GuitarCourseView: React.FC = () => {
       const prev = allLessons[currentLinearIndex - 1];
       setActiveLesson(prev.lesson);
       setSelectedModule(prev.module);
-      setActiveTab('all');
+      setActiveTab('theory');
     }
   };
 
@@ -183,7 +183,7 @@ export const GuitarCourseView: React.FC = () => {
       const next = allLessons[currentLinearIndex + 1];
       setActiveLesson(next.lesson);
       setSelectedModule(next.module);
-      setActiveTab('all');
+      setActiveTab('theory');
     }
   };
 
@@ -194,7 +194,7 @@ export const GuitarCourseView: React.FC = () => {
   const handleSelectLesson = (lesson: CourseLesson, mod: CourseModule) => {
     setSelectedModule(mod);
     setActiveLesson(lesson);
-    setActiveTab('all');
+    setActiveTab('theory');
   };
 
   const handleLessonComplete = (lessonId: string) => {
@@ -228,17 +228,29 @@ export const GuitarCourseView: React.FC = () => {
         hasNextLesson={currentLinearIndex < allLessons.length - 1}
         tabs={[
           {
+            id: 'theory',
+            label: 'Teoria & Postura',
+            shortLabel: 'Teoria',
+          },
+          {
             id: 'all',
             label: 'Prática Completa',
             shortLabel: 'Prática',
             icon: <Sparkles className="w-3.5 h-3.5 text-amber-400" />,
           },
-          { id: 'fretboard', label: 'Braço & Shapes', shortLabel: 'Braço' },
+          {
+            id: 'transitions',
+            label: 'Dedo Âncora',
+            shortLabel: 'Âncora',
+          },
+          {
+            id: 'fretboard',
+            label: 'Braço & Shapes',
+            shortLabel: 'Braço',
+          },
           ...(activeLesson.scoreTrack
             ? [{ id: 'score', label: 'Partitura & Tablatura', shortLabel: 'Partitura' }]
             : []),
-          { id: 'transitions', label: 'Dedo Âncora', shortLabel: 'Âncora' },
-          { id: 'theory', label: 'Teoria & Postura', shortLabel: 'Teoria' },
         ]}
         activeTabId={activeTab}
         onSelectTab={(id) => setActiveTab(id as any)}

@@ -47,7 +47,7 @@ export const KeyboardCourseView: React.FC = () => {
   const [completedLessonIds, setCompletedLessonIds] = useState<string[]>([]);
   const [completedExerciseIds, setCompletedExerciseIds] = useState<string[]>([]);
   const [selectedExerciseIndex, setSelectedExerciseIndex] = useState<number>(0);
-  const [practiceTab, setPracticeTab] = useState<'all' | 'score' | 'chords' | 'theory'>('all');
+  const [practiceTab, setPracticeTab] = useState<'theory' | 'all' | 'score' | 'chords'>('theory');
   const [isTrailModalOpen, setIsTrailModalOpen] = useState<boolean>(false);
   const [isTipOpen, setIsTipOpen] = useState<boolean>(false);
 
@@ -97,6 +97,7 @@ export const KeyboardCourseView: React.FC = () => {
       setSelectedExerciseIndex(0);
       setCustomBpm(null);
       setPerformanceReport(null);
+      setPracticeTab('theory');
     }
   };
 
@@ -108,6 +109,7 @@ export const KeyboardCourseView: React.FC = () => {
       setSelectedExerciseIndex(0);
       setCustomBpm(null);
       setPerformanceReport(null);
+      setPracticeTab('theory');
     }
   };
 
@@ -326,6 +328,7 @@ export const KeyboardCourseView: React.FC = () => {
     setSelectedExerciseIndex(0);
     setCustomBpm(null);
     setPerformanceReport(null);
+    setPracticeTab('theory');
     if (accompanimentStore.getSnapshot().isPlaying) {
       accompanimentStore.stop();
       setIsAccompanimentPlaying(false);
@@ -389,16 +392,20 @@ export const KeyboardCourseView: React.FC = () => {
         hasNextLesson={currentLinearIndex < allLessons.length - 1}
         tabs={[
           {
+            id: 'theory',
+            label: 'Teoria & Postura',
+            shortLabel: 'Teoria',
+          },
+          {
             id: 'all',
             label: 'Prática Completa',
             shortLabel: 'Prática',
             icon: <Sparkles className="w-3.5 h-3.5 text-indigo-400" />,
           },
-          { id: 'score', label: 'Partitura & Exercícios', shortLabel: 'Partitura' },
+          //{ id: 'score', label: 'Partitura Completa', shortLabel: 'Partitura' },
           ...(activeLesson.targetChords
             ? [{ id: 'chords', label: 'Treinador de Acordes', shortLabel: 'Acordes' }]
             : []),
-          { id: 'theory', label: 'Teoria & Postura', shortLabel: 'Teoria' },
         ]}
         activeTabId={practiceTab}
         onSelectTab={(id) => setPracticeTab(id as any)}
@@ -505,11 +512,10 @@ export const KeyboardCourseView: React.FC = () => {
                     <button
                       key={ex.id}
                       onClick={() => handleSelectExercise(idx)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
-                        isSel
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${isSel
                           ? 'bg-indigo-600 text-white border-indigo-400 shadow-sm'
                           : 'bg-white/[0.02] hover:bg-white/[0.06] text-slate-300 hover:text-white border-white/5'
-                      }`}
+                        }`}
                     >
                       <span className={`w-2 h-2 rounded-full ${isDone ? 'bg-emerald-400' : 'bg-slate-500'}`} />
                       <span>{ex.title}</span>
@@ -523,11 +529,10 @@ export const KeyboardCourseView: React.FC = () => {
               {currentExercise.accompanimentStyleId && (
                 <button
                   onClick={toggleAccompaniment}
-                  className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
-                    isAccompanimentPlaying
+                  className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${isAccompanimentPlaying
                       ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 animate-pulse'
                       : 'bg-white/5 text-slate-300 hover:text-white border-white/5'
-                  }`}
+                    }`}
                   title="Tocar com estilo rítmico automático de acompanhamento"
                 >
                   {isAccompanimentPlaying ? <Pause className="w-3.5 h-3.5 text-emerald-400" /> : <Play className="w-3.5 h-3.5 text-indigo-400" />}
@@ -539,11 +544,10 @@ export const KeyboardCourseView: React.FC = () => {
             {/* Relatório de Desempenho (se avaliado) */}
             {performanceReport && (
               <div
-                className={`p-3.5 rounded-2xl border ${
-                  performanceReport.passed
+                className={`p-3.5 rounded-2xl border ${performanceReport.passed
                     ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
                     : 'bg-amber-950/40 border-amber-500/40 text-amber-200'
-                }`}
+                  }`}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-white/10 text-xs">
                   <div className="flex items-center gap-2">
