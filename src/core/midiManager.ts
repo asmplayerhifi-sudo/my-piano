@@ -7,6 +7,7 @@
 
 import { soundEngine } from './soundEngine';
 import { activeMidiStore } from './activeMidiStore';
+import { sustainPedalStore } from './sustainPedalStore';
 import { getNoteInfo } from './musicTheory';
 
 export interface MidiDevice {
@@ -99,6 +100,14 @@ class MidiManager {
     const [status, note, velocity = 0] = event.data;
     const command = status >> 4;
     const channel = status & 0x0f;
+
+    // 0x0B (11): Control Change (CC)
+    // CC 64: Damper Pedal / Sustain (>= 64 pressionado, < 64 liberado)
+    if (command === 11 && note === 64) {
+      const isPedalDown = velocity >= 64;
+      sustainPedalStore.setSustain(isPedalDown);
+      return;
+    }
 
     // 0x09: Note On (com velocity > 0)
     // 0x08: Note Off (ou Note On com velocity = 0)

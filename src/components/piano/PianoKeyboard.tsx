@@ -1,10 +1,11 @@
-import React, { useState, useRef, useEffect, useId } from 'react';
+import React, { useState, useRef, useEffect, useId, useSyncExternalStore } from 'react';
 import { soundEngine } from '../../core/soundEngine';
+import { sustainPedalStore } from '../../core/sustainPedalStore';
 import { getNoteInfo } from '../../core/musicTheory';
 import { useOctaveStandard } from '../../core/octaveConfigStore';
 import { PianoWaterfallCanvas } from './PianoWaterfallCanvas';
 import type { TrailColorTheme } from './PianoWaterfallCanvas';
-import { ChevronLeft, ChevronRight, Layers, Sparkles, Flame } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Layers, Sparkles, Flame, Footprints } from 'lucide-react';
 
 export interface ActiveFingerPrompt {
   finger: number;
@@ -108,6 +109,7 @@ export const PianoKeyboard: React.FC<Props> = ({
   const [trailTheme, setTrailTheme] = useState<TrailColorTheme>('coral');
   const [trailSpeed, setTrailSpeed] = useState<number>(180);
   const [activePressedKeys, setActivePressedKeys] = useState<number[]>([]);
+  const isSustainActive = useSyncExternalStore(sustainPedalStore.subscribe, sustainPedalStore.getSnapshot);
 
   const octaveStandard = useOctaveStandard();
   const centralNoteName = octaveStandard === 'C4' ? 'C4' : 'C3';
@@ -865,6 +867,25 @@ export const PianoKeyboard: React.FC<Props> = ({
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Botão do Pedal de Sustain (Damper Pedal) */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => sustainPedalStore.toggleSustain()}
+              className={`px-3 py-1.5 rounded-xl font-bold font-mono text-[10px] uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shadow-md ${
+                isSustainActive
+                  ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black shadow-amber-500/25 ring-1 ring-amber-300'
+                  : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5'
+              }`}
+              title="Pedal de Sustain: sustenta o som de notas e acordes com ressonância harmônica (Atalho: segure a Barra de Espaço)"
+            >
+              <Footprints className={`w-3.5 h-3.5 ${isSustainActive ? 'text-slate-950 animate-bounce' : 'text-amber-400'}`} />
+              <span>{isSustainActive ? 'Pedal Sustain: LIGADO' : 'Pedal Sustain: OFF'}</span>
+              <span className={`text-[8.5px] px-1 py-0.2 rounded font-mono ${isSustainActive ? 'bg-black/30 text-slate-950 font-black' : 'bg-white/10 text-amber-300'}`}>
+                Espaço
+              </span>
+            </button>
           </div>
 
           {/* Deslocamento de Oitava (Transpose / Shift) */}

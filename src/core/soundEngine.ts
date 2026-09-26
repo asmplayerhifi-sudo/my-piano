@@ -42,6 +42,8 @@ class SoundEngine {
   private activeVoiceList: ActiveVoice[] = [];
   private activeVoices: Map<number, ActiveVoice> = new Map();
   private scheduledVoices: Set<ActiveVoice> = new Set();
+  private isSustainPedalDown = false;
+  private pedaledVoices: Set<number> = new Set();
 
   // ── Inicialização do contexto com cadeia de efeitos ──────────────────────
 
@@ -343,6 +345,11 @@ class SoundEngine {
    * e desconexão de nós WebAudio. Previne acúmulo e sobreposição ao desativar o sustain.
    */
   public cancelSustainedNotes(fadeDuration = 0.025) {
+    this.pedaledVoices.forEach(midi => {
+      this.stopPianoNote(midi, fadeDuration, true);
+    });
+    this.pedaledVoices.clear();
+
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
     const sustained = this.activeVoiceList.filter(v => v.isSustained && !v.released);
@@ -379,6 +386,28 @@ class SoundEngine {
     return this.activeVoiceList.length;
   }
 
+  /**
+   * Controla o estado do pedal de sustain acústico (Damper Pedal).
+   * - Quando ativo (true): notas soltas continuam ressoando naturalmente.
+   * - Quando liberado (false): notas que foram soltas pelo instrumentista são abafadas suavemente.
+   */
+  public setSustainPedal(down: boolean) {
+    if (this.isSustainPedalDown === down) return;
+    this.isSustainPedalDown = down;
+
+    if (!down) {
+      // Pedal solto: todas as notas que foram soltas enquanto o pedal estava pressionado são abafadas
+      this.pedaledVoices.forEach(midi => {
+        this.stopPianoNote(midi, 0.25, true);
+      });
+      this.pedaledVoices.clear();
+    }
+  }
+
+  public getIsSustainPedalDown(): boolean {
+    return this.isSustainPedalDown;
+  }
+
   private stopAllNodes(nodes: AudioNode[], gainNode: GainNode, releaseDuration = 0.14) {
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
@@ -403,8 +432,9 @@ class SoundEngine {
       if (!this.ctx || !this.masterGain) return;
 
       if (this.activeVoices.has(midi)) {
-        this.stopPianoNote(midi, 0.05);
+        this.stopPianoNote(midi, 0.05, true);
       }
+      this.pedaledVoices.delete(midi);
 
       const { nodes, gainNode } = this.synthNote(midi, this.ctx.currentTime, 0, velocity, true);
       const voice = this.registerVoice(midi, nodes, gainNode, true, 12.0, this.ctx.currentTime);
@@ -414,8 +444,15 @@ class SoundEngine {
     }
   }
 
-  /** Para a nota com abafamento realista */
-  public stopPianoNote(midi: number, releaseDuration = 0.14) {
+  /** Para a nota com abafamento realista ou sustenta se o pedal estiver ativo */
+  public stopPianoNote(midi: number, releaseDuration = 0.14, force = false) {
+    // Se o pedal de sustain está acionado e não é parada forçada, mantém a nota soando
+    if (this.isSustainPedalDown && !force) {
+      this.pedaledVoices.add(midi);
+      return;
+    }
+
+    this.pedaledVoices.delete(midi);
     const voice = this.activeVoices.get(midi);
     if (!voice || !this.ctx) return;
 
@@ -438,6 +475,7 @@ class SoundEngine {
    * Elimina notas presas (stuck notes) e acúmulo de vozes ao trocar de instrumento, pausar ou trocar de lição.
    */
   public stopAllNotes(releaseDuration = 0.025) {
+    this.pedaledVoices.clear();
     if (this.ctx) {
       const now = this.ctx.currentTime;
 
@@ -533,14 +571,14 @@ class SoundEngine {
 
   /** Toca um acorde simultâneo */
   public playChord(midiNotes: number[], instrument: 'piano' | 'guitar' = 'piano', duration = 1.6, sustained = false) {
-    // Acende todas as teclas do acorde simultaneamente
-    const visualDuration = sustained ? Math.max(1200, duration * 1000) : Math.max(350, duration * 1000);
+    const isSustained = sustained || this.isSustainPedalDown;
+    const visualDuration = isSustained ? Math.max(1200, duration * 1000) : Math.max(350, duration * 1000);
     activeMidiStore.chordOn(midiNotes, visualDuration);
     midiNotes.forEach(midi => {
       if (instrument === 'guitar') {
-        this.playGuitarPluck(midi, duration, undefined, 0.8, sustained);
+        this.playGuitarPluck(midi, duration, undefined, 0.8, isSustained);
       } else {
-        this.playPianoNote(midi, duration, undefined, 0.8, sustained);
+        this.playPianoNote(midi, duration, undefined, 0.8, isSustained);
       }
     });
   }
@@ -550,13 +588,14 @@ class SoundEngine {
     this.initContext();
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
+    const isSustained = this.isSustainPedalDown;
 
     midiNotes.forEach((midi, idx) => {
       const scheduledTime = now + (idx * staggerMs) / 1000;
       if (instrument === 'piano') {
-        this.playPianoNote(midi, 1.5, scheduledTime);
+        this.playPianoNote(midi, isSustained ? 2.5 : 1.5, scheduledTime, 0.8, isSustained);
       } else {
-        this.playGuitarPluck(midi, 1.8, scheduledTime);
+        this.playGuitarPluck(midi, isSustained ? 2.8 : 1.8, scheduledTime, 0.8, isSustained);
       }
     });
   }

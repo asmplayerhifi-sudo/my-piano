@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useSyncExternalStore } from 'react';
 import { PianoKeyboard } from './PianoKeyboard';
 import { ChordSelector } from './ChordSelector';
 import { MicrophonePitchBar } from '../audio/MicrophonePitchBar';
@@ -6,9 +6,10 @@ import { TimbreSelector } from '../audio/TimbreSelector';
 import { MetronomeBar } from '../audio/MetronomeBar';
 import { buildChord, getKeyboardInversions, CHORD_QUALITIES } from '../../core/musicTheory';
 import { midiManager, type MidiDevice } from '../../core/midiManager';
+import { sustainPedalStore } from '../../core/sustainPedalStore';
 import type { ChordQuality } from '../../core/types';
 import { useActiveNotes } from '../../hooks/useActiveNotes';
-import { Music2, Cable, CheckCircle2, ChevronRight, BookOpen, Radio } from 'lucide-react';
+import { Music2, Cable, CheckCircle2, ChevronRight, BookOpen, Radio, Footprints } from 'lucide-react';
 
 export const PianoModule: React.FC = () => {
   const [selectedRoot, setSelectedRoot] = useState<string>('C');
@@ -17,6 +18,7 @@ export const PianoModule: React.FC = () => {
   const [midiDevices, setMidiDevices] = useState<MidiDevice[]>([]);
   const [micActiveMidi, setMicActiveMidi] = useState<number | null>(null);
   const [micAcousticNotes, setMicAcousticNotes] = useState<number[]>([]);
+  const isSustainActive = useSyncExternalStore(sustainPedalStore.subscribe, sustainPedalStore.getSnapshot);
 
   // Fusao de todas as fontes ativas e identificacao do acorde em tempo real
   const { activeNotes: activeExternalNotes, liveChord: liveIdentifiedChord } = useActiveNotes({
@@ -92,9 +94,33 @@ export const PianoModule: React.FC = () => {
           </p>
         </div>
 
-        {/* Controles do lado direito: Seletor de Timbre + Status MIDI */}
+        {/* Controles do lado direito: Seletor de Timbre + Pedal de Sustain + Status MIDI */}
         <div className="flex items-center gap-3 flex-wrap self-start md:self-auto">
           <TimbreSelector />
+
+          {/* Botão Oficial do Pedal de Sustain */}
+          <button
+            onClick={() => sustainPedalStore.toggleSustain()}
+            className={`flex items-center gap-2.5 px-4 py-2 rounded-2xl border text-xs font-bold transition-all cursor-pointer shadow-lg active:scale-95 ${
+              isSustainActive
+                ? 'bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-950 border-amber-300 shadow-amber-500/30 font-black ring-2 ring-amber-400/50'
+                : 'bg-black/40 hover:bg-white/10 text-slate-300 hover:text-white border-white/10'
+            }`}
+            title="Pedal de Sustain: sustenta as notas e acordes com ressonância harmônica (Atalho: segure ou dê toque na Barra de Espaço)"
+          >
+            <Footprints className={`w-4 h-4 ${isSustainActive ? 'text-slate-950 animate-bounce' : 'text-amber-400'}`} />
+            <div className="text-left">
+              <div className="flex items-center gap-1.5">
+                <span>{isSustainActive ? 'Sustain: LIGADO' : 'Pedal Sustain'}</span>
+                <span className={`text-[9px] px-1.5 py-0.2 rounded font-mono font-bold ${isSustainActive ? 'bg-black/40 text-slate-950' : 'bg-white/10 text-amber-300'}`}>
+                  Espaço
+                </span>
+              </div>
+              <div className={`text-[10px] ${isSustainActive ? 'text-slate-900 font-semibold' : 'text-slate-400'}`}>
+                {isSustainActive ? 'Ressonância ativa' : 'Clique ou use Espaço'}
+              </div>
+            </div>
+          </button>
 
           <div className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-black/40 border border-white/5 text-xs">
             <Cable className={`w-4 h-4 ${midiDevices.length > 0 ? 'text-emerald-400' : 'text-slate-400'}`} />
@@ -181,6 +207,38 @@ export const PianoModule: React.FC = () => {
             expectedMidi={activeVoicing.midi[0]}
             expectedNoteName={activeVoicing.notes[0]}
           />
+
+          {/* Barra de Ações Rápidas do Teclado Livre: Pedal de Sustain */}
+          <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-black/40 border border-white/5 text-xs backdrop-blur-md">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => sustainPedalStore.toggleSustain()}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer shadow-md active:scale-95 ${
+                  isSustainActive
+                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 border-amber-300 shadow-amber-500/25 font-black ring-1 ring-amber-300'
+                    : 'bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border-white/10'
+                }`}
+                title="Ativar/Desativar Pedal de Sustain (Atalho: segure ou dê toque na Barra de Espaço)"
+              >
+                <Footprints className={`w-4 h-4 ${isSustainActive ? 'text-slate-950 animate-bounce' : 'text-amber-400'}`} />
+                <span>{isSustainActive ? 'Pedal de Sustain: LIGADO' : 'Ativar Pedal de Sustain'}</span>
+                <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono font-bold ${isSustainActive ? 'bg-black/30 text-slate-950' : 'bg-white/10 text-amber-300'}`}>
+                  Espaço
+                </span>
+              </button>
+
+              <span className="text-[11px] text-slate-400 font-mono hidden sm:inline">
+                {isSustainActive
+                  ? '✨ Ressonância harmônica contínua ativa. Toque livremente mantendo a vibração das cordas.'
+                  : 'Dica: Segure a Barra de Espaço no teclado ou utilize um pedal MIDI físico.'}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400">
+              <span className={`w-2 h-2 rounded-full ${isSustainActive ? 'bg-amber-400 ring-2 ring-amber-400/40 animate-pulse' : 'bg-slate-600'}`} />
+              <span>Pedal Damper / CC 64 Plug &amp; Play</span>
+            </div>
+          </div>
 
           <PianoKeyboard
             startOctave={2}
