@@ -499,10 +499,11 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
             />
 
             {/* ── Bottom Sheet (< lg) ── */}
+            {/* ── Bottom Sheet (< lg) ── */}
             <div
               ref={drawerRef}
-              className="lg:hidden absolute bottom-0 left-0 right-0 bg-[#0c0b1a] border-t border-white/15 rounded-t-3xl shadow-2xl flex flex-col text-slate-100"
-              style={{ maxHeight: '90dvh', paddingBottom: 'env(safe-area-inset-bottom, 16px)' }}
+              className="lg:hidden absolute bottom-0 left-0 right-0 bg-[#0c0b1a] border-t border-white/15 rounded-t-3xl shadow-2xl flex flex-col text-slate-100 max-h-[94dvh] overflow-hidden"
+              style={{ paddingBottom: 'env(safe-area-inset-bottom, 12px)' }}
               onTouchStart={(e) => { drawerSwipeStartYRef.current = e.touches[0].clientY; }}
               onTouchEnd={(e) => {
                 const delta = e.changedTouches[0].clientY - drawerSwipeStartYRef.current;
@@ -510,12 +511,389 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
               }}
             >
               {/* Drag Handle */}
-              <div className="flex justify-center pt-3 pb-1 shrink-0">
+              <div className="flex justify-center pt-2.5 pb-1 shrink-0">
                 <div className="w-10 h-1 rounded-full bg-white/20" />
               </div>
 
               {/* Cabeçalho */}
-              <div className="flex items-center justify-between px-5 pt-2 pb-4 border-b border-white/10 shrink-0">
+              <div className="flex items-center justify-between px-4 sm:px-6 py-2.5 sm:py-3.5 border-b border-white/10 shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30 shrink-0">
+                    <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm sm:text-base font-bold font-display text-white">HARMONIA</h3>
+                    <p className="text-[10px] sm:text-xs text-slate-400">Navegação Principal</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowDrawer(false)}
+                  className="min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] flex items-center justify-center rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                  title="Fechar Menu [Esc]"
+                  aria-label="Fechar menu"
+                >
+                  <X className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+              </div>
+
+              {/* Conteúdo com Scroll Suave e Grid Adaptativo para Telas Curtas e Paisagem */}
+              <div className="flex-1 min-h-0 overflow-y-auto px-3.5 sm:px-6 py-3 sm:py-4 space-y-4 sm:space-y-5 overscroll-contain">
+                {/* 🎓 SEÇÃO 1: CURSOS DISPONÍVEIS */}
+                <div className="space-y-1.5 sm:space-y-2">
+                  <div className="flex items-center gap-2 text-[11px] sm:text-xs font-mono font-bold uppercase text-indigo-400 tracking-wider">
+                    <GraduationCap className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    <span>CURSOS DISPONÍVEIS</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
+                    {/* Teclado */}
+                    <button
+                      onClick={() => handleTabClick('course-keyboard')}
+                      className={`w-full p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border text-left text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
+                        activeTab === 'course-keyboard'
+                          ? 'bg-indigo-600/30 border-indigo-500/50 text-white shadow-md'
+                          : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                        <span className="text-base sm:text-lg shrink-0">🎹</span>
+                        <div className="min-w-0">
+                          <p className="font-bold text-white text-xs truncate">Curso Teclado &amp; Piano</p>
+                          <p className="text-[10px] sm:text-[11px] text-slate-400 font-normal truncate">Do Zero ao Avançado com Partituras</p>
+                        </div>
+                      </div>
+                      <span className="text-[9px] sm:text-[10px] font-mono font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0 ml-1.5">
+                        {activeTab === 'course-keyboard' ? 'CURSO ATIVO' : 'CURSO'}
+                      </span>
+                    </button>
+
+                    {/* Violão */}
+                    <button
+                      onClick={() => handleTabClick('course-guitar')}
+                      className={`w-full p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border text-left text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
+                        activeTab === 'course-guitar'
+                          ? 'bg-amber-600/30 border-amber-500/50 text-white shadow-md'
+                          : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                        <span className="text-base sm:text-lg shrink-0">🎸</span>
+                        <div className="min-w-0">
+                          <p className="font-bold text-white text-xs truncate">Curso Violão &amp; Guitarra</p>
+                          <p className="text-[10px] sm:text-[11px] text-slate-400 font-normal truncate">Pestana, CAGED, Dedo Âncora e Levadas</p>
+                        </div>
+                      </div>
+                      <span className="text-[9px] sm:text-[10px] font-mono font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0 ml-1.5">
+                        {activeTab === 'course-guitar' ? 'CURSO ATIVO' : 'CURSO'}
+                      </span>
+                    </button>
+
+                    {/* Teoria */}
+                    <button
+                      onClick={() => handleTabClick('theory')}
+                      className={`w-full p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border text-left text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
+                        activeTab === 'theory'
+                          ? 'bg-cyan-600/30 border-cyan-500/50 text-white shadow-md'
+                          : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                        <span className="text-base sm:text-lg shrink-0">🎼</span>
+                        <div className="min-w-0">
+                          <p className="font-bold text-white text-xs truncate">Curso Teoria Musical</p>
+                          <p className="text-[10px] sm:text-[11px] text-slate-400 font-normal truncate">Intervalos, Escalas e Harmonia</p>
+                        </div>
+                      </div>
+                      <span className="text-[9px] sm:text-[10px] font-mono font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shrink-0 ml-1.5">
+                        {activeTab === 'theory' ? 'CURSO ATIVO' : 'CURSO'}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 🎵 SEÇÃO 2: FERRAMENTAS DE PRÁTICA */}
+                <div className="space-y-1.5 sm:space-y-2">
+                  <div className="flex items-center gap-2 text-[11px] sm:text-xs font-mono font-bold uppercase text-emerald-400 tracking-wider">
+                    <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    <span>FERRAMENTAS DE PRÁTICA</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2">
+                    {/* Repertório */}
+                    <button
+                      onClick={() => handleTabClick('repertoire')}
+                      className={`w-full p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border text-left text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
+                        activeTab === 'repertoire'
+                          ? 'bg-purple-600/30 border-purple-500/50 text-white'
+                          : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                        <span className="text-base sm:text-lg shrink-0">🎶</span>
+                        <div className="min-w-0">
+                          <p className="font-bold text-white text-xs truncate">Repertório de Músicas</p>
+                          <p className="text-[10px] sm:text-[11px] text-slate-400 font-normal truncate">Partituras com Solfejo e Áudio</p>
+                        </div>
+                      </div>
+                      <span className="text-[9px] sm:text-[10px] font-mono font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 shrink-0 ml-1.5">
+                        {REPERTOIRE_SONGS.length} OBRAS
+                      </span>
+                    </button>
+
+                    {/* Lab Rítmico */}
+                    <button
+                      onClick={() => handleTabClick('rhythm')}
+                      className={`w-full p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border text-left text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
+                        activeTab === 'rhythm'
+                          ? 'bg-emerald-600/30 border-emerald-500/50 text-white'
+                          : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                        <span className="text-base sm:text-lg shrink-0">🧪</span>
+                        <div className="min-w-0">
+                          <p className="font-bold text-white text-xs truncate">Lab Rítmico</p>
+                          <p className="text-[10px] sm:text-[11px] text-slate-400 font-normal truncate">Treino Rítmico com Metrônomo</p>
+                        </div>
+                      </div>
+                      <span className="text-[9px] sm:text-[10px] font-mono font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0 ml-1.5">
+                        METRÔNOMO
+                      </span>
+                    </button>
+
+                    {/* Prática Teórica */}
+                    <button
+                      onClick={() => handleTabClick('theory-practice')}
+                      className={`w-full p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border text-left text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
+                        activeTab === 'theory-practice'
+                          ? 'bg-cyan-600/30 border-cyan-500/50 text-white'
+                          : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                        <span className="text-base sm:text-lg shrink-0">📐</span>
+                        <div className="min-w-0">
+                          <p className="font-bold text-white text-xs truncate">Prática Teórica</p>
+                          <p className="text-[10px] sm:text-[11px] text-slate-400 font-normal truncate">Escalas, Círculo das Quintas &amp; Régua</p>
+                        </div>
+                      </div>
+                      <span className="text-[9px] sm:text-[10px] font-mono font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shrink-0 ml-1.5">
+                        TEORIA
+                      </span>
+                    </button>
+
+                    {/* Treino de Partitura */}
+                    <button
+                      onClick={() => handleTabClick('sight-reading')}
+                      className={`w-full p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border text-left text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
+                        activeTab === 'sight-reading'
+                          ? 'bg-indigo-600/30 border-indigo-500/50 text-white'
+                          : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                        <span className="text-base sm:text-lg shrink-0">🎼</span>
+                        <div className="min-w-0">
+                          <p className="font-bold text-white text-xs truncate">Treino de Partitura</p>
+                          <p className="text-[10px] sm:text-[11px] text-slate-400 font-normal truncate">Claves de Sol e Fá Interativas</p>
+                        </div>
+                      </div>
+                      <span className="text-[9px] sm:text-[10px] font-mono font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0 ml-1.5">
+                        LEITURA
+                      </span>
+                    </button>
+
+                    {/* Teclado Livre */}
+                    <button
+                      onClick={() => handleTabClick('piano')}
+                      className={`w-full p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border text-left text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
+                        activeTab === 'piano'
+                          ? 'bg-indigo-600/30 border-indigo-500/50 text-white'
+                          : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                        <span className="text-base sm:text-lg shrink-0">🎹</span>
+                        <div className="min-w-0">
+                          <p className="font-bold text-white text-xs truncate">Teclado Livre Interativo</p>
+                          <p className="text-[10px] sm:text-[11px] text-slate-400 font-normal truncate">Instrumento Virtual com Gravação</p>
+                        </div>
+                      </div>
+                    </button>
+
+                    {/* Braço Violão */}
+                    <button
+                      onClick={() => handleTabClick('guitar')}
+                      className={`w-full p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border text-left text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
+                        activeTab === 'guitar'
+                          ? 'bg-amber-600/30 border-amber-500/50 text-white'
+                          : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                        <span className="text-base sm:text-lg shrink-0">🎸</span>
+                        <div className="min-w-0">
+                          <p className="font-bold text-white text-xs truncate">Braço de Violão &amp; Escalas</p>
+                          <p className="text-[10px] sm:text-[11px] text-slate-400 font-normal truncate">Shapes, Intervalos e Afinação</p>
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 🎙️ SEÇÃO 3: ESTÚDIO & CRIAÇÃO */}
+                <div className="space-y-1.5 sm:space-y-2">
+                  <div className="flex items-center gap-2 text-[11px] sm:text-xs font-mono font-bold uppercase text-purple-400 tracking-wider">
+                    <Music className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    <span>ESTÚDIO &amp; CRIAÇÃO</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
+                    {/* Editor Partitura */}
+                    <button
+                      onClick={() => handleTabClick('score-editor')}
+                      className={`w-full p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border text-left text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
+                        activeTab === 'score-editor'
+                          ? 'bg-cyan-600/30 border-cyan-500/50 text-white'
+                          : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                        <span className="text-base sm:text-lg shrink-0">✏️</span>
+                        <div className="min-w-0">
+                          <p className="font-bold text-white text-xs truncate">Editor de Partitura MIDI</p>
+                          <p className="text-[10px] sm:text-[11px] text-slate-400 font-normal truncate">Crie e edite partituras personalizadas</p>
+                        </div>
+                      </div>
+                      <span className="text-[9px] sm:text-[10px] font-mono font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shrink-0 ml-1.5">
+                        MIDI
+                      </span>
+                    </button>
+
+                    {/* Arranjador PSR */}
+                    <button
+                      onClick={() => handleTabClick('arranger')}
+                      className={`w-full p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border text-left text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
+                        activeTab === 'arranger'
+                          ? 'bg-purple-600/30 border-purple-500/50 text-white'
+                          : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                        <span className="text-base sm:text-lg shrink-0">🥁</span>
+                        <div className="min-w-0">
+                          <p className="font-bold text-white text-xs truncate">Arranjador Rítmico PSR</p>
+                          <p className="text-[10px] sm:text-[11px] text-slate-400 font-normal truncate">Estilos e levadas para prática</p>
+                        </div>
+                      </div>
+                      <span className="text-[9px] sm:text-[10px] font-mono font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 shrink-0 ml-1.5">
+                        PSR
+                      </span>
+                    </button>
+
+                    {/* Editor de Fraseados & Licks */}
+                    <button
+                      onClick={() => handleTabClick('phrase-editor')}
+                      className={`w-full p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border text-left text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
+                        activeTab === 'phrase-editor'
+                          ? 'bg-purple-600/30 border-purple-500/50 text-white'
+                          : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                        <span className="text-base sm:text-lg shrink-0">🪄</span>
+                        <div className="min-w-0">
+                          <p className="font-bold text-white text-xs truncate">Editor de Fraseados &amp; Licks</p>
+                          <p className="text-[10px] sm:text-[11px] text-slate-400 font-normal truncate">Text-to-Melody, Licks e Transposição</p>
+                        </div>
+                      </div>
+                      <span className="text-[9px] sm:text-[10px] font-mono font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 shrink-0 ml-1.5">
+                        Novo
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* ⚙️ SEÇÃO 4: CONFIGURAÇÕES DE ÁUDIO & SISTEMA */}
+                <div className="space-y-1.5 sm:space-y-2 pt-2 border-t border-white/10">
+                  <div className="flex items-center gap-2 text-[11px] sm:text-xs font-mono font-bold uppercase text-slate-400 tracking-wider">
+                    <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    <span>CONFIGURAÇÕES DE ÁUDIO</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2">
+                    {/* Configuração de Entradas (Mic / MIDI / USB) */}
+                    <button
+                      onClick={() => {
+                        setShowDrawer(false);
+                        setShowInputModal(true);
+                      }}
+                      className="w-full p-2 sm:p-2.5 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/10 flex items-center justify-between text-xs transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2 text-slate-300 min-w-0">
+                        <Cable className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-400 shrink-0" />
+                        <span className="truncate">Configuração de Entradas:</span>
+                      </div>
+                      <span className="font-mono font-bold text-cyan-300 bg-cyan-500/20 px-1.5 sm:px-2 py-0.5 rounded border border-cyan-500/30 flex items-center gap-1 shrink-0 ml-1 text-[10px] sm:text-xs">
+                        {hasMidiDevices && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
+                        Mic / MIDI / USB
+                      </span>
+                    </button>
+
+                    {/* Dó Central */}
+                    <button
+                      onClick={() => {
+                        setShowDrawer(false);
+                        setShowOctaveModal(true);
+                      }}
+                      className="w-full p-2 sm:p-2.5 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/10 flex items-center justify-between text-xs transition-colors cursor-pointer"
+                    >
+                      <span className="text-slate-300 truncate">Afinação Central:</span>
+                      <span className="font-mono font-bold text-indigo-300 bg-indigo-500/20 px-1.5 sm:px-2 py-0.5 rounded border border-indigo-500/30 shrink-0 ml-1 text-[10px] sm:text-xs">
+                        Dó Central [ {octaveStandard === 'C3' ? 'C3 (Brasil)' : 'C4 (Internacional)'} ]
+                      </span>
+                    </button>
+
+                    {/* Metrônomo Global */}
+                    <button
+                      onClick={() => {
+                        setShowDrawer(false);
+                        handleTabClick('rhythm');
+                      }}
+                      className="w-full p-2 sm:p-2.5 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/10 flex items-center justify-between text-xs transition-colors cursor-pointer"
+                    >
+                      <span className="text-slate-300 truncate">Metrônomo Global:</span>
+                      <span className="font-mono font-bold text-emerald-300 bg-emerald-500/20 px-1.5 sm:px-2 py-0.5 rounded border border-emerald-500/30 shrink-0 ml-1 text-[10px] sm:text-xs">
+                        {accState.bpm} BPM {accState.timeSignature}
+                      </span>
+                    </button>
+
+                    {/* Latência & Sistema */}
+                    <button
+                      onClick={() => {
+                        setShowDrawer(false);
+                        setShowLatencyModal(true);
+                      }}
+                      className="w-full p-2 sm:p-2.5 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/10 flex items-center justify-between text-xs transition-colors cursor-pointer"
+                    >
+                      <span className="text-slate-300 truncate">Status do Sistema:</span>
+                      <span className="font-mono font-bold text-emerald-400 flex items-center gap-1 shrink-0 ml-1 text-[10px] sm:text-xs">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        Latência {currentOffset}ms
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Desktop Side Panel (≥ lg) ── */}
+            <div
+              className="hidden lg:flex absolute left-0 top-0 bottom-0 bg-[#0c0b1a] border-r border-white/15 w-full max-w-md shadow-2xl flex-col text-slate-100 overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Cabeçalho */}
+              <div className="flex items-center justify-between p-5 border-b border-white/10 shrink-0">
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30 shrink-0">
                     <Sparkles className="w-5 h-5" />
@@ -529,14 +907,13 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
                   onClick={() => setShowDrawer(false)}
                   className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
                   title="Fechar Menu [Esc]"
-                  aria-label="Fechar menu"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              {/* Conteúdo das seções de navegação */}
-              <div className="space-y-5">
+              {/* Seções de navegação completas no painel desktop */}
+              <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-5">
                 {/* 🎓 SEÇÃO 1: CURSOS DISPONÍVEIS */}
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-xs font-mono font-bold uppercase text-indigo-400 tracking-wider">
@@ -544,8 +921,7 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
                     <span>CURSOS DISPONÍVEIS</span>
                   </div>
 
-                  <div className="space-y-1.5 pl-1">
-                    {/* Teclado */}
+                  <div className="space-y-1.5">
                     <button
                       onClick={() => handleTabClick('course-keyboard')}
                       className={`w-full p-3 rounded-2xl border text-left text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
@@ -554,19 +930,18 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
                           : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
                       }`}
                     >
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-base">🎹</span>
-                        <div>
-                          <p className="font-bold text-white text-xs">Curso Teclado &amp; Piano</p>
-                          <p className="text-[11px] text-slate-400 font-normal">Do Zero ao Avançado com Partituras</p>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="text-lg shrink-0">🎹</span>
+                        <div className="min-w-0">
+                          <p className="font-bold text-white text-xs truncate">Curso Teclado &amp; Piano</p>
+                          <p className="text-[11px] text-slate-400 font-normal truncate">Do Zero ao Avançado com Partituras</p>
                         </div>
                       </div>
-                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0 ml-1.5">
                         {activeTab === 'course-keyboard' ? 'CURSO ATIVO' : 'CURSO'}
                       </span>
                     </button>
 
-                    {/* Violão */}
                     <button
                       onClick={() => handleTabClick('course-guitar')}
                       className={`w-full p-3 rounded-2xl border text-left text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
@@ -575,19 +950,18 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
                           : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
                       }`}
                     >
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-base">🎸</span>
-                        <div>
-                          <p className="font-bold text-white text-xs">Curso Violão &amp; Guitarra</p>
-                          <p className="text-[11px] text-slate-400 font-normal">Pestana, CAGED, Dedo Âncora e Levadas</p>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="text-lg shrink-0">🎸</span>
+                        <div className="min-w-0">
+                          <p className="font-bold text-white text-xs truncate">Curso Violão &amp; Guitarra</p>
+                          <p className="text-[11px] text-slate-400 font-normal truncate">Pestana, CAGED, Dedo Âncora e Levadas</p>
                         </div>
                       </div>
-                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0 ml-1.5">
                         {activeTab === 'course-guitar' ? 'CURSO ATIVO' : 'CURSO'}
                       </span>
                     </button>
 
-                    {/* Teoria */}
                     <button
                       onClick={() => handleTabClick('theory')}
                       className={`w-full p-3 rounded-2xl border text-left text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
@@ -596,14 +970,14 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
                           : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
                       }`}
                     >
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-base">🎼</span>
-                        <div>
-                          <p className="font-bold text-white text-xs">Curso Teoria Musical</p>
-                          <p className="text-[11px] text-slate-400 font-normal">Intervalos, Escalas e Harmonia</p>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="text-lg shrink-0">🎼</span>
+                        <div className="min-w-0">
+                          <p className="font-bold text-white text-xs truncate">Curso Teoria Musical</p>
+                          <p className="text-[11px] text-slate-400 font-normal truncate">Intervalos, Escalas e Harmonia</p>
                         </div>
                       </div>
-                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shrink-0 ml-1.5">
                         {activeTab === 'theory' ? 'CURSO ATIVO' : 'CURSO'}
                       </span>
                     </button>
@@ -617,8 +991,7 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
                     <span>FERRAMENTAS DE PRÁTICA</span>
                   </div>
 
-                  <div className="space-y-1.5 pl-1">
-                    {/* Repertório */}
+                  <div className="space-y-1.5">
                     <button
                       onClick={() => handleTabClick('repertoire')}
                       className={`w-full p-3 rounded-2xl border text-left text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
@@ -627,19 +1000,18 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
                           : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
                       }`}
                     >
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-base">🎶</span>
-                        <div>
-                          <p className="font-bold text-white text-xs">Repertório de Músicas</p>
-                          <p className="text-[11px] text-slate-400 font-normal">Partituras com Solfejo e Áudio</p>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="text-lg shrink-0">🎶</span>
+                        <div className="min-w-0">
+                          <p className="font-bold text-white text-xs truncate">Repertório de Músicas</p>
+                          <p className="text-[11px] text-slate-400 font-normal truncate">Partituras com Solfejo e Áudio</p>
                         </div>
                       </div>
-                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 shrink-0 ml-1.5">
                         {REPERTOIRE_SONGS.length} OBRAS
                       </span>
                     </button>
 
-                    {/* Lab Rítmico */}
                     <button
                       onClick={() => handleTabClick('rhythm')}
                       className={`w-full p-3 rounded-2xl border text-left text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
@@ -648,19 +1020,18 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
                           : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
                       }`}
                     >
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-base">🧪</span>
-                        <div>
-                          <p className="font-bold text-white text-xs">Lab Rítmico</p>
-                          <p className="text-[11px] text-slate-400 font-normal">Treino Rítmico com Metrônomo</p>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="text-lg shrink-0">🧪</span>
+                        <div className="min-w-0">
+                          <p className="font-bold text-white text-xs truncate">Lab Rítmico</p>
+                          <p className="text-[11px] text-slate-400 font-normal truncate">Treino Rítmico com Metrônomo</p>
                         </div>
                       </div>
-                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0 ml-1.5">
                         METRÔNOMO
                       </span>
                     </button>
 
-                    {/* Prática Teórica */}
                     <button
                       onClick={() => handleTabClick('theory-practice')}
                       className={`w-full p-3 rounded-2xl border text-left text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
@@ -669,19 +1040,18 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
                           : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
                       }`}
                     >
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-base">📐</span>
-                        <div>
-                          <p className="font-bold text-white text-xs">Prática Teórica</p>
-                          <p className="text-[11px] text-slate-400 font-normal">Escalas, Círculo das Quintas &amp; Régua</p>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="text-lg shrink-0">📐</span>
+                        <div className="min-w-0">
+                          <p className="font-bold text-white text-xs truncate">Prática Teórica</p>
+                          <p className="text-[11px] text-slate-400 font-normal truncate">Escalas, Círculo das Quintas &amp; Régua</p>
                         </div>
                       </div>
-                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shrink-0 ml-1.5">
                         TEORIA
                       </span>
                     </button>
 
-                    {/* Treino de Partitura */}
                     <button
                       onClick={() => handleTabClick('sight-reading')}
                       className={`w-full p-3 rounded-2xl border text-left text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
@@ -690,19 +1060,18 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
                           : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
                       }`}
                     >
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-base">🎼</span>
-                        <div>
-                          <p className="font-bold text-white text-xs">Treino de Partitura</p>
-                          <p className="text-[11px] text-slate-400 font-normal">Claves de Sol e Fá Interativas</p>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="text-lg shrink-0">🎼</span>
+                        <div className="min-w-0">
+                          <p className="font-bold text-white text-xs truncate">Treino de Partitura</p>
+                          <p className="text-[11px] text-slate-400 font-normal truncate">Claves de Sol e Fá Interativas</p>
                         </div>
                       </div>
-                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0 ml-1.5">
                         LEITURA
                       </span>
                     </button>
 
-                    {/* Teclado Livre */}
                     <button
                       onClick={() => handleTabClick('piano')}
                       className={`w-full p-3 rounded-2xl border text-left text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
@@ -711,16 +1080,15 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
                           : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
                       }`}
                     >
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-base">🎹</span>
-                        <div>
-                          <p className="font-bold text-white text-xs">Teclado Livre Interativo</p>
-                          <p className="text-[11px] text-slate-400 font-normal">Instrumento Virtual com Gravação</p>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="text-lg shrink-0">🎹</span>
+                        <div className="min-w-0">
+                          <p className="font-bold text-white text-xs truncate">Teclado Livre Interativo</p>
+                          <p className="text-[11px] text-slate-400 font-normal truncate">Instrumento Virtual com Gravação</p>
                         </div>
                       </div>
                     </button>
 
-                    {/* Braço Violão */}
                     <button
                       onClick={() => handleTabClick('guitar')}
                       className={`w-full p-3 rounded-2xl border text-left text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
@@ -729,11 +1097,11 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
                           : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
                       }`}
                     >
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-base">🎸</span>
-                        <div>
-                          <p className="font-bold text-white text-xs">Braço de Violão &amp; Escalas</p>
-                          <p className="text-[11px] text-slate-400 font-normal">Shapes, Intervalos e Afinação</p>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="text-lg shrink-0">🎸</span>
+                        <div className="min-w-0">
+                          <p className="font-bold text-white text-xs truncate">Braço de Violão &amp; Escalas</p>
+                          <p className="text-[11px] text-slate-400 font-normal truncate">Shapes, Intervalos e Afinação</p>
                         </div>
                       </div>
                     </button>
@@ -747,8 +1115,7 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
                     <span>ESTÚDIO &amp; CRIAÇÃO</span>
                   </div>
 
-                  <div className="space-y-1.5 pl-1">
-                    {/* Editor Partitura */}
+                  <div className="space-y-1.5">
                     <button
                       onClick={() => handleTabClick('score-editor')}
                       className={`w-full p-3 rounded-2xl border text-left text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
@@ -757,19 +1124,18 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
                           : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
                       }`}
                     >
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-base">✏️</span>
-                        <div>
-                          <p className="font-bold text-white text-xs">Editor de Partitura MIDI</p>
-                          <p className="text-[11px] text-slate-400 font-normal">Crie e edite partituras personalizadas</p>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="text-lg shrink-0">✏️</span>
+                        <div className="min-w-0">
+                          <p className="font-bold text-white text-xs truncate">Editor de Partitura MIDI</p>
+                          <p className="text-[11px] text-slate-400 font-normal truncate">Crie e edite partituras personalizadas</p>
                         </div>
                       </div>
-                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shrink-0 ml-1.5">
                         MIDI
                       </span>
                     </button>
 
-                    {/* Arranjador PSR */}
                     <button
                       onClick={() => handleTabClick('arranger')}
                       className={`w-full p-3 rounded-2xl border text-left text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
@@ -778,19 +1144,18 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
                           : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
                       }`}
                     >
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-base">🥁</span>
-                        <div>
-                          <p className="font-bold text-white text-xs">Arranjador Rítmico PSR</p>
-                          <p className="text-[11px] text-slate-400 font-normal">Estilos e levadas para prática</p>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="text-lg shrink-0">🥁</span>
+                        <div className="min-w-0">
+                          <p className="font-bold text-white text-xs truncate">Arranjador Rítmico PSR</p>
+                          <p className="text-[11px] text-slate-400 font-normal truncate">Estilos e levadas para prática</p>
                         </div>
                       </div>
-                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 shrink-0 ml-1.5">
                         PSR
                       </span>
                     </button>
 
-                    {/* Editor de Fraseados & Licks */}
                     <button
                       onClick={() => handleTabClick('phrase-editor')}
                       className={`w-full p-3 rounded-2xl border text-left text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
@@ -799,14 +1164,14 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
                           : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
                       }`}
                     >
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-base">🪄</span>
-                        <div>
-                          <p className="font-bold text-white text-xs">Editor de Fraseados &amp; Licks</p>
-                          <p className="text-[11px] text-slate-400 font-normal">Text-to-Melody, Licks e Transposição</p>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="text-lg shrink-0">🪄</span>
+                        <div className="min-w-0">
+                          <p className="font-bold text-white text-xs truncate">Editor de Fraseados &amp; Licks</p>
+                          <p className="text-[11px] text-slate-400 font-normal truncate">Text-to-Melody, Licks e Transposição</p>
                         </div>
                       </div>
-                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 shrink-0 ml-1.5">
                         Novo
                       </span>
                     </button>
@@ -820,8 +1185,7 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
                     <span>CONFIGURAÇÕES DE ÁUDIO</span>
                   </div>
 
-                  <div className="space-y-2 pl-1">
-                    {/* Configuração de Entradas (Mic / MIDI / USB) */}
+                  <div className="space-y-2">
                     <button
                       onClick={() => {
                         setShowDrawer(false);
@@ -829,17 +1193,16 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
                       }}
                       className="w-full p-2.5 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/10 flex items-center justify-between text-xs transition-colors cursor-pointer"
                     >
-                      <div className="flex items-center gap-2 text-slate-300">
-                        <Cable className="w-4 h-4 text-cyan-400" />
-                        <span>Configuração de Entradas:</span>
+                      <div className="flex items-center gap-2 text-slate-300 min-w-0">
+                        <Cable className="w-4 h-4 text-cyan-400 shrink-0" />
+                        <span className="truncate">Configuração de Entradas:</span>
                       </div>
-                      <span className="font-mono font-bold text-cyan-300 bg-cyan-500/20 px-2 py-0.5 rounded border border-cyan-500/30 flex items-center gap-1.5">
+                      <span className="font-mono font-bold text-cyan-300 bg-cyan-500/20 px-2 py-0.5 rounded border border-cyan-500/30 flex items-center gap-1.5 shrink-0 ml-1.5">
                         {hasMidiDevices && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
                         Mic / MIDI / USB
                       </span>
                     </button>
 
-                    {/* Dó Central */}
                     <button
                       onClick={() => {
                         setShowDrawer(false);
@@ -847,13 +1210,12 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
                       }}
                       className="w-full p-2.5 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/10 flex items-center justify-between text-xs transition-colors cursor-pointer"
                     >
-                      <span className="text-slate-300">Afinação Central:</span>
-                      <span className="font-mono font-bold text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded border border-indigo-500/30">
+                      <span className="text-slate-300 truncate">Afinação Central:</span>
+                      <span className="font-mono font-bold text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded border border-indigo-500/30 shrink-0 ml-1.5">
                         Dó Central [ {octaveStandard === 'C3' ? 'C3 (Brasil)' : 'C4 (Internacional)'} ]
                       </span>
                     </button>
 
-                    {/* Metrônomo Global */}
                     <button
                       onClick={() => {
                         setShowDrawer(false);
@@ -861,13 +1223,12 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
                       }}
                       className="w-full p-2.5 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/10 flex items-center justify-between text-xs transition-colors cursor-pointer"
                     >
-                      <span className="text-slate-300">Metrônomo Global:</span>
-                      <span className="font-mono font-bold text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/30">
+                      <span className="text-slate-300 truncate">Metrônomo Global:</span>
+                      <span className="font-mono font-bold text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/30 shrink-0 ml-1.5">
                         {accState.bpm} BPM {accState.timeSignature}
                       </span>
                     </button>
 
-                    {/* Latência & Sistema */}
                     <button
                       onClick={() => {
                         setShowDrawer(false);
@@ -875,43 +1236,15 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
                       }}
                       className="w-full p-2.5 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/10 flex items-center justify-between text-xs transition-colors cursor-pointer"
                     >
-                      <span className="text-slate-300">Status do Sistema:</span>
-                      <span className="font-mono font-bold text-emerald-400 flex items-center gap-1.5">
+                      <span className="text-slate-300 truncate">Status do Sistema:</span>
+                      <span className="font-mono font-bold text-emerald-400 flex items-center gap-1.5 shrink-0 ml-1.5">
                         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                        Latência {currentOffset}ms (Capacitor Ready)
+                        Latência {currentOffset}ms
                       </span>
                     </button>
                   </div>
                 </div>
               </div>
-            </div>
-
-            {/* ── Desktop Side Panel (≥ lg) ── */}
-            <div
-              className="hidden lg:flex absolute left-0 top-0 bottom-0 bg-[#0c0b1a] border-r border-white/15 w-full max-w-md shadow-2xl flex-col text-slate-100 p-5 space-y-5 overflow-y-auto"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Cabeçalho */}
-              <div className="flex items-center justify-between pb-4 border-b border-white/10 shrink-0">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30 shrink-0">
-                    <Sparkles className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-bold font-display text-white">HARMONIA</h3>
-                    <p className="text-xs text-slate-400">Navegação Principal</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowDrawer(false)}
-                  className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
-                  title="Fechar Menu [Esc]"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              {/* Reutiliza o mesmo conteúdo — incluído via renderização duplicada */}
-              <p className="text-xs text-slate-500 text-center">Use o menu para navegar entre as seções.</p>
             </div>
           </div>,
           document.body
