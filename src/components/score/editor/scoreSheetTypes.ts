@@ -31,4 +31,6 @@ export interface ScoreSheetRenderOptions {
   showMeasureNumbers: boolean;
   hoverPreview?: StaffHoverPreview | null;
   selectedDuration?: number;
+  activeMeasure?: number;
+  cursorBeat?: number;
 }

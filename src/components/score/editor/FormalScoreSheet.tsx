@@ -21,6 +21,8 @@ interface FormalScoreSheetProps {
   totalMeasures: number;
   selectedDuration?: 4 | 2 | 1 | 0.5 | 0.25;
   isChordMode?: boolean;
+  activeMeasure?: number;
+  cursorBeat?: number;
 }
 
 export const FormalScoreSheet: React.FC<FormalScoreSheetProps> = ({
@@ -35,6 +37,8 @@ export const FormalScoreSheet: React.FC<FormalScoreSheetProps> = ({
   totalMeasures,
   selectedDuration = 1,
   isChordMode = false,
+  activeMeasure,
+  cursorBeat,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -89,12 +93,14 @@ export const FormalScoreSheet: React.FC<FormalScoreSheetProps> = ({
         ...options,
         hoverPreview,
         selectedDuration,
+        activeMeasure,
+        cursorBeat,
       },
       totalMeasures,
       beatsPerMeasure,
       scrollLeft: 0,
     });
-  }, [notes, timeSignature, playheadBeat, selectedNoteId, options, hoverPreview, selectedDuration, totalMeasures, beatsPerMeasure, totalWidth]);
+  }, [notes, timeSignature, playheadBeat, selectedNoteId, options, hoverPreview, selectedDuration, activeMeasure, cursorBeat, totalMeasures, beatsPerMeasure, totalWidth]);
 
   // Movimentação do mouse para preview da figura (Ghost Note)
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {

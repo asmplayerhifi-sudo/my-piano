@@ -10,6 +10,12 @@ import { getNoteInfo } from '../../core/musicTheory';
 import { octaveConfigStore, useOctaveStandard, type OctaveStandard } from '../../core/octaveConfigStore';
 import { TimbreSelector } from '../audio/TimbreSelector';
 import { metronomeEngine, useMetronome } from '../../core/metronomeEngine';
+import { UniversalInputBar } from '../audio/UniversalInputBar';
+import {
+  insertMidiNote,
+  calculateMeasureForBeat,
+  calculateTotalMeasures,
+} from '../../core/scoreMidiWriter';
 import {
   Play, Pause, Square, Plus, Trash2, Download,
   Music, ChevronLeft, ChevronRight, Save, FileMusic,
@@ -434,12 +440,12 @@ export const ScoreEditor: React.FC = () => {
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playheadBeat, setPlayheadBeat] = useState<number | null>(null);
+  const [cursorBeat, setCursorBeat] = useState<number>(0);
   const [history, setHistory] = useState<EditorNote[][]>([[]]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [isSaved, setIsSaved] = useState(true);
   const [viewLayout, setViewLayout] = useState<'both' | 'score' | 'grid'>('both');
   const [isChordMode, setIsChordMode] = useState<boolean>(false);
-  const [chordRootBeat, setChordRootBeat] = useState<number | null>(null);
   const metronome = useMetronome();
 
   const playbackRef = useRef<{ raf: number; startTime: number; startBeat: number } | null>(null);
@@ -473,13 +479,17 @@ export const ScoreEditor: React.FC = () => {
     };
   }, []);
 
-  const totalMeasures = useMemo(() => {
-    if (project.notes.length === 0) return 4;
-    const maxBeat = Math.max(...project.notes.map(n => n.beat + n.duration));
-    return Math.max(4, Math.ceil(maxBeat / project.timeSignature[0]) + 1);
-  }, [project.notes, project.timeSignature]);
-
   const beatsPerMeasure = project.timeSignature[0];
+
+  const activeMeasureIndex = useMemo(() => {
+    return calculateMeasureForBeat(cursorBeat, beatsPerMeasure);
+  }, [cursorBeat, beatsPerMeasure]);
+
+  const activeMeasureNumber = activeMeasureIndex + 1;
+
+  const totalMeasures = useMemo(() => {
+    return calculateTotalMeasures(project.notes, cursorBeat, beatsPerMeasure, 4);
+  }, [project.notes, cursorBeat, beatsPerMeasure]);
 
   // ── Desfazer / Refazer ───────────────────────────────────────────────────
 
@@ -508,67 +518,42 @@ export const ScoreEditor: React.FC = () => {
     setIsSaved(false);
   }, [history, historyIndex]);
 
-  // ── Adição de Nota / Criação de Acordes pela Paleta ───────────────────────
+  // ── Inserção de Notas via MIDI USB / Microfone / Teclado Real ───────────
 
-  const addNote = useCallback((midi: number, noteName: string) => {
+  const handleInputNote = useCallback((midi: number, noteName: string) => {
     const current = projectRef.current;
-    const bpm = current.notes;
+    const result = insertMidiNote({
+      midi,
+      noteName,
+      currentNotes: current.notes,
+      cursorBeat,
+      selectedDuration,
+      selectedClef,
+      beatsPerMeasure,
+      isChordMode,
+      isPlaying,
+      playheadBeat,
+      generateId: newNoteId,
+    });
 
-    // Se estiver em modo acorde, empilha notas no mesmo beat; senão, avança para a próxima posição
-    let targetBeat = 0;
-    if (isChordMode) {
-      if (chordRootBeat !== null) {
-        targetBeat = chordRootBeat;
-      } else if (bpm.length > 0) {
-        const lastNote = [...bpm].sort((a, b) => b.beat - a.beat)[0];
-        targetBeat = lastNote.beat;
-      }
-    } else {
-      if (bpm.length > 0) {
-        const lastNote = [...bpm].sort((a, b) => (b.beat + b.duration) - (a.beat + a.duration))[0];
-        targetBeat = lastNote.beat + lastNote.duration;
-      }
-    }
-
-    const measure = Math.floor(targetBeat / beatsPerMeasure);
-
-    // Evita duplicar a mesma nota exata no mesmo beat
-    const existingIndex = current.notes.findIndex(
-      n => Math.abs(n.beat - targetBeat) < 0.05 && n.midi === midi
-    );
-
-    let newNotes: EditorNote[];
-    if (existingIndex >= 0) {
-      newNotes = current.notes.filter((_, idx) => idx !== existingIndex);
-    } else {
-      const newNote: EditorNote = {
-        id: newNoteId(),
-        midi,
-        noteName,
-        clef: selectedClef,
-        duration: selectedDuration,
-        beat: targetBeat,
-        measure,
-      };
-      newNotes = [...current.notes, newNote];
-    }
-
-    setProject(p => ({ ...p, notes: newNotes, updatedAt: new Date().toISOString() }));
-    pushHistory(newNotes);
-
-    // Toca a nota ou o acorde completo caso haja múltiplas notas empilhadas
-    const notesAtBeat = newNotes.filter(n => Math.abs(n.beat - targetBeat) < 0.05);
-    const midisAtBeat = notesAtBeat.map(n => n.midi);
+    setProject(p => ({
+      ...p,
+      notes: result.updatedNotes,
+      updatedAt: new Date().toISOString(),
+    }));
+    pushHistory(result.updatedNotes);
+    setCursorBeat(result.nextCursorBeat);
 
     soundEngine.ensureAudioReady().then(() => {
       const durSec = selectedDuration * beatDurationSec(current.bpm) * 0.85;
-      if (midisAtBeat.length > 1) {
-        soundEngine.playChord(midisAtBeat, 'piano', durSec);
-      } else {
-        soundEngine.playPianoNote(midi, durSec);
-      }
+      soundEngine.playPianoNote(midi, durSec);
     });
-  }, [selectedClef, selectedDuration, beatsPerMeasure, isChordMode, chordRootBeat, pushHistory]);
+  }, [cursorBeat, selectedDuration, selectedClef, beatsPerMeasure, isChordMode, isPlaying, playheadBeat, pushHistory]);
+
+  // Adição de nota a partir da paleta gráfica (aproveita o mesmo fluxo unificado de inserção)
+  const addNote = useCallback((midi: number, noteName: string) => {
+    handleInputNote(midi, noteName);
+  }, [handleInputNote]);
 
   // ── Inserção Direta na Pauta por Clique ──────────────────────────────────
 
@@ -598,7 +583,7 @@ export const ScoreEditor: React.FC = () => {
 
     setProject(p => ({ ...p, notes: newNotes, updatedAt: new Date().toISOString() }));
     pushHistory(newNotes);
-    setChordRootBeat(newNoteData.beat);
+    setCursorBeat(newNoteData.beat + newNoteData.duration);
 
     const notesAtBeat = newNotes.filter(n => Math.abs(n.beat - newNoteData.beat) < 0.05);
     const midisAtBeat = notesAtBeat.map(n => n.midi);
@@ -1027,10 +1012,7 @@ export const ScoreEditor: React.FC = () => {
         {/* Modo de Inserção: Nota Única vs Modo Acorde */}
         <div className="flex items-center gap-1 bg-[#0a091e] rounded-xl p-1 border border-white/8 text-xs">
           <button
-            onClick={() => {
-              setIsChordMode(false);
-              setChordRootBeat(null);
-            }}
+            onClick={() => setIsChordMode(false)}
             className={`px-3 py-2 rounded-lg font-bold transition-all cursor-pointer ${
               !isChordMode
                 ? 'bg-violet-500/25 border border-violet-500/50 text-violet-200'
@@ -1178,6 +1160,23 @@ export const ScoreEditor: React.FC = () => {
         </div>
       </div>
 
+      {/* ── Seletor de Entrada Universal: MIDI USB & Microfone (Teclado Real) ── */}
+      <UniversalInputBar
+        onNoteDetected={handleInputNote}
+        onNoteHold={(midi) => {
+          if (midi !== null) {
+            soundEngine.ensureAudioReady().then(() => {
+              soundEngine.playPianoNote(midi, 0.4);
+            });
+          }
+        }}
+        customLabel="Gravação / Escrita na Partitura"
+        activeMeasureNumber={activeMeasureNumber}
+        totalMeasures={totalMeasures}
+        onSelectMeasure={(measureIdx) => setCursorBeat(measureIdx * beatsPerMeasure)}
+        showMeasureControls={true}
+      />
+
       {/* ── Desenho Formal da Partitura em Tempo Real ── */}
       {(viewLayout === 'both' || viewLayout === 'score') && (
         <FormalScoreSheet
@@ -1185,13 +1184,21 @@ export const ScoreEditor: React.FC = () => {
           timeSignature={project.timeSignature}
           playheadBeat={playheadBeat}
           selectedNoteId={selectedNoteId}
-          onSelectNote={setSelectedNoteId}
+          onSelectNote={(id) => {
+            setSelectedNoteId(id);
+            if (id) {
+              const found = project.notes.find(n => n.id === id);
+              if (found) setCursorBeat(found.beat);
+            }
+          }}
           onInsertNote={insertNoteAt}
           onDeleteNote={deleteNote}
           beatsPerMeasure={beatsPerMeasure}
           totalMeasures={totalMeasures}
           selectedDuration={selectedDuration}
           isChordMode={isChordMode}
+          activeMeasure={activeMeasureIndex}
+          cursorBeat={cursorBeat}
         />
       )}
 

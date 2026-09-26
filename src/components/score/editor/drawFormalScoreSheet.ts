@@ -178,10 +178,15 @@ export function drawFormalScoreSheet({
     ctx.stroke();
 
     if (m < totalMeasures && options.showMeasureNumbers) {
-      ctx.fillStyle = isPaper ? '#475569' : '#94a3b8';
-      ctx.font = 'bold 9px "JetBrains Mono", monospace';
+      const isCurrentMeasure = options.activeMeasure === m;
+      ctx.fillStyle = isCurrentMeasure
+        ? (isPaper ? '#7c3aed' : '#a78bfa')
+        : (isPaper ? '#475569' : '#94a3b8');
+      ctx.font = isCurrentMeasure
+        ? 'bold 11px "JetBrains Mono", monospace'
+        : 'bold 9px "JetBrains Mono", monospace';
       ctx.textAlign = 'left';
-      ctx.fillText(`c.${m + 1}`, barX + 6, 48);
+      ctx.fillText(`c.${m + 1}${isCurrentMeasure ? ' ◄' : ''}`, barX + 6, 48);
     }
   }
 
@@ -477,5 +482,29 @@ export function drawFormalScoreSheet({
     ctx.lineTo(playheadX, 260);
     ctx.stroke();
     ctx.restore();
+  } else if (options.cursorBeat !== undefined && options.cursorBeat !== null) {
+    // 6. Cursor de Inserção Passo a Passo (Step Input Cursor para MIDI / Teclado)
+    const cursorX = START_X + options.cursorBeat * pixelsPerBeat - scrollLeft;
+    if (cursorX >= 20 && cursorX <= width - 20) {
+      ctx.save();
+      ctx.strokeStyle = isPaper ? '#7c3aed' : '#a78bfa';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 3]);
+      ctx.beginPath();
+      ctx.moveTo(cursorX, 52);
+      ctx.lineTo(cursorX, 240);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Marcador indicador no topo do cursor
+      ctx.fillStyle = isPaper ? '#7c3aed' : '#c084fc';
+      ctx.beginPath();
+      ctx.moveTo(cursorX - 5, 46);
+      ctx.lineTo(cursorX + 5, 46);
+      ctx.lineTo(cursorX, 54);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
   }
 }
