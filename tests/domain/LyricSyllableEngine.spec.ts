@@ -25,6 +25,7 @@ import {
   splitWordIntoSyllables,
   tokenizeWords,
   syllabicPosition,
+  syllabifyPortugueseWord,
 } from '../../src/core/lyricEnrichmentEngine';
 import {
   findActiveSyllable,
@@ -587,3 +588,123 @@ describe('12. Casos Críticos de Aceitação', () => {
     }
   });
 });
+
+// ─── 13. Divisão Silábica PT e Mapeamento Proporcional de Notas Longas ─────────
+
+describe('13. Divisão Silábica PT e Mapeamento Proporcional de Notas Longas', () => {
+  it('syllabifyPortugueseWord: divide palavras de Asa Branca corretamente', () => {
+    expect(syllabifyPortugueseWord('Quando')).toEqual(['Quan', 'do']);
+    expect(syllabifyPortugueseWord('olhei')).toEqual(['o', 'lhei']);
+    expect(syllabifyPortugueseWord('terra')).toEqual(['ter', 'ra']);
+    expect(syllabifyPortugueseWord('ardendo')).toEqual(['ar', 'den', 'do']);
+    expect(syllabifyPortugueseWord('qual')).toEqual(['qual']);
+    expect(syllabifyPortugueseWord('fogueira')).toEqual(['fo', 'guei', 'ra']);
+    expect(syllabifyPortugueseWord('perguntei')).toEqual(['per', 'gun', 'tei']);
+    expect(syllabifyPortugueseWord('judiação')).toEqual(['ju', 'dia', 'ção']);
+    expect(syllabifyPortugueseWord('coração')).toEqual(['co', 'ra', 'ção']);
+  });
+
+  it('splitWordIntoSyllables com autoSyllabify=true divide palavras em português', () => {
+    expect(splitWordIntoSyllables('Quando', true)).toEqual(['Quan', 'do']);
+    expect(splitWordIntoSyllables('fogueira', true)).toEqual(['fo', 'guei', 'ra']);
+    // Mantém intacto se autoSyllabify for false
+    expect(splitWordIntoSyllables('Quando', false)).toEqual(['Quando']);
+  });
+
+  it('distribui 10 sílabas de Asa Branca c.1-2 proporcionalmente em 8 notas com mínima final', () => {
+    // 8 notas do tema de Asa Branca (c.1 e c.2):
+    // c.1: C3(0.5), D3(0.5), E3(1), G3(1), G3(1)
+    // c.2: E3(1), F3(1), F3(2 - mínima)
+    const asaNotes: ScoreNote[] = [
+      makeNote(1, 1, 0.5, 60),
+      makeNote(1, 1.5, 0.5, 62),
+      makeNote(1, 2, 1, 64),
+      makeNote(1, 3, 1, 67),
+      makeNote(1, 4, 1, 67),
+      makeNote(2, 1, 1, 64),
+      makeNote(2, 2, 1, 65),
+      makeNote(2, 3, 2, 65), // Mínima com 2 beats
+    ];
+
+    const result = enrichLyrics({
+      rawText: 'Quan-do o-lhei a ter-ra ar-den-do',
+      scoreNotes: asaNotes,
+      config: {
+        beatsPerMeasure: 4,
+        distributionStrategy: 'proportional',
+        trebleOnlyAssociation: true,
+      },
+      source: DEFAULT_SOURCE,
+    });
+
+    const syls = result.lines[0].syllables;
+    expect(syls).toHaveLength(10);
+
+    // "Quan-do" em m.1 b.1 e b.1.5
+    expect(syls[0].text).toBe('Quan');
+    expect(syls[0].noteRef.measure).toBe(1);
+    expect(syls[0].noteRef.beat).toBe(1);
+
+    expect(syls[1].text).toBe('do');
+    expect(syls[1].noteRef.measure).toBe(1);
+    expect(syls[1].noteRef.beat).toBe(1.5);
+
+    // "o-lhei" em m.1 b.2 e b.3
+    expect(syls[2].text).toBe('o');
+    expect(syls[2].noteRef.beat).toBe(2);
+
+    expect(syls[3].text).toBe('lhei');
+    expect(syls[3].noteRef.beat).toBe(3);
+
+    // "a" em m.1 b.4
+    expect(syls[4].text).toBe('a');
+    expect(syls[4].noteRef.beat).toBe(4);
+
+    // "ter-ra" em m.2 b.1 e b.2
+    expect(syls[5].text).toBe('ter');
+    expect(syls[5].noteRef.measure).toBe(2);
+    expect(syls[5].noteRef.beat).toBe(1);
+
+    expect(syls[6].text).toBe('ra');
+    expect(syls[6].noteRef.measure).toBe(2);
+    expect(syls[6].noteRef.beat).toBe(2);
+
+    // "ar-den-do" na mínima F3 de m.2 b.3 (duration 2 beats, subdividida em 3)
+    expect(syls[7].text).toBe('ar');
+    expect(syls[7].noteRef.measure).toBe(2);
+    expect(syls[7].noteRef.beat).toBeCloseTo(3, 1);
+
+    expect(syls[8].text).toBe('den');
+    expect(syls[8].noteRef.measure).toBe(2);
+    expect(syls[8].noteRef.beat).toBeGreaterThan(3);
+
+    expect(syls[9].text).toBe('do');
+    expect(syls[9].noteRef.measure).toBe(2);
+    expect(syls[9].noteRef.beat).toBeGreaterThan(3.6);
+
+    // Todas as 10 sílabas devem estar com state inferred/confirmed
+    expect(result.syncLevel).toBe('synchronized');
+  });
+
+  it('findActiveSyllable desativa rigorosamente após o fim da nota (sem highlight preso)', () => {
+    const notes = [
+      makeNote(1, 1, 1, 60), // beat 1 a 2
+      makeNote(1, 3, 1, 64), // beat 3 a 4 (beat 2 é pausa)
+    ];
+    const result = enrichLyrics(makeInput('sol lá', notes));
+    const syls = result.lines[0].syllables;
+
+    // Durante o beat 1.5: "sol" ativa
+    expect(findActiveSyllable(syls, 1.5)?.text).toBe('sol');
+
+    // Durante a pausa (beat 2.5): nenhuma sílaba ativa!
+    expect(findActiveSyllable(syls, 2.5)).toBeNull();
+
+    // No beat 3.0: "lá" ativa
+    expect(findActiveSyllable(syls, 3.0)?.text).toBe('lá');
+
+    // Após o fim do compasso (beat 5.0): nenhuma sílaba ativa!
+    expect(findActiveSyllable(syls, 5.0)).toBeNull();
+  });
+});
+

@@ -65,17 +65,121 @@ function syllabicPosition(index: number, total: number): SyllabicPosition {
   return 'middle';
 }
 
+// ─── Divisão Silábica da Língua Portuguesa ──────────────────────────────────
+
 /**
- * Divide uma palavra em sílabas usando hífen explícito ou mantém inteira.
- * "ma-ra-vi-lho-sa" → ["ma", "ra", "vi", "lho", "sa"]
- * "linda" → ["linda"]
+ * Divide uma palavra em português em sílabas fonéticas caso não haja hífens explícitos.
+ * Aplica regras gramaticais e fonológicas:
+ * - Dígrafos inseparáveis: ch, lh, nh, gu, qu
+ * - Dígrafos separáveis: rr, ss, sc, sç, xc
+ * - Encontros consonantais inseparáveis: bl, br, cl, cr, dl, dr, fl, fr, gl, gr, pl, pr, tl, tr, vl, vr
+ * - Hiatos e ditongos abertos
+ * - Consoantes de final de sílaba (l, r, s, z, m, n, x)
  */
-function splitWordIntoSyllables(word: string): string[] {
+function syllabifyPortugueseWord(word: string): string[] {
+  if (word.includes('-') || word.includes('\u00AD') || word.includes('\u2010')) {
+    return word.split(/[-\u00AD\u2010]/).map(s => s.trim()).filter(Boolean);
+  }
+
+  const clean = word.trim();
+  if (clean.length <= 2) return [clean];
+
+  const isVowel = (c: string) => /[aeiouáéíóúâêîôûãõàü]/i.test(c);
+  const isUnsplittableDigraph = (s: string) => /^(ch|lh|nh|gu|qu)$/i.test(s);
+  const isUnsplittableCluster = (s: string) => /^[bcdfgptv][lr]$/i.test(s);
+
+  const syllables: string[] = [];
+  let current = '';
+  const chars = clean.split('');
+  let i = 0;
+
+  while (i < chars.length) {
+    current += chars[i];
+
+    if (isVowel(chars[i])) {
+      let nextConsonants = '';
+      let j = i + 1;
+      while (j < chars.length && !isVowel(chars[j])) {
+        nextConsonants += chars[j];
+        j++;
+      }
+
+      if (j === chars.length && nextConsonants.length > 0) {
+        current += nextConsonants;
+        break;
+      }
+
+      if (nextConsonants.length === 0) {
+        if (i + 1 < chars.length && isVowel(chars[i + 1])) {
+          const pair = (chars[i] + chars[i + 1]).toLowerCase();
+          const isHiatus = /[áéíóú]/i.test(chars[i + 1]) ||
+                           /^(aa|ee|ii|oo|uu)$/i.test(pair) ||
+                           (/^(ia|ie|io|ua|ue|uo)$/i.test(pair) && !/^[gq]u/i.test(current.slice(-2)) && i > 0 && isVowel(chars[i - 1]));
+          if (isHiatus) {
+            syllables.push(current);
+            current = '';
+          }
+        }
+      } else if (nextConsonants.length === 1) {
+        syllables.push(current);
+        current = '';
+      } else if (nextConsonants.length === 2) {
+        const pair = nextConsonants.toLowerCase();
+        if (isUnsplittableDigraph(pair) || isUnsplittableCluster(pair)) {
+          syllables.push(current);
+          current = '';
+        } else {
+          current += nextConsonants[0];
+          syllables.push(current);
+          current = '';
+          i++;
+        }
+      } else if (nextConsonants.length >= 3) {
+        const pairEnd = nextConsonants.slice(-2).toLowerCase();
+        if (isUnsplittableCluster(pairEnd) || isUnsplittableDigraph(pairEnd)) {
+          current += nextConsonants.slice(0, -2);
+          syllables.push(current);
+          current = '';
+          i += nextConsonants.length - 2;
+        } else {
+          current += nextConsonants.slice(0, 1);
+          syllables.push(current);
+          current = '';
+          i++;
+        }
+      }
+    }
+    i++;
+  }
+
+  if (current) {
+    if (syllables.length > 0 && !/[aeiouáéíóúâêîôûãõàü]/i.test(current)) {
+      syllables[syllables.length - 1] += current;
+    } else {
+      syllables.push(current);
+    }
+  }
+
+  return syllables.length > 0 ? syllables : [clean];
+}
+
+/**
+ * Divide uma palavra em sílabas usando hífen explícito ou (opcionalmente) regras fonéticas.
+ * "ma-ra-vi-lho-sa" → ["ma", "ra", "vi", "lho", "sa"]
+ * "linda" → ["linda"] (ou ["lin", "da"] se autoSyllabify=true)
+ */
+function splitWordIntoSyllables(word: string, autoSyllabify = false): string[] {
   const trimmed = word.trim();
   if (!trimmed) return [];
   // Aceita hífen padrão, hífen suave (U+00AD) e travessão suave
-  const parts = trimmed.split(/[-\u00AD\u2010]/).map(p => p.trim()).filter(Boolean);
-  return parts.length > 0 ? parts : [trimmed];
+  if (trimmed.includes('-') || trimmed.includes('\u00AD') || trimmed.includes('\u2010')) {
+    const parts = trimmed.split(/[-\u00AD\u2010]/).map(p => p.trim()).filter(Boolean);
+    return parts.length > 0 ? parts : [trimmed];
+  }
+  if (autoSyllabify) {
+    return syllabifyPortugueseWord(trimmed);
+  }
+  return [trimmed];
 }
 
 /**
@@ -121,65 +225,142 @@ function deduplicateByOnset(notes: ScoreNote[]): ScoreNote[] {
   return notes.filter(n => seen.get(`${n.measure}_${n.beat}`) === n);
 }
 
+// ─── Estrutura de Associação Sílaba ↔ Nota ────────────────────────────────────
+
+export interface SyllableAssignment {
+  note: ScoreNote | null;
+  subIndex: number;
+  subTotal: number;
+  hasMelisma?: boolean;
+  melismaEndBeat?: number;
+}
+
 // ─── Estratégias de Distribuição ──────────────────────────────────────────────
 
 /**
  * Distribui sílabas entre notas usando a estratégia 'equal' (1 sílaba por nota).
- * Retorna um mapa: índice da sílaba → nota correspondente (ou null se excedente).
+ * Retorna um array de SyllableAssignment.
  */
 function distributeEqual(
   syllables: string[],
   notes: ScoreNote[]
-): Array<ScoreNote | null> {
-  return syllables.map((_, i) => notes[i] ?? null);
+): SyllableAssignment[] {
+  return syllables.map((_, i) => ({
+    note: notes[i] ?? null,
+    subIndex: 0,
+    subTotal: 1,
+  }));
 }
 
 /**
  * Distribui sílabas entre notas usando a estratégia 'proportional'.
- * Sílabas são consumidas em proporção à duração acumulada das notas.
- * Notas longas (mínima, semibreve) podem conter mais de uma sílaba.
+ * - Se syllables == notes: mapeamento 1:1 exato
+ * - Se syllables > notes: notas longas (mínimas/semibreves dur >= 1.5) recebem sílabas adicionais com subdivisão temporal
+ * - Se syllables < notes: notas restantes estendem a sílaba com melisma
  */
 function distributeProportional(
   syllables: string[],
-  notes: ScoreNote[]
-): Array<ScoreNote | null> {
-  if (notes.length === 0) return syllables.map(() => null);
-  if (syllables.length <= notes.length) {
-    // Mais notas que sílabas: distribuição direta com melisma implícito
-    return distributeEqual(syllables, notes);
+  notes: ScoreNote[],
+  beatsPerMeasure = 4
+): SyllableAssignment[] {
+  if (notes.length === 0) {
+    return syllables.map(() => ({ note: null, subIndex: 0, subTotal: 1 }));
   }
 
-  // Mais sílabas que notas: distribui proporcionalmente pela duração
-  const totalDuration = notes.reduce((acc, n) => acc + n.duration, 0);
-  const result: Array<ScoreNote | null> = new Array(syllables.length).fill(null);
+  // Caso 1: Quantidade idêntica — 1:1
+  if (syllables.length === notes.length) {
+    return syllables.map((_, i) => ({ note: notes[i], subIndex: 0, subTotal: 1 }));
+  }
 
-  let syllableOffset = 0;
-  for (let ni = 0; ni < notes.length; ni++) {
-    const note = notes[ni];
-    const proportion = note.duration / totalDuration;
-    // Quantas sílabas esta nota suporta?
-    const shareCount = ni === notes.length - 1
-      ? syllables.length - syllableOffset
-      : Math.max(1, Math.round(proportion * syllables.length));
+  // Caso 2: Mais sílabas que notas (ex: 10 sílabas para 8 notas onde a última é mínima dur=2)
+  if (syllables.length > notes.length) {
+    const noteCounts = new Array(notes.length).fill(1);
+    let remainingSyllables = syllables.length - notes.length;
 
-    const end = Math.min(syllableOffset + shareCount, syllables.length);
-    for (let si = syllableOffset; si < end; si++) {
-      result[si] = note;
+    // Prioriza notas longas (duration >= 1.5) para receber as sílabas adicionais
+    const longNoteIndices = notes
+      .map((n, idx) => ({ idx, dur: n.duration }))
+      .filter(item => item.dur >= 1.5)
+      .sort((a, b) => b.dur - a.dur);
+
+    if (longNoteIndices.length > 0) {
+      while (remainingSyllables > 0) {
+        longNoteIndices.sort((a, b) => (a.dur / noteCounts[a.idx]) - (b.dur / noteCounts[b.idx]));
+        const target = longNoteIndices[longNoteIndices.length - 1];
+        noteCounts[target.idx]++;
+        remainingSyllables--;
+      }
+    } else {
+      // Se não houver notas com dur >= 1.5, distribui pelas notas com maior razão duration/count
+      while (remainingSyllables > 0) {
+        let bestIdx = -1;
+        let maxRatio = -1;
+        for (let i = 0; i < notes.length; i++) {
+          const ratio = notes[i].duration / noteCounts[i];
+          if (ratio > maxRatio) {
+            maxRatio = ratio;
+            bestIdx = i;
+          }
+        }
+        if (bestIdx >= 0) {
+          noteCounts[bestIdx]++;
+          remainingSyllables--;
+        } else {
+          break;
+        }
+      }
     }
-    syllableOffset = end;
-    if (syllableOffset >= syllables.length) break;
+
+    const result: SyllableAssignment[] = [];
+    for (let ni = 0; ni < notes.length; ni++) {
+      const count = noteCounts[ni];
+      for (let sub = 0; sub < count; sub++) {
+        result.push({
+          note: notes[ni],
+          subIndex: sub,
+          subTotal: count,
+        });
+      }
+    }
+    return result;
+  }
+
+  // Caso 3: Mais notas que sílabas (ex: 5 sílabas para 8 notas)
+  // Sílabas são mapeadas proporcionalmente e notas restantes geram melisma
+  const result: SyllableAssignment[] = [];
+  const notesPerSyl = notes.length / syllables.length;
+  for (let si = 0; si < syllables.length; si++) {
+    const startNoteIdx = Math.floor(si * notesPerSyl);
+    const endNoteIdx = si === syllables.length - 1
+      ? notes.length - 1
+      : Math.floor((si + 1) * notesPerSyl) - 1;
+    const count = Math.max(1, endNoteIdx - startNoteIdx + 1);
+
+    const mainNote = notes[startNoteIdx];
+    const lastNote = notes[startNoteIdx + count - 1];
+    const hasMelisma = count > 1;
+    const melismaEndBeat = hasMelisma && lastNote
+      ? (lastNote.measure - 1) * beatsPerMeasure + lastNote.beat + lastNote.duration
+      : undefined;
+
+    result.push({
+      note: mainNote,
+      subIndex: 0,
+      subTotal: 1,
+      hasMelisma,
+      melismaEndBeat,
+    });
   }
   return result;
 }
 
 /**
  * Distribui sílabas usando a estratégia 'onset_only' (estritamente 1 sílaba por onset).
- * Idêntico ao 'equal' mas sem melismas automáticos.
  */
 function distributeOnsetOnly(
   syllables: string[],
   notes: ScoreNote[]
-): Array<ScoreNote | null> {
+): SyllableAssignment[] {
   return distributeEqual(syllables, notes);
 }
 
@@ -188,7 +369,7 @@ function distributeOnsetOnly(
 function buildSyllable(
   text: string,
   syllabic: SyllabicPosition,
-  note: ScoreNote | null,
+  assigned: SyllableAssignment,
   beatsPerMeasure: number,
   lyricLineIndex: number,
   wordId: string,
@@ -199,9 +380,24 @@ function buildSyllable(
   let state: SyllableAssociationState;
   let noteRef: NoteRef;
 
+  const note = assigned.note;
   if (note) {
     state = 'inferred';
-    noteRef = noteToRef(note, beatsPerMeasure);
+    const baseRef = noteToRef(note, beatsPerMeasure);
+    if (assigned.subTotal > 1) {
+      const subDur = note.duration / assigned.subTotal;
+      const subOffset = assigned.subIndex * subDur;
+      noteRef = {
+        measure: note.measure,
+        beat: Number((note.beat + subOffset).toFixed(3)),
+        midi: note.midi,
+        clef: note.clef,
+        duration: Number(subDur.toFixed(3)),
+        absoluteBeat: Number((baseRef.absoluteBeat + subOffset).toFixed(3)),
+      };
+    } else {
+      noteRef = baseRef;
+    }
   } else {
     state = config.markUnresolvedAsPending ? 'pending_validation' : 'unresolved';
     // Cria uma NoteRef placeholder com beat 0 para sílabas não resolvidas
@@ -220,6 +416,8 @@ function buildSyllable(
     text,
     syllabic,
     noteRef,
+    hasMelisma: assigned.hasMelisma,
+    melismaEndBeat: assigned.melismaEndBeat,
     state,
     lyricLine: lyricLineIndex,
     wordId,
@@ -233,37 +431,18 @@ function buildSyllable(
 /**
  * Detecta e anota melismas: quando uma sílaba é seguida pela próxima com gap
  * de notas (mais notas entre elas do que sílabas), a sílaba anterior tem melisma.
- *
- * Um melisma ocorre quando várias notas consecutivas sustentam a mesma sílaba.
  */
 function annotateMelismas(
   syllables: LyricSyllable[],
-  noteAssignment: Array<ScoreNote | null>,
+  assignment: SyllableAssignment[],
   _beatsPerMeasure?: number
 ): void {
-  for (let i = 0; i < syllables.length - 1; i++) {
+  for (let i = 0; i < syllables.length; i++) {
     const curr = syllables[i];
-    const next = syllables[i + 1];
-
-    if (!curr.noteRef.midi || !next.noteRef.midi) continue;
-
-    const currBeat = curr.noteRef.absoluteBeat;
-    const nextBeat = next.noteRef.absoluteBeat;
-
-    // Se a próxima sílaba começa após a duração da nota atual, há melisma
-    const noteDurationEnd = curr.noteRef.absoluteBeat + curr.noteRef.duration;
-    if (nextBeat > noteDurationEnd + 0.01) {
+    const assigned = assignment[i];
+    if (assigned?.hasMelisma && assigned.melismaEndBeat) {
       curr.hasMelisma = true;
-      curr.melismaEndBeat = nextBeat;
-    }
-
-    // Também marca melisma quando a mesma nota é atribuída a sílabas consecutivas
-    const currAssignment = noteAssignment[i];
-    const nextAssignment = noteAssignment[i + 1];
-    if (currAssignment && nextAssignment && currBeat === nextBeat) {
-      // Mesma nota para duas sílabas consecutivas — melisma implícito
-      curr.hasMelisma = true;
-      curr.melismaEndBeat = nextBeat + next.noteRef.duration;
+      curr.melismaEndBeat = assigned.melismaEndBeat;
     }
   }
 }
@@ -274,6 +453,15 @@ interface RawLyricLine {
   text: string;
   lineType?: 'verse' | 'chorus' | 'bridge' | 'intro' | 'outro' | 'instrumental';
   startMeasure?: number;
+  endMeasure?: number;
+  startBeat?: number;
+  endBeat?: number;
+  words?: Array<{
+    text: string;
+    syllables?: string[];
+    startBeat?: number;
+    endBeat?: number;
+  }>;
 }
 
 function processLine(
@@ -286,10 +474,25 @@ function processLine(
 ): EnrichedLyricLine {
   const beatsPerMeasure = config.beatsPerMeasure;
   const strategy = config.distributionStrategy ?? 'proportional';
+  const autoSyllabify = config.autoSyllabifyPortuguese ?? false;
 
   // Seleciona notas disponíveis para esta linha
   const associableNotes = filterAssociableNotes(notes, config);
   const dedupedNotes = deduplicateByOnset(associableNotes);
+
+  // Seleciona fatia de notas para esta linha respeitando limites de compasso/beat quando fornecidos
+  let notesForLine: ScoreNote[];
+  if (rawLine.startBeat !== undefined && rawLine.endBeat !== undefined) {
+    notesForLine = dedupedNotes.filter(n => {
+      const absBeat = (n.measure - 1) * beatsPerMeasure + n.beat;
+      return absBeat >= rawLine.startBeat! - 0.01 && absBeat < rawLine.endBeat! - 0.01;
+    });
+  } else if (rawLine.startMeasure !== undefined) {
+    const endM = rawLine.endMeasure ?? rawLine.startMeasure;
+    notesForLine = dedupedNotes.filter(n => n.measure >= rawLine.startMeasure! && n.measure <= endM);
+  } else {
+    notesForLine = dedupedNotes.slice(noteOffset.value);
+  }
 
   // Tokeniza a linha em palavras
   const rawWords = tokenizeWords(rawLine.text);
@@ -299,18 +502,15 @@ function processLine(
   const wordBoundaries: Array<{ wordIdx: number; sylCount: number }> = [];
 
   for (let wi = 0; wi < rawWords.length; wi++) {
-    const syls = splitWordIntoSyllables(rawWords[wi]);
+    const syls = splitWordIntoSyllables(rawWords[wi], autoSyllabify);
     wordBoundaries.push({ wordIdx: wi, sylCount: syls.length });
     allLineSyllables.push(...syls);
   }
 
-  // Seleciona fatia de notas para esta linha
-  const notesForLine = dedupedNotes.slice(noteOffset.value);
-
   // Aplica a estratégia de distribuição
-  let assignment: Array<ScoreNote | null>;
+  let assignment: SyllableAssignment[];
   if (strategy === 'proportional') {
-    assignment = distributeProportional(allLineSyllables, notesForLine);
+    assignment = distributeProportional(allLineSyllables, notesForLine, beatsPerMeasure);
   } else if (strategy === 'onset_only') {
     assignment = distributeOnsetOnly(allLineSyllables, notesForLine);
   } else {
@@ -318,8 +518,8 @@ function processLine(
   }
 
   // Avança o offset de notas globais
-  const usedNotesCount = assignment.filter(Boolean).length;
-  noteOffset.value += usedNotesCount;
+  const usedUniqueNotes = new Set(assignment.map(a => a.note).filter(Boolean));
+  noteOffset.value += usedUniqueNotes.size;
 
   // Constrói StructuredLyricWord[] e LyricSyllable[]
   const structuredWords: StructuredLyricWord[] = [];
@@ -327,17 +527,17 @@ function processLine(
   let sylGlobalIdx = 0;
 
   for (const { wordIdx, sylCount } of wordBoundaries) {
-    const wordText = rawWords[wordIdx].replace(/-/g, ''); // texto sem hífens
+    const wordText = rawWords[wordIdx].replace(/[-\u00AD\u2010]/g, ''); // texto sem hífens
     const wordId = uid();
-    const wordSyllableTexts = splitWordIntoSyllables(rawWords[wordIdx]);
+    const wordSyllableTexts = splitWordIntoSyllables(rawWords[wordIdx], autoSyllabify);
     const wordSyllables: LyricSyllable[] = [];
 
     for (let si = 0; si < wordSyllableTexts.length; si++) {
-      const assignedNote = assignment[sylGlobalIdx] ?? null;
+      const assigned = assignment[sylGlobalIdx] ?? { note: null, subIndex: 0, subTotal: 1 };
       const syl = buildSyllable(
         wordSyllableTexts[si],
         syllabicPosition(si, sylCount),
-        assignedNote,
+        assigned,
         beatsPerMeasure,
         lineIndex,
         wordId,
@@ -497,6 +697,11 @@ export function enrichLyrics(input: LyricEnrichmentInput): LyricEnrichmentResult
     rawLines = input.preSyllabifiedLines.map(l => ({
       text: l.text,
       lineType: l.lineType,
+      startMeasure: l.startMeasure,
+      endMeasure: l.endMeasure,
+      startBeat: l.startBeat,
+      endBeat: l.endBeat,
+      words: l.words,
     }));
   } else if (input.rawText && input.rawText.trim()) {
     rawLines = parseRawLyricText(input.rawText);
@@ -620,4 +825,4 @@ export function enrichFromLyricLines(
 
 // ─── Exportações de Utilitários ────────────────────────────────────────────────
 
-export { parseRawLyricText, splitWordIntoSyllables, tokenizeWords, syllabicPosition };
+export { parseRawLyricText, splitWordIntoSyllables, tokenizeWords, syllabicPosition, syllabifyPortugueseWord };

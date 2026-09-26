@@ -117,6 +117,11 @@ const LYRIC_BANK: Record<string, string[]> = {
     '[Verso 1]\nA-ma-zing grace, how sweet the sound,\nThat saved a wretch like me!\nI once was lost, but now am found,\nWas blind, but now I see.',
     '[Verso 2]\n\'Twas grace that taught my heart to fear,\nAnd grace my fears re-lieved;\nHow pre-cious did that grace ap-pear\nThe hour I first be-lieved!',
   ],
+  'asa-branca': [
+    '[Verso 1]\nQuan-do o-lhei a ter-ra ar-den-do\nqual a fo-guei-ra de São Jo-ão\nEu per-gun-tei a Deus do céu, ai\npor que ta-ma-nha ju-di-a-ção',
+    '[Verso 2]\nQue bra-sei-ro, que for-na-ia\nnem um pé de pran-ta-ção\nPor fal-ta d\'á-gua per-di meu ga-do\nmor-reu de se-de meu a-la-zão',
+    '[Refrão]\nA-té mes-mo a a-sa bran-ca\nba-teu a-sas do ser-tão\nEn-ton-ce eu dis-se: a-deus, Ro-si-nha\nguar-da con-ti-go meu co-ra-ção',
+  ],
   'greensleeves': [
     '[Verso]\nA-las, my love, you do me wrong\nTo cast me off dis-cour-te-ous-ly;\nFor I have loved you so long,\nDe-light-ing in your com-pa-ny.',
     '[Refrão]\nGreen-sleeves was all my joy,\nGreen-sleeves was my de-light;\nGreen-sleeves was my heart of gold,\nAnd who but my la-dy Green-sleeves.',
@@ -266,22 +271,29 @@ export function enrichRepertoireSong(song: RepertoireSong): RepertoireLyricEnric
 
   // 4. Tem extension.lyrics legado
   if (song.extension?.lyrics && song.extension.lyrics.length > 0) {
-    // Reconstrói o texto a partir das linhas legadas para enriquecimento
-    const rawText = song.extension.lyrics
-      .map(l => {
-        const prefix = l.lineType ? `[${lineTypeLabel(l.lineType)}]\n` : '';
-        return prefix + l.text;
-      })
-      .join('\n');
+    const preSyllabifiedLines = song.extension.lyrics.map(l => ({
+      text: l.text,
+      lineType: l.lineType,
+      startMeasure: l.startMeasure,
+      endMeasure: l.endMeasure,
+      startBeat: l.startBeat,
+      endBeat: l.endBeat,
+      words: l.words?.map(w => ({
+        text: w.text,
+        startBeat: w.startBeat,
+        endBeat: w.endBeat,
+      })),
+    }));
 
     const result = enrichLyrics({
-      rawText,
+      preSyllabifiedLines,
       scoreNotes: trebleNotes,
       config: {
         beatsPerMeasure,
         distributionStrategy: strategy,
         trebleOnlyAssociation: true,
         markUnresolvedAsPending: !isSimple,
+        autoSyllabifyPortuguese: true,
       },
       source: {
         type: 'manual',
@@ -312,6 +324,7 @@ export function enrichRepertoireSong(song: RepertoireSong): RepertoireLyricEnric
         distributionStrategy: strategy,
         trebleOnlyAssociation: true,
         markUnresolvedAsPending: !isSimple,
+        autoSyllabifyPortuguese: true,
       },
       source: {
         type: 'manual',
@@ -358,7 +371,7 @@ function emptyResult(songId: string, syncLevel: LyricSyncLevel): RepertoireLyric
 /**
  * Converte o lineType do LyricLine para o label de seção usado no parser de texto.
  */
-function lineTypeLabel(lineType: string): string {
+export function lineTypeLabel(lineType: string): string {
   const map: Record<string, string> = {
     verse: 'Verso',
     chorus: 'Refrão',

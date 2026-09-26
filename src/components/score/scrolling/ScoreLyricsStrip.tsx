@@ -105,6 +105,7 @@ function drawHyphen(ctx: CanvasRenderingContext2D, x: number, y: number, color: 
   ctx.fillStyle = color;
   ctx.globalAlpha = 0.60;
   ctx.font = 'bold 10px Inter, system-ui';
+  ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText('-', x, y);
   ctx.globalAlpha = 1;
@@ -156,7 +157,7 @@ function drawSynchronizedLine(
     const xScreen = xWorld - scrollOff;
 
     // Descarte fora do viewport
-    if (xScreen < -80 || xScreen > cssW + 20) continue;
+    if (xScreen < -80 || xScreen > cssW + 40) continue;
 
     const isThisSylActive = activeSyllable?.id === syl.id;
     const fsize = 12;
@@ -181,19 +182,28 @@ function drawSynchronizedLine(
     } else {
       // confirmed ou inferred
       color = line.lineType ? (TYPE_COLORS[line.lineType] ?? COLOR_DEFAULT) : COLOR_DEFAULT;
-      alpha = 0.55;
-      fontWeight = '400';
+      alpha = 0.60;
+      fontWeight = '500';
     }
 
     ctx.save();
     ctx.scale(dpr, dpr);
     ctx.font = `${fontWeight} ${fsize}px Inter, system-ui, sans-serif`;
+    const textW = ctx.measureText(syl.text).width;
+
+    // Destaque luminoso arredondado na sílaba ativa
+    if (isThisSylActive) {
+      ctx.fillStyle = 'rgba(253, 230, 138, 0.22)';
+      ctx.beginPath();
+      ctx.roundRect(xScreen - textW / 2 - 5, midY - 11, textW + 10, 22, 5);
+      ctx.fill();
+    }
+
     ctx.fillStyle = color;
     ctx.globalAlpha = alpha;
+    ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(syl.text, xScreen, midY);
-
-    const textW = ctx.measureText(syl.text).width;
     ctx.globalAlpha = 1;
     ctx.restore();
 
@@ -202,9 +212,17 @@ function drawSynchronizedLine(
       const nextSyl = line.syllables[si + 1];
       if (nextSyl.wordId === syl.wordId && nextSyl.noteRef.absoluteBeat) {
         const nextX = beatToCanvasX(nextSyl.noteRef.absoluteBeat, pixelsPerBeat, attackLineX) - scrollOff;
-        const hyphenX = xScreen + textW + 1;
-        // Só desenha o hífen se houver espaço entre as sílabas
-        if (nextX - xScreen - textW > 8) {
+        ctx.save();
+        ctx.font = `400 ${fsize}px Inter, system-ui, sans-serif`;
+        const nextW = ctx.measureText(nextSyl.text).width;
+        ctx.restore();
+
+        const currentRight = xScreen + textW / 2;
+        const nextLeft = nextX - nextW / 2;
+        const hyphenX = (currentRight + nextLeft) / 2;
+
+        // Só desenha o hífen se houver espaço suficiente entre as sílabas
+        if (nextLeft - currentRight > 7) {
           ctx.save();
           ctx.scale(dpr, dpr);
           drawHyphen(ctx, hyphenX, midY, color);
@@ -218,7 +236,7 @@ function drawSynchronizedLine(
       const melismaEndX = beatToCanvasX(syl.melismaEndBeat, pixelsPerBeat, attackLineX) - scrollOff;
       ctx.save();
       ctx.scale(dpr, dpr);
-      drawMelismaLine(ctx, xScreen + textW, melismaEndX, midY);
+      drawMelismaLine(ctx, xScreen + textW / 2 + 3, melismaEndX - 3, midY);
       ctx.restore();
     }
   }
@@ -331,7 +349,7 @@ function drawTextOnlyLine(
       const wEnd     = word.endBeat ?? (nextWord?.startBeat ?? effectiveEnd);
       const isActiveWd = isActiveLine && beatNow >= wStart && beatNow < wEnd;
 
-      const renderX = word.startBeat !== undefined
+      const renderX = (word.startBeat !== undefined && word.startBeat > 0)
         ? (beatToCanvasX(wStart, pixelsPerBeat, attackLineX) - scrollOff)
         : accumX;
 

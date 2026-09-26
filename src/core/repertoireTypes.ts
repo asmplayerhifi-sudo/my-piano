@@ -55,6 +55,8 @@ export interface LyricLine {
   endBeat: number;
   /** Compasso de início — facilita busca por compasso */
   startMeasure: number;
+  /** Compasso de fim (opcional) */
+  endMeasure?: number;
   /** Identificador de seção a que esta linha pertence */
   section?: string;
   /** Indica se é linha de refrão, verso, bridge, etc. (para estilo visual) */

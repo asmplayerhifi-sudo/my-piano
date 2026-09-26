@@ -281,6 +281,10 @@ export interface LyricEnrichmentConfig {
    * Útil para músicas onde a letra segue a voz da mão direita.
    */
   trebleOnlyAssociation?: boolean;
+  /**
+   * Se true, aplica divisão silábica fonética da língua portuguesa em palavras sem hífen explícito.
+   */
+  autoSyllabifyPortuguese?: boolean;
 }
 
 // ─── Tipo de entrada para o Engine ────────────────────────────────────────────
@@ -301,10 +305,16 @@ export interface LyricEnrichmentInput {
    */
   preSyllabifiedLines?: Array<{
     text: string;
-    lineType?: 'verse' | 'chorus' | 'bridge' | 'intro' | 'outro';
-    words: Array<{
+    lineType?: 'verse' | 'chorus' | 'bridge' | 'intro' | 'outro' | 'instrumental';
+    startMeasure?: number;
+    endMeasure?: number;
+    startBeat?: number;
+    endBeat?: number;
+    words?: Array<{
       text: string;
-      syllables: string[];
+      syllables?: string[];
+      startBeat?: number;
+      endBeat?: number;
     }>;
   }>;
   /** Notas da partitura para associação */
@@ -319,30 +329,42 @@ export interface LyricEnrichmentInput {
 
 /**
  * Verifica se uma sílaba está "ativa" em um beat absoluto dado.
- * Considera o beat de início da nota e sua duração.
+ * Considera o beat de início da nota, melismas e sua duração.
  */
 export function isSyllableActive(syllable: LyricSyllable, absoluteBeat: number): boolean {
-  const { absoluteBeat: start, duration } = syllable.noteRef;
-  return absoluteBeat >= start && absoluteBeat < start + duration;
+  const start = syllable.noteRef.absoluteBeat;
+  if (!start) return false;
+  const end = (syllable.hasMelisma && syllable.melismaEndBeat)
+    ? syllable.melismaEndBeat
+    : start + syllable.noteRef.duration;
+  return absoluteBeat >= start - 0.05 && absoluteBeat < end;
 }
 
 /**
- * Encontra a sílaba ativa mais próxima para um beat absoluto dado.
- * Retorna a sílaba que começa mais próxima (sem ultrapassar) o beat dado.
+ * Encontra a sílaba ativa para um beat absoluto dado.
+ * Retorna a sílaba cuja janela de execução (start até end/melisma) abrange o beat atual.
+ * Nunca retorna sílabas passadas de notas já finalizadas.
  */
 export function findActiveSyllable(
   syllables: LyricSyllable[],
   absoluteBeat: number
 ): LyricSyllable | null {
   let best: LyricSyllable | null = null;
+  let minDistance = Infinity;
+
   for (const s of syllables) {
     const start = s.noteRef.absoluteBeat;
-    const end = start + s.noteRef.duration;
-    if (absoluteBeat >= start && absoluteBeat < end) {
-      return s; // match exato
-    }
-    if (absoluteBeat >= start && (!best || start > best.noteRef.absoluteBeat)) {
-      best = s; // candidato mais próximo pelo passado
+    if (!start) continue;
+    const end = (s.hasMelisma && s.melismaEndBeat)
+      ? s.melismaEndBeat
+      : start + s.noteRef.duration;
+
+    if (absoluteBeat >= start - 0.05 && absoluteBeat < end) {
+      const dist = Math.abs(absoluteBeat - start);
+      if (dist < minDistance) {
+        minDistance = dist;
+        best = s;
+      }
     }
   }
   return best;
