@@ -3,8 +3,19 @@ import { buildChord } from '../../core/musicTheory';
 import { soundEngine } from '../../core/soundEngine';
 import { Compass } from 'lucide-react';
 
-export const CircleOfFifths: React.FC = () => {
-  const [selectedKey, setSelectedKey] = useState<string>('C');
+export interface CircleOfFifthsProps {
+  selectedKey?: string;
+  onKeySelect?: (key: string) => void;
+  className?: string;
+}
+
+export const CircleOfFifths: React.FC<CircleOfFifthsProps> = ({
+  selectedKey: externalKey,
+  onKeySelect,
+  className = '',
+}) => {
+  const [internalKey, setInternalKey] = useState<string>('C');
+  const selectedKey = externalKey ?? internalKey;
 
   const circleData = [
     { key: 'C', minor: 'Am', sharps: 0, label: '0' },
@@ -22,7 +33,8 @@ export const CircleOfFifths: React.FC = () => {
   ];
 
   const handleKeyClick = (key: string) => {
-    setSelectedKey(key);
+    setInternalKey(key);
+    onKeySelect?.(key);
     // Toca o acorde de referência
     const chord = buildChord(key, 'major');
     const baseMidi = 60;
@@ -48,7 +60,7 @@ export const CircleOfFifths: React.FC = () => {
   const innerRadius = 78;
 
   return (
-    <div className="w-full glass-card rounded-3xl p-6 border border-white/10 space-y-6">
+    <div className={`w-full glass-card rounded-3xl p-6 border border-white/10 space-y-6 ${className}`}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h3 className="text-lg font-bold font-display text-white flex items-center gap-2">

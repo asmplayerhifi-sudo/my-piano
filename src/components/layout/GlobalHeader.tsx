@@ -240,6 +240,20 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
               <span className="hidden xl:inline">Lab Rítmico</span>
             </button>
 
+            {/* Prática Teórica */}
+            <button
+              onClick={() => handleTabClick('theory-practice')}
+              className={`h-7.5 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
+                activeTab === 'theory-practice'
+                  ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/30'
+                  : 'text-slate-300 hover:text-white hover:bg-white/5'
+              }`}
+              title="Prática Teórica: Escalas, Círculo das Quintas, Régua Cromática & Panorâmica"
+            >
+              <span>📐</span>
+              <span className="hidden xl:inline">Prática Teórica</span>
+            </button>
+
             {/* Teclado Livre */}
             <button
               onClick={() => handleTabClick('piano')}
@@ -603,6 +617,27 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
                       </div>
                       <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                         METRÔNOMO
+                      </span>
+                    </button>
+
+                    {/* Prática Teórica */}
+                    <button
+                      onClick={() => handleTabClick('theory-practice')}
+                      className={`w-full p-3 rounded-2xl border text-left text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
+                        activeTab === 'theory-practice'
+                          ? 'bg-cyan-600/30 border-cyan-500/50 text-white'
+                          : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-base">📐</span>
+                        <div>
+                          <p className="font-bold text-white text-xs">Prática Teórica</p>
+                          <p className="text-[11px] text-slate-400 font-normal">Escalas, Círculo das Quintas &amp; Régua</p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                        TEORIA
                       </span>
                     </button>
 

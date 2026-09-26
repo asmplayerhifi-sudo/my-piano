@@ -3,11 +3,34 @@ import { CHROMATIC_NOTES_SHARP, NOTE_NAMES_PT } from '../../core/musicTheory';
 import { soundEngine } from '../../core/soundEngine';
 import { AlertCircle } from 'lucide-react';
 
-export const ChromaticRuler: React.FC = () => {
-  const [selectedNote, setSelectedNote] = useState<string>('C');
+export interface ChromaticRulerProps {
+  selectedNote?: string;
+  onNoteSelect?: (note: string) => void;
+  className?: string;
+}
+
+export const ChromaticRuler: React.FC<ChromaticRulerProps> = ({
+  selectedNote: externalNote,
+  onNoteSelect,
+  className = '',
+}) => {
+  const [internalNote, setInternalNote] = useState<string>('C');
+
+  // Normalização enarmônica (Db -> C#, Eb -> D#, Gb -> F#, Ab -> G#, Bb -> A#)
+  const normalizedExternal = externalNote ? (
+    externalNote === 'Db' ? 'C#' :
+    externalNote === 'Eb' ? 'D#' :
+    externalNote === 'Gb' ? 'F#' :
+    externalNote === 'Ab' ? 'G#' :
+    externalNote === 'Bb' ? 'A#' :
+    externalNote
+  ) : undefined;
+
+  const selectedNote = normalizedExternal ?? internalNote;
 
   const handleNoteClick = (note: string, idx: number) => {
-    setSelectedNote(note);
+    setInternalNote(note);
+    onNoteSelect?.(note);
     // Toca a nota na oitava 4
     soundEngine.playPianoNote(60 + idx, 1.2);
   };
@@ -18,7 +41,7 @@ export const ChromaticRuler: React.FC = () => {
   };
 
   return (
-    <div className="w-full glass-card rounded-3xl p-6 border border-white/10 space-y-4">
+    <div className={`w-full glass-card rounded-3xl p-6 border border-white/10 space-y-4 ${className}`}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h3 className="text-lg font-bold font-display text-white flex items-center gap-2">

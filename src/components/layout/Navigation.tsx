@@ -22,6 +22,7 @@ export type TabId =
   | 'theory'
   | 'repertoire'
   | 'rhythm'
+  | 'theory-practice'
   | 'piano'
   | 'guitar'
   | 'score-editor'
@@ -141,6 +142,23 @@ export const TABS: NavTabItem[] = [
     activeBorder: 'border-emerald-500/60',
     activeText: 'text-emerald-200 font-bold',
     iconActiveBg: 'bg-emerald-600 text-white shadow-md shadow-emerald-500/40',
+  },
+  {
+    id: 'theory-practice',
+    label: 'Prática Teórica',
+    mediumLabel: 'Teoria',
+    shortLabel: 'Teoria',
+    fullName: 'Prática Teórica: Escalas, Círculo & Régua',
+    desc: 'Escalas, Círculo das Quintas, Régua Cromática e Panorâmica',
+    badge: 'Teoria',
+    category: 'practice',
+    categoryLabel: 'Prática',
+    icon: Compass,
+    accentColor: 'cyan',
+    activeBg: 'bg-cyan-500/20 shadow-[0_0_15px_rgba(6,182,212,0.25)]',
+    activeBorder: 'border-cyan-500/60',
+    activeText: 'text-cyan-200 font-bold',
+    iconActiveBg: 'bg-cyan-600 text-white shadow-md shadow-cyan-500/40',
   },
   {
     id: 'piano',

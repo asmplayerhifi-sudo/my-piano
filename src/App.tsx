@@ -11,6 +11,7 @@ import { TheoryModule } from './components/theory/TheoryModule';
 import { RepertoireView } from './components/score/RepertoireView';
 import { ScoreEditor } from './components/score/ScoreEditor';
 import { PhraseEditorView } from './components/phrase/PhraseEditorView';
+import { TheoryPracticeView } from './components/theory/TheoryPracticeView';
 import { OrientationPromptModal } from './components/layout/OrientationPromptModal';
 import { midiManager } from './core/midiManager';
 
@@ -20,6 +21,7 @@ const VALID_TABS: TabId[] = [
   'theory',
   'repertoire',
   'rhythm',
+  'theory-practice',
   'piano',
   'guitar',
   'score-editor',
@@ -71,6 +73,7 @@ export const App: React.FC = () => {
         {activeTab === 'theory' && <TheoryModule />}
         {activeTab === 'repertoire' && <RepertoireView />}
         {activeTab === 'rhythm' && <RhythmLab />}
+        {activeTab === 'theory-practice' && <TheoryPracticeView />}
         {activeTab === 'piano' && <PianoModule />}
         {activeTab === 'guitar' && <GuitarModule />}
         {activeTab === 'score-editor' && <ScoreEditor />}

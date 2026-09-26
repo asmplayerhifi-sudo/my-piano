@@ -10,10 +10,27 @@ import { ScalePerformanceEvaluator } from './ScalePerformanceEvaluator';
 import { Play, Sparkles, Music, Volume2, Info, Compass, Flame, Mic, Expand, Shrink } from 'lucide-react';
 import { useFullscreen } from '../../hooks/useFullscreen';
 
-export const ScaleBuilder: React.FC = () => {
+export interface ScaleBuilderProps {
+  rootKey?: string;
+  onRootKeyChange?: (key: string) => void;
+  className?: string;
+}
+
+export const ScaleBuilder: React.FC<ScaleBuilderProps> = ({
+  rootKey: externalRootKey,
+  onRootKeyChange,
+  className = '',
+}) => {
   const [selectedCategory, setSelectedCategory] = useState<ScaleCategory>('pentatonic');
   const [selectedScaleId, setSelectedScaleId] = useState<string>('penta-minor');
-  const [selectedRootKey, setSelectedRootKey] = useState<string>('C');
+  const [internalRootKey, setInternalRootKey] = useState<string>('C');
+  const selectedRootKey = externalRootKey ?? internalRootKey;
+
+  const handleSelectRootKey = (key: string) => {
+    setInternalRootKey(key);
+    onRootKeyChange?.(key);
+  };
+
   const [isPlayingScale, setIsPlayingScale] = useState<boolean>(false);
   const [activeNoteIndex, setActiveNoteIndex] = useState<number | null>(null);
   const [showEvaluator, setShowEvaluator] = useState<boolean>(true);
@@ -125,7 +142,7 @@ export const ScaleBuilder: React.FC = () => {
 
   return (
     <div
-      className={`w-full glass-card rounded-3xl p-5 sm:p-7 border border-white/10 space-y-6 shadow-2xl transition-all ${
+      className={`w-full glass-card rounded-3xl p-5 sm:p-7 border border-white/10 space-y-6 shadow-2xl transition-all ${className} ${
         isFullscreen
           ? 'fixed inset-0 z-50 bg-[#080811] p-5 sm:p-8 overflow-y-auto m-0 rounded-none border-none shadow-2xl'
           : ''
@@ -282,7 +299,7 @@ export const ScaleBuilder: React.FC = () => {
             return (
               <button
                 key={k.key}
-                onClick={() => setSelectedRootKey(k.key)}
+                onClick={() => handleSelectRootKey(k.key)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold font-mono transition-all cursor-pointer ${
                   isSelected
                     ? 'bg-rose-500 text-white font-black shadow-lg shadow-rose-500/30 scale-105 ring-1 ring-rose-400'
