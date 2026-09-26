@@ -17,6 +17,8 @@ import {
   Radio,
   BookOpen,
   Waves,
+  Globe,
+  Flame,
 } from 'lucide-react';
 
 const CATEGORY_ICON_MAP: Record<string, React.ElementType> = {
@@ -30,6 +32,8 @@ const CATEGORY_ICON_MAP: Record<string, React.ElementType> = {
   'Seresta & Brega (Zezo dos Teclados)': Radio,
   'Gospel Clássico & Sacro': BookOpen,
   'Infantis, Cirandas & Folclore': Sparkles,
+  'Internacional & Folk': Globe,
+  'Rock Psicodelico & Progressivo': Flame,
 };
 
 interface Props {
@@ -135,6 +139,9 @@ export const RepertoireCatalogModal: React.FC<Props> = ({
             {REPERTOIRE_CATEGORIES.map((cat) => {
               const isSelected = selectedCategory === cat.id;
               const Icon = CATEGORY_ICON_MAP[cat.id] || Music;
+              const count = cat.id === 'Todos'
+                ? REPERTOIRE_SONGS.length
+                : REPERTOIRE_SONGS.filter((s) => s.genre === cat.id).length;
 
               return (
                 <button
@@ -151,7 +158,7 @@ export const RepertoireCatalogModal: React.FC<Props> = ({
                   <span className={`text-[9px] px-1.5 py-0.2 rounded-md ${
                     isSelected ? 'bg-purple-500/40 text-purple-200' : 'bg-white/5 text-slate-500'
                   }`}>
-                    {cat.badge}
+                    {count} {count === 1 ? 'Obra' : 'Obras'}
                   </span>
                 </button>
               );
