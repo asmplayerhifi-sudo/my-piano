@@ -1154,8 +1154,8 @@ export const RhythmArranger: React.FC = () => {
           </button>
         </div>
 
-        {/* Seções de Arranjo (Switches Físicos Iluminados) */}
-        <div className="flex items-center gap-1 overflow-x-auto py-1 scrollbar-none">
+        {/* Seções de Arranjo (Switches Físicos Iluminados com Scroll Touch Suave) */}
+        <div className="flex items-center gap-1 overflow-x-auto py-1 scrollbar-none no-scrollbar touch-pan-x scroll-smooth">
           {SECTION_ORDER.map(sid => {
             const sec = currentStyle.sections[sid];
             if (!sec) return null;
@@ -1489,8 +1489,8 @@ export const RhythmArranger: React.FC = () => {
             </div>
           </div>
 
-          {/* Grid de Cards de Ritmos Padronizados */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
+          {/* Grid de Cards de Ritmos Padronizados (1 col mobile, 2 col tablet/notebook, 3 col desktop grande) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 pt-2">
             {filteredStyles.map(style => {
               const isSelected = activeStyle.id === style.id;
               const gColor = GENRE_COLORS[style.genre] ?? GENRE_COLORS.Todos;
@@ -1599,7 +1599,7 @@ export const RhythmArranger: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 pt-1">
+            <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-2.5 pt-1">
               {DRUM_PADS.map(pad => (
                 <StudioDrumPad
                   key={pad.key}

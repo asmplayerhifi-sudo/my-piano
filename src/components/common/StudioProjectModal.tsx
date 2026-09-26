@@ -179,41 +179,47 @@ export const StudioProjectModal: React.FC<Props> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-4xl max-h-[90vh] bg-[#0c0d16] border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden text-slate-100">
+    <div className="modal-overlay-responsive z-50 select-none">
+      <div className="modal-sheet-responsive md:max-w-4xl max-h-[90vh] md:max-h-[85vh] bg-[#0c0d16] text-slate-100 relative">
+        {/* Drag Handle para Mobile */}
+        <div className="w-12 h-1.5 rounded-full bg-white/20 mx-auto my-2 md:hidden shrink-0" />
+
         {/* Cabeçalho do Modal */}
-        <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-[#121422]">
+        <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-white/10 flex items-center justify-between bg-[#121422]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-violet-600/20 border border-violet-500/40 flex items-center justify-center text-violet-400">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-violet-600/20 border border-violet-500/40 flex items-center justify-center text-violet-400 shrink-0">
               <FolderOpen className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
+              <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
                 Catálogo de Projetos do Estúdio
                 {folderInfo && (
-                  <span className="text-xs px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-mono font-normal">
+                  <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-mono font-normal">
                     📁 {folderInfo.name}
                   </span>
                 )}
               </h2>
-              <p className="text-xs text-slate-400">
+              <p className="text-[11px] sm:text-xs text-slate-400">
                 Arquivos .json armazenados diretamente na sua pasta local soberana
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <button
               onClick={() => scanAndRepairCatalog()}
               disabled={isLoading}
               title="Auditar integridade e sincronizar manifesto"
-              className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-slate-200 transition-all cursor-pointer"
+              className="min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-slate-200 transition-all cursor-pointer"
+              aria-label="Atualizar catálogo"
             >
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             </button>
             <button
               onClick={onClose}
-              className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all cursor-pointer"
+              className="min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all cursor-pointer"
+              title="Fechar (Esc)"
+              aria-label="Fechar catálogo de projetos"
             >
               <X className="w-4 h-4" />
             </button>

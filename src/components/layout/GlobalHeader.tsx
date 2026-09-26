@@ -115,10 +115,10 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
       >
         {/* ── 1. ESQUERDA: Botão Menu (Mobile <1024px) + Marca HARMONIA ── */}
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-          {/* Botão [ ☰ Menu ] (Telas < 1024px) — touch target mínimo 44×44px */}
+          {/* Botão [ ☰ Menu ] (Telas < 1280px: Mobile e Tablet) — touch target mínimo 44×44px */}
           <button
             onClick={() => setShowDrawer(true)}
-            className="lg:hidden flex items-center gap-1.5 min-w-[44px] min-h-[44px] px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 hover:text-white font-bold text-xs transition-all cursor-pointer active:scale-95 justify-center"
+            className="xl:hidden flex items-center gap-1.5 min-w-[44px] min-h-[44px] px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 hover:text-white font-bold text-xs transition-all cursor-pointer active:scale-95 justify-center"
             title="Abrir Menu Principal de Navegação"
             aria-label="Abrir Menu de Navegação"
             aria-expanded={showDrawer}
@@ -126,6 +126,7 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
             <Menu className="w-4 h-4 text-indigo-400" />
             <span className="hidden sm:inline font-bold">Menu</span>
           </button>
+
 
           {/* Logotipo e Marca HARMONIA */}
           <button
@@ -144,9 +145,9 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
           </button>
         </div>
 
-        {/* ── 2. CENTRO: Cursos, Prática e Estúdio (Wireframe 1 & 2: Telas >= 1024px) ── */}
+        {/* ── 2. CENTRO: Cursos, Prática e Estúdio (Tablets e Desktops >= 768px com Scroll Suave) ── */}
         <nav
-          className="hidden lg:flex items-center gap-2 xl:gap-2.5 overflow-x-auto no-scrollbar py-1"
+          className="hidden md:flex items-center gap-2 xl:gap-2.5 overflow-x-auto scroll-indicator-x no-scrollbar py-1 touch-pan-x scroll-smooth"
           aria-label="Navegação Principal de Módulos"
         >
           {/* Divisor Visual */}

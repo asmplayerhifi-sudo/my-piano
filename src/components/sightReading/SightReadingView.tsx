@@ -846,7 +846,7 @@ export const SightReadingView: React.FC = () => {
         </div>
 
         {/* Linha 2: Seletor de Clave, Tipo de Exercício, Acidentes e Armadura */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
           {/* 1. Seletor de Claves */}
           <div className="bg-black/30 p-2.5 rounded-xl border border-white/5 space-y-1.5">
             <div className="flex items-center justify-between">
@@ -1075,9 +1075,9 @@ export const SightReadingView: React.FC = () => {
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar scroll-indicator-x touch-pan-x max-w-full">
             {/* ── Controles dos Modos Formais de Prática ── */}
-            <div className="flex items-center gap-1.5 bg-black/40 px-2 py-1 rounded-xl border border-white/10 text-xs">
+            <div className="flex items-center gap-1.5 bg-black/40 px-2 py-1 rounded-xl border border-white/10 text-xs shrink-0">
 
               {/* Modo Livre */}
               <button

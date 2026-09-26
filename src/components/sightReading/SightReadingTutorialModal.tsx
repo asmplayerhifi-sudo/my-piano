@@ -71,12 +71,15 @@ export const SightReadingTutorialModal: React.FC<SightReadingTutorialModalProps>
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 select-none animate-in fade-in duration-200">
-      <div className="glass-card rounded-3xl border border-white/15 max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden bg-[#0c0d1e]/95 text-slate-100">
+    <div className="modal-overlay-responsive select-none">
+      <div className="modal-sheet-responsive md:max-w-4xl max-h-[90vh] md:max-h-[85vh] bg-[#0c0d1e] text-slate-100 relative">
+        {/* Barra de arraste/indicador visual para mobile */}
+        <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto my-2 md:hidden shrink-0" />
+
         {/* ── CABEÇALHO DO MODAL ───────────────────────────────────────────── */}
-        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-white/10 bg-white/[0.02]">
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-white/10 bg-white/[0.02] shrink-0">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 text-indigo-300">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 text-indigo-300 flex items-center justify-center shrink-0">
               <BookOpen className="w-5 h-5" />
             </div>
             <div>
@@ -88,7 +91,7 @@ export const SightReadingTutorialModal: React.FC<SightReadingTutorialModalProps>
                   Fundamentos Hi-Fi
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-400 hidden sm:block">
                 Guia progressivo de notação musical, métrica rítmica e harmonia
               </p>
             </div>
@@ -97,7 +100,7 @@ export const SightReadingTutorialModal: React.FC<SightReadingTutorialModalProps>
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-xl text-slate-400 hover:text-white flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer"
+            className="min-w-[44px] min-h-[44px] rounded-xl text-slate-400 hover:text-white flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer active:scale-95 shrink-0"
             title="Fechar tutorial"
           >
             <X className="w-5 h-5" />

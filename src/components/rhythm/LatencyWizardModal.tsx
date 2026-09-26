@@ -147,30 +147,33 @@ export const LatencyWizardModal: React.FC<Props> = ({ isOpen, onClose, onCalibra
 
   const modalContent = (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fade-in select-none"
+      className="modal-overlay-responsive z-[9999] select-none"
       onClick={() => {
         clearPendingTimeouts();
         onClose();
       }}
     >
       <div
-        className="relative w-full max-w-lg max-h-[92vh] overflow-y-auto p-5 sm:p-7 rounded-3xl bg-[#0e0d22] border border-indigo-500/40 shadow-2xl text-slate-100 space-y-4"
+        className="modal-sheet-responsive md:max-w-lg max-h-[90vh] md:max-h-[85vh] overflow-y-auto p-5 sm:p-7 bg-[#0e0d22] border border-indigo-500/40 text-slate-100 space-y-4 relative"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Barra de arraste/indicador visual para mobile */}
+        <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto -mt-2 mb-2 md:hidden shrink-0" />
+
         {/* Botão Fechar */}
         <button
           onClick={() => {
             clearPendingTimeouts();
             onClose();
           }}
-          className="absolute top-5 right-5 p-2 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
+          className="absolute top-4 right-4 min-w-[44px] min-h-[44px] rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer flex items-center justify-center active:scale-95"
           title="Fechar"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Cabeçalho */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 pr-10">
           <div className="p-3 rounded-2xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
             <Bluetooth className="w-6 h-6" />
           </div>

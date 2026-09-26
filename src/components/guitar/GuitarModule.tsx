@@ -70,12 +70,12 @@ export const GuitarModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Grid Principal do Requisito: 2 Colunas (Esquerda 30% Montador / Direita 70% Braço Expandido) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+      {/* Grid Principal: Stack em mobile/tablet e 2 Colunas (Esquerda 30% Montador / Direita 70% Braço) em telas grandes >= 1280px */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
         {/* =========================================================================
-            COLUNA ESQUERDA (30% Width - Painel de Controle e Montador de Acordes)
+            COLUNA ESQUERDA (Painel de Controle e Montador de Acordes)
            ========================================================================= */}
-        <div className="lg:col-span-4 xl:col-span-4 space-y-4">
+        <div className="xl:col-span-4 space-y-4">
           <div className="glass-card rounded-3xl p-5 border border-white/10 space-y-4 shadow-xl">
             {/* Título do Card */}
             <div className="flex items-center gap-2.5 pb-2 border-b border-white/10">
@@ -228,9 +228,9 @@ export const GuitarModule: React.FC = () => {
         </div>
 
         {/* =========================================================================
-            COLUNA DIREITA (70% Width - Braço Expandido e Controles Virtuais)
+            COLUNA DIREITA (Braço Expandido e Controles Virtuais)
            ========================================================================= */}
-        <div className="lg:col-span-8 xl:col-span-8 space-y-4">
+        <div className="xl:col-span-8 space-y-4">
           <div className="glass-card rounded-3xl p-5 border border-white/10 space-y-4 shadow-xl">
             {/* Header do Braço: Título e Status do Acorde Ativo */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">

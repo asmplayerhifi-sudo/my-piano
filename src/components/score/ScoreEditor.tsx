@@ -1165,7 +1165,7 @@ export const ScoreEditor: React.FC = () => {
           </span>
         </div>
 
-        <div className="flex flex-wrap gap-1 items-center">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scroll-indicator-x touch-pan-x py-1.5">
           {noteRows.map(row => {
             const black = isBlackKey(row.midi);
             const isCenter = row.midi === 60;
@@ -1176,7 +1176,7 @@ export const ScoreEditor: React.FC = () => {
                 id={`insert-note-${row.name}`}
                 onClick={e => { e.stopPropagation(); addNote(row.midi, row.name); }}
                 title={`Inserir ${row.label} (${row.midi})`}
-                className={`flex flex-col items-center justify-center min-w-[34px] px-2 py-1.5 rounded-lg text-[9px] font-black transition-all cursor-pointer border ${
+                className={`flex flex-col items-center justify-center min-w-[36px] sm:min-w-[40px] h-[38px] sm:h-[40px] px-2 py-1 rounded-xl text-[10px] font-black transition-all cursor-pointer border shrink-0 ${
                   black
                     ? 'bg-slate-800/80 border-slate-600/40 text-slate-300 hover:bg-slate-700 hover:text-white'
                     : isCenter

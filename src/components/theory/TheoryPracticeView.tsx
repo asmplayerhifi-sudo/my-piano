@@ -210,15 +210,15 @@ export const TheoryPracticeView: React.FC = () => {
               </span>
             </div>
 
-            {/* Grid Superior: Círculo das Quintas + Régua Cromática */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-              <div className="lg:col-span-7">
+            {/* Grid Superior: Círculo das Quintas + Régua Cromática (1 coluna em tablet/notebook, 12 cols em desktop grande) */}
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
+              <div className="xl:col-span-7">
                 <CircleOfFifths
                   selectedKey={selectedKey}
                   onKeySelect={handleKeyChange}
                 />
               </div>
-              <div className="lg:col-span-5 flex flex-col gap-4">
+              <div className="xl:col-span-5 flex flex-col gap-4">
                 <ChromaticRuler
                   selectedNote={selectedKey}
                   onNoteSelect={handleKeyChange}

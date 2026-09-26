@@ -687,14 +687,14 @@ export const PhraseEditorView: React.FC = () => {
             </button>
           </div>
 
-          {/* Cards Interativos de Cada Nota da Frase */}
-          <div className="flex gap-2.5 overflow-x-auto pb-3 pt-2">
+          {/* Cards Interativos de Cada Nota da Frase com Scroll Touch Suave e Snap */}
+          <div className="flex gap-2.5 overflow-x-auto pb-3 pt-2 no-scrollbar scroll-indicator-x touch-pan-x scroll-smooth snap-x">
             {notes.map((note, idx) => {
               const isCurrent = activeNoteIndex === idx;
               return (
                 <div
                   key={note.id}
-                  className={`w-28 sm:w-32 p-3 rounded-2xl border transition-all flex flex-col justify-between shrink-0 ${
+                  className={`w-28 sm:w-32 p-3 rounded-2xl border transition-all flex flex-col justify-between shrink-0 snap-start ${
                     isCurrent
                       ? 'bg-purple-900/40 border-purple-400 ring-2 ring-purple-400 shadow-xl scale-105'
                       : 'bg-white/[0.03] border-white/10 hover:border-white/20'

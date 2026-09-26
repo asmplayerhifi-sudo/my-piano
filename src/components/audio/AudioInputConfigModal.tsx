@@ -156,24 +156,27 @@ export const AudioInputConfigModal: React.FC<Props> = ({
   return typeof document !== 'undefined'
     ? createPortal(
         <div
-          className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 backdrop-blur-md p-3 sm:p-4 animate-fade-in select-none"
+          className="fixed inset-0 z-[10000] flex flex-col justify-end md:justify-center items-center bg-black/80 backdrop-blur-md p-0 md:p-4 animate-fade-in select-none"
           onClick={handleClose}
         >
           <div
-            className="bg-[#0e0d1e] border border-white/15 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col text-slate-100 max-h-[90vh]"
+            className="bg-[#0e0d1e] border-t md:border border-white/15 w-full md:max-w-2xl rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden flex flex-col text-slate-100 max-h-[92vh] md:max-h-[90vh] animate-slide-up md:animate-none"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Drag Handle para Mobile */}
+            <div className="w-12 h-1 rounded-full bg-white/20 mx-auto my-2 md:hidden shrink-0" />
+
             {/* ── CABEÇALHO DO MODAL ── */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/[0.02]">
+            <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-white/10 bg-white/[0.02]">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-300">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-300 shrink-0">
                   <Cable className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-base sm:text-lg font-black tracking-tight text-white flex items-center gap-2">
+                  <h2 className="text-sm sm:text-lg font-black tracking-tight text-white flex items-center gap-2">
                     Configuração de Entradas &amp; Dispositivos
                   </h2>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-[11px] sm:text-xs text-slate-400">
                     Microfone acústico, cabo USB/auxiliar, teclado MIDI e calibração de latência
                   </p>
                 </div>
@@ -181,8 +184,9 @@ export const AudioInputConfigModal: React.FC<Props> = ({
 
               <button
                 onClick={handleClose}
-                className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors cursor-pointer"
+                className="min-w-[44px] min-h-[44px] rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors cursor-pointer shrink-0"
                 title="Fechar (Esc)"
+                aria-label="Fechar configurações de entrada"
               >
                 <X className="w-4 h-4" />
               </button>

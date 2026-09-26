@@ -28,13 +28,16 @@ export const OctaveStandardModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
   const modalContent = (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fade-in select-none"
+      className="fixed inset-0 z-[9999] flex flex-col justify-end md:justify-center items-center p-0 md:p-4 bg-black/80 backdrop-blur-md animate-fade-in select-none"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-xl max-h-[92vh] overflow-y-auto rounded-3xl bg-[#0b0a17] border border-white/10 shadow-2xl p-5 sm:p-7 space-y-5"
+        className="relative w-full md:max-w-xl max-h-[92vh] md:max-h-[85vh] overflow-y-auto rounded-t-3xl md:rounded-3xl bg-[#0b0a17] border-t md:border border-white/10 shadow-2xl p-5 sm:p-7 space-y-5 animate-slide-up md:animate-none"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Drag Handle para Mobile */}
+        <div className="w-12 h-1 rounded-full bg-white/20 mx-auto -mt-2 mb-2 md:hidden shrink-0" />
+
         {/* Glow de Fundo Decorativo */}
         <div className="absolute -top-24 -right-24 w-64 h-64 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-purple-600/15 rounded-full blur-3xl pointer-events-none" />
@@ -46,7 +49,7 @@ export const OctaveStandardModal: React.FC<Props> = ({ isOpen, onClose }) => {
               <Music2 className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg sm:text-xl font-black text-white font-display flex items-center gap-2">
+              <h2 className="text-base sm:text-xl font-black text-white font-display flex items-center gap-2">
                 <span>Nomenclatura do Dó Central</span>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
                   MIDI 60
@@ -59,8 +62,9 @@ export const OctaveStandardModal: React.FC<Props> = ({ isOpen, onClose }) => {
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-            title="Fechar"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer shrink-0"
+            title="Fechar (Esc)"
+            aria-label="Fechar"
           >
             <X className="w-5 h-5" />
           </button>

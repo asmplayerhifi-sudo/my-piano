@@ -204,14 +204,9 @@ export const CourseLearningTrailModal: React.FC<CourseLearningTrailModalProps> =
   }[accentColor];
 
   return (
-    /* RF-02 & Seção 4: Overlay com backdrop-filter blur 4px, background rgba(0,0,0,0.6), z-index 2000 */
+    /* RF-02 & CA02: Overlay responsivo (Bottom Sheet em celular, modal centralizado em tablet/desktop) */
     <div
-      className="fixed inset-0 z-[2000] flex items-center justify-center p-3 sm:p-5 select-none animate-fadeIn"
-      style={{
-        backdropFilter: 'blur(4px)',
-        WebkitBackdropFilter: 'blur(4px)',
-        backgroundColor: 'rgba(0, 0, 0, 0.6)',
-      }}
+      className="modal-overlay-responsive z-[2000] select-none"
       role="dialog"
       aria-modal="true"
       aria-labelledby="trail-modal-title"
@@ -220,11 +215,14 @@ export const CourseLearningTrailModal: React.FC<CourseLearningTrailModalProps> =
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      {/* Seção 4: Dimensões width: 85vw; max-width: 1000px; height: 80vh; max-height: 750px; */}
+      {/* Container responsivo: 100% largura no mobile (<768px), máx 1000px no desktop/tablet */}
       <div
         ref={modalRef}
-        className="w-[85vw] max-w-[1000px] h-[80vh] max-h-[750px] rounded-3xl bg-[#0b0a17] border border-white/10 shadow-2xl flex flex-col overflow-hidden relative"
+        className="modal-sheet-responsive md:max-w-[1000px] h-[90vh] md:h-[80vh] md:max-h-[750px] bg-[#0b0a17] text-slate-100 relative"
       >
+        {/* Barra de arraste/indicador visual para mobile */}
+        <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto my-2 md:hidden shrink-0" />
+
         {/* 1. TOPO DO MODAL (Wireframe: [H] 🗺️ TRILHA DE APRENDIZADO — CURSO ... [ X Fechar ]) */}
         <div
           className={`p-4 sm:p-5 border-b border-white/10 bg-gradient-to-r ${colorStyles.headerGlow} shrink-0`}
@@ -250,11 +248,11 @@ export const CourseLearningTrailModal: React.FC<CourseLearningTrailModalProps> =
             <div className="flex items-center gap-2">
               <button
                 onClick={onClose}
-                className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-xs font-semibold text-slate-300 hover:text-white transition-all cursor-pointer flex items-center gap-1.5"
+                className="min-w-[44px] min-h-[44px] px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-xs font-semibold text-slate-300 hover:text-white transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
                 title="Fechar modal (Esc)"
               >
                 <X className="w-4 h-4" />
-                <span>[ X Fechar ]</span>
+                <span className="hidden sm:inline">[ X Fechar ]</span>
               </button>
             </div>
           </div>

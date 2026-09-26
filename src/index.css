@@ -152,3 +152,56 @@
 
 /* Prevent scroll on body when modal is open */
 body.modal-open { overflow: hidden; }
+
+/* ─── PRD CA02: Modais Responsivos (Bottom Sheet em Mobile, Centralizado em Tablet/Desktop) ─── */
+.modal-overlay-responsive {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  animation: fadeIn 0.2s ease-out;
+}
+
+@media (min-width: 768px) {
+  .modal-overlay-responsive {
+    justify-content: center;
+    padding: 1.5rem;
+  }
+}
+
+.modal-sheet-responsive {
+  width: 100%;
+  max-height: 92vh;
+  border-top-left-radius: 1.5rem;
+  border-top-right-radius: 1.5rem;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  animation: slideUp 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@media (min-width: 768px) {
+  .modal-sheet-responsive {
+    max-height: 85vh;
+    border-radius: 1.5rem;
+    animation: none;
+  }
+}
+
+/* Indicador de rolagem horizontal com máscara de fade nas bordas */
+.scroll-indicator-x {
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+}

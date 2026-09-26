@@ -38,26 +38,29 @@ export const RepertoireAccuracyModal: React.FC<Props> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md animate-fade-in">
+    <div className="modal-overlay-responsive select-none">
       <div className="absolute inset-0" onClick={onClose} />
 
-      <div className="relative w-full max-w-4xl max-h-[90vh] bg-[#0c0a1a] border border-white/10 rounded-3xl shadow-2xl flex flex-col overflow-hidden z-10">
+      <div className="modal-sheet-responsive md:max-w-4xl max-h-[90vh] md:max-h-[85vh] bg-[#0c0a1a] text-slate-100 relative z-10">
+        {/* Barra de arraste/indicador visual para mobile */}
+        <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto my-2 md:hidden shrink-0" />
+
         {/* Header do Modal */}
-        <div className="p-5 sm:p-6 border-b border-white/10 flex items-center justify-between gap-4 bg-gradient-to-r from-emerald-950/40 via-indigo-950/30 to-purple-950/30">
+        <div className="p-4 sm:p-6 border-b border-white/10 flex items-center justify-between gap-4 bg-gradient-to-r from-emerald-950/40 via-indigo-950/30 to-purple-950/30 shrink-0">
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/10">
-              <ShieldCheck className="w-6 h-6" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/10 shrink-0">
+              <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-lg sm:text-xl font-black font-display text-white">
+                <h3 className="text-base sm:text-xl font-black font-display text-white">
                   Validador de Acurácia Musical
                 </h3>
                 <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                   {globalAudit.globalAverageScore}% Acurácia Geral
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-400 mt-0.5 hidden sm:block">
                 Auditoria rigorosa de métrica, notas, acordes, ordenação e finalização real da partitura.
               </p>
             </div>
@@ -65,7 +68,7 @@ export const RepertoireAccuracyModal: React.FC<Props> = ({
 
           <button
             onClick={onClose}
-            className="p-2.5 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5 transition-all cursor-pointer"
+            className="min-w-[44px] min-h-[44px] rounded-2xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5 transition-all cursor-pointer flex items-center justify-center active:scale-95 shrink-0"
             title="Fechar (Esc)"
           >
             <X className="w-5 h-5" />

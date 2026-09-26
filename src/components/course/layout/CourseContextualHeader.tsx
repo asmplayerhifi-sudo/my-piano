@@ -301,13 +301,16 @@ export const CourseContextualHeader: React.FC<CourseContextualHeaderProps> = ({
         typeof document !== 'undefined' &&
         createPortal(
           <div
-            className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fade-in select-none"
+            className="modal-overlay-responsive z-[9999] select-none"
             onClick={() => setIsOptionsModalOpen(false)}
           >
             <div
-              className="bg-[#0e0d22] border border-white/15 rounded-3xl p-5 sm:p-6 w-full max-w-lg shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto text-slate-100"
+              className="modal-sheet-responsive md:max-w-lg bg-[#0e0d22] text-slate-100 p-5 sm:p-6 space-y-4 max-h-[90vh] md:max-h-[85vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
+              {/* Barra de arraste/indicador visual para mobile */}
+              <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto -mt-1 mb-2 md:hidden shrink-0" />
+
               {/* Cabeçalho do Modal */}
               <div className="flex items-center justify-between pb-3 border-b border-white/10">
                 <div className="flex items-center gap-2.5">
@@ -325,7 +328,7 @@ export const CourseContextualHeader: React.FC<CourseContextualHeaderProps> = ({
                 </div>
                 <button
                   onClick={() => setIsOptionsModalOpen(false)}
-                  className="p-2 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer active:scale-95"
                   title="Fechar"
                 >
                   <X className="w-5 h-5" />

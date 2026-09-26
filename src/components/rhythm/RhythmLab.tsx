@@ -81,8 +81,8 @@ export const RhythmLab: React.FC = () => {
         </div>
 
         {/* Alternador Principal de Modo de Treino */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-1.5 bg-black/50 p-1.5 rounded-2xl border border-white/10 shadow-lg">
+        <div className="flex flex-wrap items-center gap-3 overflow-x-auto no-scrollbar scroll-indicator-x touch-pan-x max-w-full">
+          <div className="flex items-center gap-1.5 bg-black/50 p-1.5 rounded-2xl border border-white/10 shadow-lg shrink-0">
             <button
               onClick={() => setTrainingMode('studio')}
               className={`px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer flex items-center gap-2 ${
@@ -234,9 +234,9 @@ export const RhythmLab: React.FC = () => {
             }
           />
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
             {/* Coluna do Metrônomo (5 colunas no desktop) */}
-            <div className="lg:col-span-5 space-y-4">
+            <div className="xl:col-span-5 space-y-4">
               <MetronomeView
                 onBpmChange={(newBpm) => setBpm(newBpm)}
                 onPlayStateChange={(playing) => setIsPlaying(playing)}
@@ -259,7 +259,7 @@ export const RhythmLab: React.FC = () => {
             </div>
 
             {/* Coluna da Esteira Rítmica Canvas (7 colunas no desktop) */}
-            <div className="lg:col-span-7">
+            <div className="xl:col-span-7">
               <RhythmTrackCanvas
                 isPlaying={isPlaying}
                 bpm={bpm}

@@ -81,23 +81,26 @@ export const RepertoireCatalogModal: React.FC<Props> = ({
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md animate-fade-in">
+    <div className="fixed inset-0 z-50 flex flex-col justify-end md:justify-center items-center p-0 md:p-6 bg-black/80 backdrop-blur-md animate-fade-in">
       {/* Backdrop click to close */}
       <div className="absolute inset-0" onClick={onClose} />
 
-      {/* Modal Dialog com Bordas Sutis */}
-      <div className="relative w-full max-w-5xl max-h-[90vh] bg-[#0c0919] border border-white/10 rounded-3xl shadow-2xl flex flex-col overflow-hidden z-10">
+      {/* Modal Dialog: Bottom Sheet em mobile (<768px), centralizado em tablet e desktop */}
+      <div className="relative w-full md:max-w-5xl max-h-[92vh] md:max-h-[90vh] bg-[#0c0919] border-t md:border border-white/10 rounded-t-3xl md:rounded-3xl shadow-2xl flex flex-col overflow-hidden z-10 animate-slide-up md:animate-none">
+        {/* Drag handle visível apenas em mobile */}
+        <div className="w-12 h-1 rounded-full bg-white/20 mx-auto my-2 md:hidden shrink-0" />
+
         {/* Cabeçalho do Modal */}
-        <div className="p-5 sm:p-6 border-b border-white/5 flex items-center justify-between gap-4 bg-gradient-to-r from-purple-950/40 via-[#160d2b]/30 to-transparent">
+        <div className="p-4 sm:p-6 border-b border-white/5 flex items-center justify-between gap-4 bg-gradient-to-r from-purple-950/40 via-[#160d2b]/30 to-transparent">
           <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-purple-600/30 border border-purple-500/30 flex items-center justify-center text-purple-300 shadow-lg">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-purple-600/30 border border-purple-500/30 flex items-center justify-center text-purple-300 shadow-lg shrink-0">
               <Music className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg sm:text-xl font-black font-display text-white">
+              <h3 className="text-base sm:text-xl font-black font-display text-white">
                 Catálogo de Repertório &amp; Partituras
               </h3>
-              <p className="text-xs text-purple-200/70">
+              <p className="text-[11px] sm:text-xs text-purple-200/70">
                 Selecione uma obra clássica, rock internacional, MPB ou cantiga folclórica
               </p>
             </div>
@@ -105,8 +108,9 @@ export const RepertoireCatalogModal: React.FC<Props> = ({
 
           <button
             onClick={onClose}
-            className="p-2.5 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5 transition-all cursor-pointer"
+            className="min-w-[44px] min-h-[44px] p-2.5 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5 transition-all cursor-pointer flex items-center justify-center shrink-0"
             title="Fechar (Esc)"
+            aria-label="Fechar catálogo"
           >
             <X className="w-5 h-5" />
           </button>

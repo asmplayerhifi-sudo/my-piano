@@ -21,7 +21,7 @@ export const TheoryModule: React.FC = () => {
           </span>
         </div>
 
-        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar scroll-indicator-x touch-pan-x scroll-smooth">
           <button
             onClick={() => setActiveTab('academy')}
             className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${

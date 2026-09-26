@@ -560,10 +560,12 @@ export const RepertoireView: React.FC = () => {
 
   return (
     <div className="w-full space-y-3 select-none no-select">
-      {/* 1. Barra de Acesso ao Catálogo e Controle Principal (Totalmente Fluida & Widescreen) */}
-      <div className="glass-card rounded-3xl p-4 sm:p-5 border border-white/5 shadow-2xl flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-gradient-to-r from-purple-950/40 via-[#130b24]/60 to-[#0a0718]/80 backdrop-blur-md">
-        {/* Lado Esquerdo: Identificação da Música, Botão Catálogo e Botão Validador de Acurácia */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+      {/* 1. Barra de Acesso ao Catálogo e Controle Principal (Estruturada em 2 Tiers Responsivos) */}
+      <div className="glass-card rounded-3xl p-3.5 sm:p-5 border border-white/5 shadow-2xl flex flex-col gap-3.5 bg-gradient-to-r from-purple-950/40 via-[#130b24]/60 to-[#0a0718]/80 backdrop-blur-md">
+        {/* Tier 1: Identificação da Música, Catálogo e Seletores de Modo */}
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 pb-3 border-b border-white/5">
+          {/* Lado Esquerdo: Identificação da Música, Botão Catálogo e Botão Validador de Acurácia */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           {/* Botão que Abre o Modal com as Categorias e Músicas */}
           <button
             onClick={() => setIsCatalogModalOpen(true)}
@@ -604,8 +606,8 @@ export const RepertoireView: React.FC = () => {
           </div>
         </div>
 
-        {/* Lado Direito: Controles Globais de Play / Pause, Timbre, Modo Fim/Loop, Sustain e Metrônomo */}
-        <div className="flex flex-wrap items-center gap-2.5 self-start lg:self-auto">
+        {/* Lado Direito do Tier 1: Seletores de Alto Nível (Arranjo, Modo e Timbre) */}
+        <div className="flex flex-wrap items-center gap-2.5 self-start xl:self-auto">
           {/* Seletor de Modo de Arranjo: Teclado vs Violão no Teclado */}
           <div className="flex items-center bg-black/60 p-1 rounded-2xl border border-white/10 shadow-lg shrink-0">
             <button
@@ -663,7 +665,13 @@ export const RepertoireView: React.FC = () => {
 
           {/* Seletor de Timbre */}
           <TimbreSelector compact />
+        </div>
+      </div>
 
+      {/* Tier 2: Controles de Execução (Play, BPM, Sustain e Metrônomo) */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-0.5">
+        {/* Lado Esquerdo do Tier 2: Ação Principal e BPM */}
+        <div className="flex flex-wrap items-center gap-2.5">
           {/* Controles de Ação Conforme o Modo Ativo */}
           {viewMode === 'playback' ? (
             <div className="flex items-center gap-1.5">
@@ -838,6 +846,10 @@ export const RepertoireView: React.FC = () => {
             </button>
           </div>
 
+        </div>
+
+        {/* Lado Direito do Tier 2: Sustain e Metrônomo */}
+        <div className="flex flex-wrap items-center gap-2.5">
           {/* Controle Real de Sustain (Exclusivo na Tela de Repertório / Modo Reprodução) */}
           <div className="flex items-center bg-black/50 p-1 rounded-2xl border border-white/10 text-xs">
             <button
@@ -956,6 +968,7 @@ export const RepertoireView: React.FC = () => {
           </div>
         </div>
       </div>
+    </div>
 
       {/* Notificação Visual de Fim da Música (REQ-BUG-AUDIO-REPLAY-REPERTOIRE-01.2) */}
       {showCompletionBanner && (
@@ -1078,12 +1091,12 @@ export const RepertoireView: React.FC = () => {
             : ''
         }`}
       >
-        <div className="flex items-center justify-between pb-1 border-b border-white/5">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-mono font-bold uppercase text-purple-400">
+        <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 pb-1 border-b border-white/5">
+          <div className="flex items-center gap-2 min-w-0 truncate">
+            <span className="text-xs font-mono font-bold uppercase text-purple-400 shrink-0">
               Palco de Execução &amp; Partitura
             </span>
-            <span className="text-[10px] text-slate-400 font-mono">
+            <span className="text-[10px] text-slate-400 font-mono truncate hidden sm:inline">
               • {activeSong.title} ({activeSong.recommendedBpm} BPM) {arrangementMode === 'guitar' ? '• [🎸 Arranjo de Violão no Teclado]' : ''}
             </span>
           </div>
