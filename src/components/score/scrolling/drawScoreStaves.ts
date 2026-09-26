@@ -20,6 +20,7 @@ interface DrawStavesParams {
   attackLineX: number;
   scrollOffset: number;
   pixelsPerBeat: number;
+  activeMeasure?: number;
 }
 
 export function drawScoreStaves({
@@ -34,6 +35,7 @@ export function drawScoreStaves({
   attackLineX,
   scrollOffset,
   pixelsPerBeat,
+  activeMeasure,
 }: DrawStavesParams): void {
   const isTrad = theme === 'traditional';
   const { trebleBaseY, trebleLineStep, bassBaseY, bassLineStep, middleCY } = SCORE_GEOMETRY;
@@ -99,7 +101,9 @@ export function drawScoreStaves({
   // 4. Barras de Compasso e Régua Superior
   if (displayOptions.showBarlines) {
     const currentBeat = scrollOffset / pixelsPerBeat;
-    const currentMeasure = Math.floor(currentBeat / beatsPerMeasure) + 1;
+    const currentMeasure = activeMeasure !== undefined
+      ? activeMeasure
+      : Math.floor(currentBeat / beatsPerMeasure) + 1;
 
     // Desenha todas as barras verticais de início de compasso (c.1, c.2, c.3...) e suas subdivisões
     measureStartBeats.forEach((measureBeat, m) => {

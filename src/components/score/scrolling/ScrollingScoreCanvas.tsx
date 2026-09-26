@@ -274,29 +274,55 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
           }
         }
 
-        if (stepStartIdx !== playback.currentIndex) {
-          if (!isDemoMode && stepStartIdx > playback.currentIndex) {
+        // Em reprodução/Modo Fluido, stepStartIdx avança deterministicamente de forma estritamente monotônica
+        if (stepStartIdx > playback.currentIndex) {
+          if (!isDemoMode) {
             for (let missed = playback.currentIndex; missed < stepStartIdx; missed++) {
               playback.handleStepMissed?.(missed);
             }
           }
           playback.setCurrentIndex(stepStartIdx);
+        } else if (isDemoMode && currentBeat < 0.1 && playback.currentIndex > 0) {
+          // Permite reinício suave em repetição / loop contínuo
+          playback.setCurrentIndex(0);
         }
       } else if (!isFlowing) {
         // MODO ESPERA: a partitura se alinha suavemente com a nota/acorde atual e aguarda a execução
         const targetOffset = timeline.noteOffsets[playback.currentIndex] ?? 0;
         const targetScroll = targetOffset * pixelsPerBeat;
         const diff = targetScroll - playback.scrollOffsetRef.current;
-        if (Math.abs(diff) > 0.5) {
-          playback.scrollOffsetRef.current += diff * 0.2;
-        } else {
+        if (diff > 0.5) {
+          playback.scrollOffsetRef.current += Math.max(0.5, diff * 0.22);
+          if (playback.scrollOffsetRef.current > targetScroll) {
+            playback.scrollOffsetRef.current = targetScroll;
+          }
+        } else if (diff < -0.5 && playback.currentIndex === 0) {
+          // Retrocesso somente permitido em caso de reinício explícito para o início da obra
+          playback.scrollOffsetRef.current = targetScroll;
+        } else if (Math.abs(diff) <= 0.5) {
           playback.scrollOffsetRef.current = targetScroll;
         }
       }
 
       const h = canvas.height;
+      const targetNote = notes[playback.currentIndex];
+      const activeMeasure = targetNote?.measure || (Math.floor((timeline.noteOffsets[playback.currentIndex] ?? 0) / beatsPerMeasure) + 1);
+
       drawScoreBackground(ctx, containerWidth, h, scoreTheme, attackLineX, pixelsPerBeat);
-      drawScoreStaves({ ctx, width: containerWidth, theme: scoreTheme, displayOptions, measureStartBeats: timeline.measureStartBeats, maxMeasure: timeline.maxMeasure, totalBeats: timeline.totalBeats, beatsPerMeasure, attackLineX, scrollOffset: playback.scrollOffsetRef.current, pixelsPerBeat });
+      drawScoreStaves({
+        ctx,
+        width: containerWidth,
+        theme: scoreTheme,
+        displayOptions,
+        measureStartBeats: timeline.measureStartBeats,
+        maxMeasure: timeline.maxMeasure,
+        totalBeats: timeline.totalBeats,
+        beatsPerMeasure,
+        attackLineX,
+        scrollOffset: playback.scrollOffsetRef.current,
+        pixelsPerBeat,
+        activeMeasure,
+      });
       if (displayOptions.showChords) {
         drawScoreChords({ ctx, width: containerWidth, theme: scoreTheme, chordSpans: timeline.chordSpans, attackLineX, scrollOffset: playback.scrollOffsetRef.current, pixelsPerBeat, enableSustain: isChordsSustain, sustainMode: activeSustainMode });
       }

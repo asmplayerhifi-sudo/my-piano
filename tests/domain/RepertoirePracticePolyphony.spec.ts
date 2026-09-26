@@ -277,25 +277,49 @@ describe('RepertoirePracticePolyphony - Validação Polifônica e Acordes no Mod
     expect(stepCompletedCount).toBe(2);
   });
 
-  it('deve ignorar ecos da prop currentNoteIndex para impedir oscilação (vaivém) entre compassos', () => {
+  it('deve ignorar ecos e índices defasados da prop currentNoteIndex para impedir oscilação (vaivém) entre compassos', () => {
     let internalCurrentIndex = 5;
     let lastEmittedIndex = 5; // hook acabou de emitir 5 para o componente pai
+    const isPlaying = true;
 
     const handleExternalSync = (incomingPropIndex: number) => {
       // Se for eco da notificação interna recém emitida, deve ignorar
       if (incomingPropIndex === internalCurrentIndex || incomingPropIndex === lastEmittedIndex) {
         return false; // Não interfere
       }
+      // Reset explícito para 0: permitido
+      if (incomingPropIndex === 0) {
+        internalCurrentIndex = 0;
+        return true;
+      }
+      // REGRA DE MONOTONICIDADE: durante execução/prática ativa, índices menores que a posição atual são REJEITADOS
+      if (isPlaying && incomingPropIndex < internalCurrentIndex) {
+        return false;
+      }
       internalCurrentIndex = incomingPropIndex;
-      return true; // Sincronização externa real (ex: reset pelo pai para o compasso 1)
+      return true; // Sincronização externa real (ex: salto para a frente)
     };
 
-    // Pai re-renderiza assincronamente e devolve 5 (eco)
+    // 1. Pai re-renderiza assincronamente e devolve 5 (eco)
     const syncedEcho = handleExternalSync(5);
     expect(syncedEcho).toBe(false);
     expect(internalCurrentIndex).toBe(5);
 
-    // Usuário clica no botão de reiniciar (ordem externa real: reset para 0)
+    // 2. Pai re-renderiza com estado defasado anterior (ex: 4 ou 3) - DEVE SER REJEITADO PARA NÃO VOLTAR COMPASSO
+    const syncedStale = handleExternalSync(4);
+    expect(syncedStale).toBe(false);
+    expect(internalCurrentIndex).toBe(5); // Preserva o progresso monotônico!
+
+    const syncedOld = handleExternalSync(2);
+    expect(syncedOld).toBe(false);
+    expect(internalCurrentIndex).toBe(5);
+
+    // 3. Salto legítimo para a frente (seek)
+    const syncedForward = handleExternalSync(8);
+    expect(syncedForward).toBe(true);
+    expect(internalCurrentIndex).toBe(8);
+
+    // 4. Usuário clica no botão de reiniciar (ordem externa real: reset para 0)
     const syncedReset = handleExternalSync(0);
     expect(syncedReset).toBe(true);
     expect(internalCurrentIndex).toBe(0);

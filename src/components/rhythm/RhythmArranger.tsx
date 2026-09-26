@@ -12,8 +12,12 @@ import {
 import {
   Play, Pause, Square, ChevronLeft, ChevronRight,
   RotateCcw, Download, Search, Disc, Radio,
-  Sparkles, SlidersHorizontal, ArrowRight,
+  Sparkles, SlidersHorizontal, ArrowRight, FolderOpen, Save,
 } from 'lucide-react';
+import { StudioFolderBar } from '../common/StudioFolderBar';
+import { StudioProjectModal } from '../common/StudioProjectModal';
+import { useStudioStorage } from '../../core/studio/useStudioStorage';
+import type { StudioProjectEnvelope } from '../../core/studio/studioStorageTypes';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Tipos & Configurações da UI
@@ -468,12 +472,159 @@ export const RhythmArranger: React.FC = () => {
     editedStyles[activeStyle.id] ?? activeStyle,
   [editedStyles, activeStyle]);
 
-  bpmRef.current = bpm;
-  sectionRef.current = activeSection;
-  pendingSectionRef.current = pendingSection;
-  autoFillRef.current = autoFillEnabled;
-  humanizeRef.current = humanizeEnabled;
-  styleRef.current = currentStyle;
+  // ── Armazenamento Soberano Local do Estúdio ──
+  const studioStorage = useStudioStorage();
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  const [storageFeedback, setStorageFeedback] = useState<string | null>(null);
+
+  const handleSaveRhythm = useCallback(async () => {
+    if (!studioStorage.folderInfo?.isAvailable) {
+      setIsProjectModalOpen(true);
+      return;
+    }
+
+    try {
+      if (currentProjectId) {
+        await studioStorage.saveProject({
+          id: currentProjectId,
+          module: 'arranger',
+          title: currentStyle.name,
+          category: currentStyle.genre,
+          data: {
+            style: currentStyle,
+            bpm,
+            kit: activeKit,
+          },
+          metadata: {
+            bpm,
+            genre: currentStyle.genre,
+            kit: activeKit,
+            timeSignature: currentStyle.timeSignature,
+          },
+        });
+        setStorageFeedback('Ritmo salvo com sucesso no disco!');
+        setTimeout(() => setStorageFeedback(null), 3000);
+      } else {
+        const res = await studioStorage.createProject({
+          module: 'arranger',
+          title: currentStyle.name,
+          category: currentStyle.genre,
+          data: {
+            style: currentStyle,
+            bpm,
+            kit: activeKit,
+          },
+          metadata: {
+            bpm,
+            genre: currentStyle.genre,
+            kit: activeKit,
+            timeSignature: currentStyle.timeSignature,
+          },
+        });
+        setCurrentProjectId(res.item.id);
+        setStorageFeedback(`Ritmo salvo: ${res.item.relativePath}`);
+        setTimeout(() => setStorageFeedback(null), 3000);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setStorageFeedback(`Erro ao salvar ritmo: ${msg}`);
+      setTimeout(() => setStorageFeedback(null), 4000);
+    }
+  }, [studioStorage, currentProjectId, currentStyle, bpm, activeKit]);
+
+  const handleOpenRhythm = useCallback((_path: string, envelope: StudioProjectEnvelope<any>) => {
+    const data = envelope.data;
+    if (data && data.style) {
+      setActiveStyle(data.style);
+      if (data.bpm) setBpm(data.bpm);
+      if (data.kit) setActiveKit(data.kit);
+      setCurrentProjectId(envelope.id);
+      setStorageFeedback(`Ritmo "${envelope.title}" carregado.`);
+      setTimeout(() => setStorageFeedback(null), 3000);
+    }
+  }, []);
+
+  const handleCreateNewRhythm = useCallback(async (title: string) => {
+    const newStyle: RhythmStyle = {
+      ...RHYTHM_STYLES[0],
+      id: `custom_${Date.now()}`,
+      name: title,
+      genre: 'Personalizado',
+    };
+    if (studioStorage.folderInfo?.isAvailable) {
+      try {
+        const res = await studioStorage.createProject({
+          module: 'arranger',
+          title,
+          category: 'Personalizado',
+          data: {
+            style: newStyle,
+            bpm: newStyle.bpm,
+            kit: activeKit,
+          },
+          metadata: {
+            bpm: newStyle.bpm,
+            genre: 'Personalizado',
+            kit: activeKit,
+          },
+        });
+        setCurrentProjectId(res.item.id);
+      } catch (err) {
+        console.warn('Falha ao registrar novo ritmo:', err);
+      }
+    }
+    setActiveStyle(newStyle);
+    setStorageFeedback(`Novo ritmo criado: ${title}`);
+    setTimeout(() => setStorageFeedback(null), 3000);
+  }, [studioStorage, activeKit]);
+
+  const handleSaveRhythmAs = useCallback(async (newTitle: string) => {
+    if (!studioStorage.folderInfo?.isAvailable) {
+      setIsProjectModalOpen(true);
+      return;
+    }
+    const clonedStyle: RhythmStyle = {
+      ...currentStyle,
+      id: `custom_${Date.now()}`,
+      name: newTitle,
+    };
+    try {
+      const res = await studioStorage.saveProjectAs({
+        originalId: currentProjectId || 'temp',
+        module: 'arranger',
+        newTitle,
+        category: clonedStyle.genre,
+        data: {
+          style: clonedStyle,
+          bpm,
+          kit: activeKit,
+        },
+        metadata: {
+          bpm,
+          genre: clonedStyle.genre,
+          kit: activeKit,
+        },
+      });
+      setCurrentProjectId(res.item.id);
+      setActiveStyle(clonedStyle);
+      setStorageFeedback(`Cópia salva como "${newTitle}"`);
+      setTimeout(() => setStorageFeedback(null), 3000);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setStorageFeedback(`Erro ao salvar como: ${msg}`);
+      setTimeout(() => setStorageFeedback(null), 4000);
+    }
+  }, [studioStorage, currentProjectId, currentStyle, bpm, activeKit]);
+
+  useEffect(() => {
+    bpmRef.current = bpm;
+    sectionRef.current = activeSection;
+    pendingSectionRef.current = pendingSection;
+    autoFillRef.current = autoFillEnabled;
+    humanizeRef.current = humanizeEnabled;
+    styleRef.current = currentStyle;
+  }, [bpm, activeSection, pendingSection, autoFillEnabled, humanizeEnabled, currentStyle]);
 
   const currentSection = currentStyle.sections[activeSection] ?? currentStyle.sections.mainA;
   const currentPattern = currentSection.pattern;
@@ -834,6 +985,16 @@ export const RhythmArranger: React.FC = () => {
 
   return (
     <div className="w-full space-y-4">
+      {/* ── 0. Barra Soberana da Pasta do Usuário ── */}
+      <StudioFolderBar onOpenCatalog={() => setIsProjectModalOpen(true)} />
+
+      {/* Toast de Feedback */}
+      {storageFeedback && (
+        <div className="px-4 py-2 bg-emerald-950/80 border border-emerald-500/40 rounded-xl text-emerald-200 text-xs font-medium flex items-center justify-between shadow-lg animate-in fade-in">
+          <span>{storageFeedback}</span>
+        </div>
+      )}
+
       {/* ══════════════════════════════════════════════════════════════════════════
           1. HEADER PRINCIPAL COM EFEITO GLASSMORPHISM
       ════════════════════════════════════════════════════════════════════════════ */}
@@ -868,6 +1029,27 @@ export const RhythmArranger: React.FC = () => {
 
         {/* Botões de View e Ações de Topo */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Ações Soberanas do Estúdio */}
+          <button
+            type="button"
+            onClick={() => setIsProjectModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-amber-600/25 border border-amber-500/40 text-amber-200 hover:bg-amber-600/40 transition-all cursor-pointer shadow-md shadow-amber-600/20"
+            title="Abrir Catálogo de Ritmos na Pasta Soberana"
+          >
+            <FolderOpen className="w-3.5 h-3.5" />
+            <span>Catálogo</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSaveRhythm}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-500/20 border border-emerald-500/40 text-emerald-200 hover:bg-emerald-500/35 transition-all cursor-pointer shadow-md"
+            title="Salvar Ritmo na Pasta do Usuário"
+          >
+            <Save className="w-3.5 h-3.5" />
+            <span>Salvar</span>
+          </button>
+
           {/* Alternador do Mixer */}
           <button
             type="button"
@@ -1522,6 +1704,17 @@ export const RhythmArranger: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* ── Modal Soberano de Projetos ── */}
+      <StudioProjectModal
+        isOpen={isProjectModalOpen}
+        onClose={() => setIsProjectModalOpen(false)}
+        activeModule="arranger"
+        currentProjectId={currentProjectId}
+        onOpenProject={handleOpenRhythm}
+        onCreateNewProject={handleCreateNewRhythm}
+        onSaveCurrentAs={handleSaveRhythmAs}
+      />
     </div>
   );
 };

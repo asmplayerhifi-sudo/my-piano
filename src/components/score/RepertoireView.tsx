@@ -38,7 +38,9 @@ import {
   Target,
   AlertCircle,
   Trophy,
+  Mic2,
 } from 'lucide-react';
+import { SynchronizedLyricsCard } from './SynchronizedLyricsCard';
 import {
   generateGuitarArrangementForKeyboard,
   getGuitarArrangementInfo,
@@ -78,6 +80,40 @@ export const RepertoireView: React.FC = () => {
   const [arrangementMode, setArrangementMode] = useState<'piano' | 'guitar'>('piano');
   const [showGuitarDiagrams, setShowGuitarDiagrams] = useState<boolean>(true);
   const [showGuitarToast, setShowGuitarToast] = useState<boolean>(false);
+
+  // Estado de visibilidade e persistência do Card de Letras Sincronizadas
+  const [showLyrics, setShowLyrics] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('harmonia_repertoire_show_lyrics');
+      return saved !== null ? saved === 'true' : true;
+    } catch {
+      return true;
+    }
+  });
+
+  const toggleShowLyrics = useCallback(() => {
+    setShowLyrics((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('harmonia_repertoire_show_lyrics', String(next));
+      } catch {
+        // Ignora erros de localStorage
+      }
+      return next;
+    });
+  }, []);
+
+  // Monitoramento contínuo em tempo real do beat musical para sincronização da letra
+  const [playbackBeat, setPlaybackBeat] = useState<number>(1);
+  const [playbackMeasure, setPlaybackMeasure] = useState<number>(1);
+
+  useEffect(() => {
+    const unsub = musicalPlaybackEngine.onPositionTick((pos) => {
+      setPlaybackBeat(pos.currentBeat + 1);
+      setPlaybackMeasure(pos.currentMeasure);
+    });
+    return unsub;
+  }, []);
 
   // Modos de Finalização da Reprodução: 'end' (cessa no final real da música) ou 'repeat' (loop contínuo)
   const [playbackEndMode, setPlaybackEndMode] = useState<'end' | 'repeat'>('end');
@@ -303,28 +339,22 @@ export const RepertoireView: React.FC = () => {
   const noteOffsets = useMemo(() => {
     return computeNoteOffsets(sortedScoreTrack, activeSong.timeSignature);
   }, [sortedScoreTrack, activeSong.timeSignature]);
-  const noteOffsetsRef = useRef<number[]>(noteOffsets);
-  noteOffsetsRef.current = noteOffsets;
 
   // Dedo da nota atual em execução na partitura para a tag abaixo do teclado
   const currentSongTargetNote = sortedScoreTrack[currentNoteIdx] || sortedScoreTrack[0];
 
-  // Compasso atual e linha de letra sincronizada
+  // Compasso atual e offset métrico unificado da partitura
   const currentMeasure = currentSongTargetNote?.measure || 1;
-  const currentLyricLine = useMemo(() => {
-    const lyrics = activeSong.extension?.lyrics;
-    if (!lyrics || lyrics.length === 0) return null;
-    return (
-      lyrics.find(
-        (l) =>
-          currentMeasure >= l.startMeasure &&
-          (!l.endBeat || currentMeasure <= l.startMeasure + 2)
-      ) || lyrics[0]
-    );
-  }, [activeSong, currentMeasure]);
+  const currentTargetOffset = noteOffsets[currentNoteIdx] ?? 0;
+
+  // Posição temporal precisa unificada para o Card de Letras:
+  // Em playback contínuo: usa o beat analítico 60 FPS do motor musical (zero drift).
+  // Em pausa ou modo prática (wait): usa o offset exato da nota/acorde aguardado (imutável até acerto).
+  const isPlaybackActive = viewMode === 'playback' && isPlaying;
+  const currentAbsoluteBeat = isPlaybackActive ? playbackBeat : (currentTargetOffset + 1);
+  const effectiveMeasure = isPlaybackActive ? playbackMeasure : currentMeasure;
 
   // Passo ativo: identifica todas as notas do mesmo instante métrico (acordes e multi-mãos)
-  const currentTargetOffset = noteOffsets[currentNoteIdx] ?? 0;
   const currentStepNotes = useMemo(() => {
     return sortedScoreTrack.filter(
       (_note, idx) => Math.abs((noteOffsets[idx] ?? 0) - currentTargetOffset) < 0.05
@@ -493,7 +523,9 @@ export const RepertoireView: React.FC = () => {
   };
 
   const viewModeRef = useRef(viewMode);
-  viewModeRef.current = viewMode;
+  useEffect(() => {
+    viewModeRef.current = viewMode;
+  }, [viewMode]);
 
   // Sincronização estrita de ciclo de vida do player e evento de conclusão da obra (REQ-BUG-AUDIO-REPLAY-REPERTOIRE-01.2)
   useEffect(() => {
@@ -1054,155 +1086,152 @@ export const RepertoireView: React.FC = () => {
             </span>
           </div>
 
-          <button
-            onClick={toggleFullscreenStage}
-            className={`p-1.5 px-2.5 rounded-xl border text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-              isFullscreenStage
-                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 ring-1 ring-rose-400'
-                : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border-white/5'
-            }`}
-            title={isFullscreenStage ? 'Sair da Tela Cheia (Esc)' : 'Tela Cheia no Palco de Execução'}
-          >
-            {isFullscreenStage ? (
-              <>
-                <Shrink className="w-3.5 h-3.5 text-rose-400" />
-                <span>Sair Tela Cheia (Esc)</span>
-              </>
-            ) : (
-              <>
-                <Expand className="w-3.5 h-3.5 text-purple-400" />
-                <span>Tela Cheia</span>
-              </>
+          <div className="flex items-center gap-2">
+            {/* Botão Discreto: Exibir/Ocultar Letra Sincronizada */}
+            {activeSong.extension?.lyrics && activeSong.extension.lyrics.length > 0 && (
+              <button
+                onClick={toggleShowLyrics}
+                className={`p-1.5 px-2.5 rounded-xl border text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  showLyrics
+                    ? 'bg-purple-500/20 text-purple-300 border-purple-500/40 ring-1 ring-purple-400/40'
+                    : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border-white/5'
+                }`}
+                title={showLyrics ? 'Ocultar Letra Sincronizada' : 'Exibir Letra Sincronizada'}
+              >
+                <Mic2 className="w-3.5 h-3.5 text-purple-400" />
+                <span>{showLyrics ? 'Ocultar Letra' : 'Exibir Letra'}</span>
+              </button>
             )}
-          </button>
+
+            <button
+              onClick={toggleFullscreenStage}
+              className={`p-1.5 px-2.5 rounded-xl border text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                isFullscreenStage
+                  ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 ring-1 ring-rose-400'
+                  : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border-white/5'
+              }`}
+              title={isFullscreenStage ? 'Sair da Tela Cheia (Esc)' : 'Tela Cheia no Palco de Execução'}
+            >
+              {isFullscreenStage ? (
+                <>
+                  <Shrink className="w-3.5 h-3.5 text-rose-400" />
+                  <span>Sair Tela Cheia (Esc)</span>
+                </>
+              ) : (
+                <>
+                  <Expand className="w-3.5 h-3.5 text-purple-400" />
+                  <span>Tela Cheia</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
-        {/* Letra Sincronizada com o Compasso em Tempo Real */}
-        {activeSong.extension?.lyrics && activeSong.extension.lyrics.length > 0 && (
-          <div className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-purple-950/40 via-black/50 to-indigo-950/40 border border-purple-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-lg backdrop-blur-sm">
-            <div className="flex items-center gap-2.5 overflow-hidden">
-              <span className="px-2 py-0.5 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-mono font-bold uppercase tracking-wider shrink-0 flex items-center gap-1">
-                <span>🎤 Letra</span>
-              </span>
-              <p className="text-sm font-display font-medium text-white truncate">
-                "{currentLyricLine?.text || activeSong.extension.lyrics[0].text}"
-              </p>
-            </div>
-            <span className="text-[10px] font-mono text-slate-400 shrink-0 self-end sm:self-auto">
-              Compasso {currentMeasure}
-            </span>
-          </div>
-        )}
-
-        {/* Painel HUD do Modo Prática Interativo */}
+        {/* Painel Unificado do Modo Prática Interativo */}
         {viewMode === 'practice' && (
-          <div className="p-3.5 px-4 rounded-2xl bg-gradient-to-r from-purple-950/50 via-indigo-950/60 to-slate-950/70 border border-purple-500/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-xl backdrop-blur-md animate-in fade-in duration-300">
-            {/* Lado Esquerdo: Identificação do Modo e Instrução Biomecânica */}
-            <div className="flex items-center gap-3">
-              <span className="w-8 h-8 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center shrink-0">
-                <Target className="w-4 h-4 text-purple-300" />
-              </span>
-              <div className="text-xs">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-bold text-white flex items-center gap-1.5">
-                    <span>Modo Prática Ativo</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-mono font-bold">
-                      {practiceType === 'wait' ? 'Modo Espera (Wait)' : 'Modo Fluido (Flow)'}
-                    </span>
+          <div className="p-3.5 px-4 rounded-2xl bg-gradient-to-r from-purple-950/60 via-indigo-950/60 to-slate-950/70 border border-purple-500/30 space-y-2.5 shadow-xl backdrop-blur-md animate-in fade-in duration-300">
+            {/* Linha Superior: Identificação do Modo, Compasso e Métricas em Tempo Real */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="w-7 h-7 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center shrink-0">
+                  <Target className="w-4 h-4 text-purple-300" />
+                </span>
+                <span className="font-bold text-white text-xs flex items-center gap-1.5">
+                  <span>Modo Prática Ativo</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-mono font-bold">
+                    {practiceType === 'wait' ? 'Modo Espera (Wait)' : 'Modo Fluido (Flow)'}
                   </span>
-                  <span className="text-[11px] text-slate-400 font-mono hidden lg:inline">
-                    • Compasso {currentMeasure} • Multi-Mãos &amp; Acordes Sincronizados
-                  </span>
-                </div>
-                <p className="text-purple-200/80 text-[11px] mt-0.5">
-                  {practiceType === 'wait'
-                    ? 'A partitura aguarda você tocar todas as notas do compasso atual. Toque as notas com ambas as mãos juntas ou separadas.'
-                    : `A partitura corre no andamento (${tempo} BPM). Acerte as notas na linha vertical de impacto!`}
-                </p>
-              </div>
-            </div>
-
-            {/* Lado Direito: Métricas em Tempo Real (Acurácia, Acertos, Erros, Pontuação) */}
-            <div className="flex flex-wrap items-center gap-2 self-stretch md:self-auto justify-end shrink-0">
-              <div className="flex items-center gap-1 bg-black/50 px-2.5 py-1.5 rounded-xl border border-white/10">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-[10px] font-mono text-slate-400">Acurácia:</span>
-                <span
-                  className={`text-xs font-mono font-bold ${
-                    practiceAccuracy >= 90
-                      ? 'text-emerald-400'
-                      : practiceAccuracy >= 70
-                      ? 'text-cyan-300'
-                      : 'text-amber-400'
-                  }`}
-                >
-                  {practiceAccuracy}%
+                </span>
+                <span className="text-xs px-2.5 py-0.5 rounded-xl bg-indigo-500/20 text-indigo-200 border border-indigo-500/30 font-mono font-bold">
+                  Compasso {currentMeasure}
+                </span>
+                <span className="text-[11px] text-slate-400 font-mono hidden xl:inline">
+                  • Multi-Mãos &amp; Acordes Sincronizados
                 </span>
               </div>
 
-              <div className="flex items-center gap-1 bg-black/50 px-2.5 py-1.5 rounded-xl border border-white/10">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-[10px] font-mono text-slate-400">Acertos:</span>
-                <span className="text-xs font-mono font-bold text-emerald-300">{practiceHits}</span>
-              </div>
+              {/* Métricas em Tempo Real: Acurácia, Acertos, Erros, Pontos */}
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1 bg-black/50 px-2.5 py-1.5 rounded-xl border border-white/10">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-[10px] font-mono text-slate-400">Acurácia:</span>
+                  <span
+                    className={`text-xs font-mono font-bold ${
+                      practiceAccuracy >= 90
+                        ? 'text-emerald-400'
+                        : practiceAccuracy >= 70
+                        ? 'text-cyan-300'
+                        : 'text-amber-400'
+                    }`}
+                  >
+                    {practiceAccuracy}%
+                  </span>
+                </div>
 
-              <div className="flex items-center gap-1 bg-black/50 px-2.5 py-1.5 rounded-xl border border-white/10">
-                <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
-                <span className="text-[10px] font-mono text-slate-400">Erros:</span>
-                <span className="text-xs font-mono font-bold text-rose-300">{practiceErrors}</span>
-              </div>
+                <div className="flex items-center gap-1 bg-black/50 px-2.5 py-1.5 rounded-xl border border-white/10">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-[10px] font-mono text-slate-400">Acertos:</span>
+                  <span className="text-xs font-mono font-bold text-emerald-300">{practiceHits}</span>
+                </div>
 
-              <div className="flex items-center gap-1 bg-purple-500/10 px-2.5 py-1.5 rounded-xl border border-purple-500/20">
-                <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                <span className="text-[10px] font-mono text-purple-300">Pontos:</span>
-                <span className="text-xs font-mono font-bold text-amber-300">{practiceScore}</span>
-              </div>
-            </div>
-          </div>
-        )}
+                <div className="flex items-center gap-1 bg-black/50 px-2.5 py-1.5 rounded-xl border border-white/10">
+                  <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
+                  <span className="text-[10px] font-mono text-slate-400">Erros:</span>
+                  <span className="text-xs font-mono font-bold text-rose-300">{practiceErrors}</span>
+                </div>
 
-        {/* Monitor das Notas do Passo Atual no Modo Prática */}
-        {viewMode === 'practice' && currentStepNotes.length > 0 && (
-          <div className="px-4 py-2.5 rounded-2xl bg-black/40 border border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
-                Toque no Passo Atual:
-              </span>
-              <div className="flex flex-wrap items-center gap-1.5">
-                {currentStepNotes.map((note) => {
-                  const idx = sortedScoreTrack.indexOf(note);
-                  const isSatisfied = satisfiedStepIndices.has(idx);
-                  const isBass = note.clef === 'bass' || note.midi < 60;
-                  const hand = isBass ? 'M.E.' : 'M.D.';
-                  const finger = note.fingerRightHand || note.fingerLeftHand || (isBass ? 5 : (note.midi === 60 ? 1 : 2));
-                  const ptName = octaveConfigStore.midiToPtName(note.midi, octaveStandard);
-
-                  return (
-                    <span
-                      key={`${idx}-${note.midi}`}
-                      className={`px-2.5 py-1 rounded-xl font-mono text-xs font-bold border flex items-center gap-1.5 transition-all ${
-                        isSatisfied
-                          ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 line-through decoration-emerald-400'
-                          : isBass
-                          ? 'bg-sky-500/20 border-sky-500/40 text-sky-200 animate-pulse'
-                          : 'bg-purple-500/20 border-purple-500/40 text-purple-200 animate-pulse'
-                      }`}
-                    >
-                      {isSatisfied ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : null}
-                      <span>
-                        {hand} Dedo {finger} ({ptName})
-                      </span>
-                    </span>
-                  );
-                })}
+                <div className="flex items-center gap-1 bg-purple-500/10 px-2.5 py-1.5 rounded-xl border border-purple-500/20">
+                  <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="text-[10px] font-mono text-purple-300">Pontos:</span>
+                  <span className="text-xs font-mono font-bold text-amber-300">{practiceScore}</span>
+                </div>
               </div>
             </div>
 
-            {/* Teclas ouvidas agora em tempo real */}
-            {activeInputMidis.length > 0 && (
-              <div className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-400 bg-emerald-950/40 px-2.5 py-1 rounded-xl border border-emerald-500/30">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                <span>Ouvindo: {activeInputMidis.map((m) => octaveConfigStore.midiToPtName(m, octaveStandard)).join(', ')}</span>
+            {/* Linha Inferior: Toque no Passo Atual + Teclas Ouvidas */}
+            {currentStepNotes.length > 0 && (
+              <div className="pt-2 border-t border-white/5 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
+                    Toque no Passo Atual:
+                  </span>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {currentStepNotes.map((note) => {
+                      const idx = sortedScoreTrack.indexOf(note);
+                      const isSatisfied = satisfiedStepIndices.has(idx);
+                      const isBass = note.clef === 'bass' || note.midi < 60;
+                      const hand = isBass ? 'M.E.' : 'M.D.';
+                      const finger = note.fingerRightHand || note.fingerLeftHand || (isBass ? 5 : (note.midi === 60 ? 1 : 2));
+                      const ptName = octaveConfigStore.midiToPtName(note.midi, octaveStandard);
+
+                      return (
+                        <span
+                          key={`${idx}-${note.midi}`}
+                          className={`px-2.5 py-1 rounded-xl font-mono text-xs font-bold border flex items-center gap-1.5 transition-all ${
+                            isSatisfied
+                              ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 line-through decoration-emerald-400'
+                              : isBass
+                              ? 'bg-sky-500/20 border-sky-500/40 text-sky-200 animate-pulse'
+                              : 'bg-purple-500/20 border-purple-500/40 text-purple-200 animate-pulse'
+                          }`}
+                        >
+                          {isSatisfied ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : null}
+                          <span>
+                            {hand} Dedo {finger} ({ptName})
+                          </span>
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Teclas ouvidas agora em tempo real */}
+                {activeInputMidis.length > 0 && (
+                  <div className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-400 bg-emerald-950/40 px-2.5 py-1 rounded-xl border border-emerald-500/30">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                    <span>Ouvindo: {activeInputMidis.map((m) => octaveConfigStore.midiToPtName(m, octaveStandard)).join(', ')}</span>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1289,6 +1318,23 @@ export const RepertoireView: React.FC = () => {
           onTempoChange={(newBpm) => handleTempoChange(newBpm)}
           currentMidiPressed={viewMode === 'practice' && isPracticing ? lastMidiEvent : null}
         />
+
+        {/* Card de Letras Sincronizadas (Karaokê / Teleprompter Pedagógico) */}
+        {showLyrics && (
+          <div className="pt-0.5 transition-all duration-300">
+            <SynchronizedLyricsCard
+              lyrics={activeSong.extension?.lyrics}
+              sections={activeSong.extension?.sections}
+              currentBeat={currentAbsoluteBeat}
+              currentMeasure={effectiveMeasure}
+              isPlaying={viewMode === 'playback' ? isPlaying : isPracticing}
+              isWaitMode={viewMode === 'practice' && practiceType === 'wait'}
+              songTitle={activeSong.title}
+              artist={activeSong.composerOrArtist}
+              onClose={toggleShowLyrics}
+            />
+          </div>
+        )}
 
         {/* Teclado Virtual com Rastro Synthesia (100% da Largura, Zero Scroll, Bordas Sutis) */}
         <div className="pt-1">

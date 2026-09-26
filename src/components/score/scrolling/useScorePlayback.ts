@@ -62,7 +62,9 @@ export function useScorePlayback({
   onStepChange,
 }: UseScorePlaybackProps) {
   const modeRef = useRef(mode);
-  modeRef.current = mode;
+  useEffect(() => {
+    modeRef.current = mode;
+  }, [mode]);
   const [internalIsPlaying, setInternalIsPlaying] = useState<boolean>(false);
   const isPlaying = controlledIsPlaying !== undefined ? controlledIsPlaying : internalIsPlaying;
   const [tempo, setTempo] = useState<number>(bpm);
@@ -85,22 +87,34 @@ export function useScorePlayback({
 
   // Refs para manter callbacks estáveis e blindados contra loops infinitos de renderização (React Error #185)
   const onTargetNoteChangeRef = useRef(onTargetNoteChange);
-  onTargetNoteChangeRef.current = onTargetNoteChange;
+  useEffect(() => {
+    onTargetNoteChangeRef.current = onTargetNoteChange;
+  }, [onTargetNoteChange]);
 
   const onNoteHitRef = useRef(onNoteHit);
-  onNoteHitRef.current = onNoteHit;
+  useEffect(() => {
+    onNoteHitRef.current = onNoteHit;
+  }, [onNoteHit]);
 
   const onNoteErrorRef = useRef(onNoteError);
-  onNoteErrorRef.current = onNoteError;
+  useEffect(() => {
+    onNoteErrorRef.current = onNoteError;
+  }, [onNoteError]);
 
   const onLessonCompleteRef = useRef(onLessonComplete);
-  onLessonCompleteRef.current = onLessonComplete;
+  useEffect(() => {
+    onLessonCompleteRef.current = onLessonComplete;
+  }, [onLessonComplete]);
 
   const onPlayPauseToggleRef = useRef(onPlayPauseToggle);
-  onPlayPauseToggleRef.current = onPlayPauseToggle;
+  useEffect(() => {
+    onPlayPauseToggleRef.current = onPlayPauseToggle;
+  }, [onPlayPauseToggle]);
 
   const onTempoChangeRef = useRef(onTempoChange);
-  onTempoChangeRef.current = onTempoChange;
+  useEffect(() => {
+    onTempoChangeRef.current = onTempoChange;
+  }, [onTempoChange]);
 
   // Notifica o componente pai sobre a nota alvo atual da partitura sempre que o índice da nota mudar
   const lastTargetIndexRef = useRef<number | null | undefined>(undefined);
@@ -129,11 +143,13 @@ export function useScorePlayback({
   }, [currentIndex, notes, timeline.noteOffsets, tempo]);
 
   const currentIndexRef = useRef(currentIndex);
-  currentIndexRef.current = currentIndex;
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
 
   const validatorRef = useRef(new NoteConfirmationValidator());
   const lastStepCompletedTimeRef = useRef<number>(0);
-  const lastStepCompletedMidiRef = useRef<number | null>(null);
+  const lastStepCompletedNotesRef = useRef<Set<number>>(new Set());
   const lastProcessedEventTimestampRef = useRef<number>(0);
 
   // Adapta parâmetros da janela de confirmação conforme o andamento e o instrumento
@@ -168,8 +184,12 @@ export function useScorePlayback({
   const currentStepIndices = useMemo(() => {
     if (!notes || notes.length === 0 || currentIndex >= notes.length) return [];
     const off = timeline.noteOffsets[currentIndex] ?? 0;
+    let firstIdx = currentIndex;
+    while (firstIdx > 0 && Math.abs((timeline.noteOffsets[firstIdx - 1] ?? 0) - off) < 0.05) {
+      firstIdx--;
+    }
     const indices: number[] = [];
-    for (let i = currentIndex; i < notes.length; i++) {
+    for (let i = firstIdx; i < notes.length; i++) {
       const o = timeline.noteOffsets[i] ?? 0;
       if (Math.abs(o - off) < 0.05) {
         indices.push(i);
@@ -181,7 +201,9 @@ export function useScorePlayback({
   }, [currentIndex, notes, timeline.noteOffsets]);
 
   const onStepChangeRef = useRef(onStepChange);
-  onStepChangeRef.current = onStepChange;
+  useEffect(() => {
+    onStepChangeRef.current = onStepChange;
+  }, [onStepChange]);
 
   useEffect(() => {
     onStepChangeRef.current?.(currentStepIndices, satisfiedIndices);
@@ -216,13 +238,15 @@ export function useScorePlayback({
 
   const handleRestart = () => {
     scrollOffsetRef.current = 0;
+    currentIndexRef.current = 0;
     setCurrentIndex(0);
     setLastError(null);
     lastTargetIndexRef.current = undefined;
     lastEmittedIndexRef.current = -1;
+    lastExternalSyncIndexRef.current = 0;
     lastProcessedEventTimestampRef.current = 0;
     lastStepCompletedTimeRef.current = 0;
-    lastStepCompletedMidiRef.current = null;
+    lastStepCompletedNotesRef.current.clear();
     playedNotesRef.current.clear();
     playedChordsRef.current.clear();
     playedBeatsRef.current.clear();
@@ -313,34 +337,46 @@ export function useScorePlayback({
       lastExternalSyncIndexRef.current = currentNoteIndex;
       return;
     }
-    // Apenas sincroniza se for uma ordem externa real (ex: reset pelo pai para o compasso 1)
+
+    // Se for um reset explícito (ex: reiniciar para o compasso 1 / índice 0):
+    if (currentNoteIndex === 0) {
+      lastExternalSyncIndexRef.current = 0;
+      currentIndexRef.current = 0;
+      setCurrentIndex(0);
+      scrollOffsetRef.current = 0;
+      playedNotesRef.current.clear();
+      playedChordsRef.current.clear();
+      playedBeatsRef.current.clear();
+      satisfiedIndicesRef.current.clear();
+      setSatisfiedIndices(new Set());
+      isPausedWaitingRef.current = false;
+      validatorRef.current.reset();
+      return;
+    }
+
+    // REGRA DE MONOTONICIDADE: durante execução/prática ativa, índices menores
+    // que a posição atual são REJEITADOS para impedir vaivém (1 -> 2 -> 3 -> 2 -> 3)
+    if (isPlaying && currentNoteIndex < currentIndexRef.current) {
+      return;
+    }
+
+    // Apenas sincroniza se for uma ordem externa real (ex: seek ou salto explícito)
     if (currentNoteIndex !== lastExternalSyncIndexRef.current) {
       lastExternalSyncIndexRef.current = currentNoteIndex;
       currentIndexRef.current = currentNoteIndex;
       setCurrentIndex(currentNoteIndex);
 
-      if (currentNoteIndex === 0) {
-        scrollOffsetRef.current = 0;
-        playedNotesRef.current.clear();
-        playedChordsRef.current.clear();
-        playedBeatsRef.current.clear();
-        satisfiedIndicesRef.current.clear();
-        setSatisfiedIndices(new Set());
-        isPausedWaitingRef.current = false;
-        validatorRef.current.reset();
-      } else {
-        const targetOffset = timeline.noteOffsets[currentNoteIndex] ?? 0;
-        const targetScroll = targetOffset * pixelsPerBeat;
-        scrollOffsetRef.current = targetScroll;
-        for (let i = 0; i < currentNoteIndex; i++) {
-          playedNotesRef.current.add(i);
-        }
-        for (let i = currentNoteIndex; i < notes.length; i++) {
-          playedNotesRef.current.delete(i);
-        }
+      const targetOffset = timeline.noteOffsets[currentNoteIndex] ?? 0;
+      const targetScroll = targetOffset * pixelsPerBeat;
+      scrollOffsetRef.current = targetScroll;
+      for (let i = 0; i < currentNoteIndex; i++) {
+        playedNotesRef.current.add(i);
+      }
+      for (let i = currentNoteIndex; i < notes.length; i++) {
+        playedNotesRef.current.delete(i);
       }
     }
-  }, [currentNoteIndex, notes.length, pixelsPerBeat, timeline.noteOffsets]);
+  }, [currentNoteIndex, isPlaying, notes.length, pixelsPerBeat, timeline.noteOffsets]);
 
   useEffect(() => {
     if (isDemoMode || currentMidiPressed === null || currentMidiPressed === undefined) return;
@@ -393,12 +429,12 @@ export function useScorePlayback({
     const intensity = velocity / 127;
     let matchedAny = false;
 
-    // Se o passo anterior acabou de ser concluído com esta mesma nota há menos de 140ms,
-    // ignora resíduo acústico / sustain para não consumir o próximo passo inadvertidamente
+    // Se o passo anterior acabou de ser concluído com as mesmas notas há menos de 160ms,
+    // ignora eco do acorde / sustain para não consumir o próximo passo inadvertidamente
     if (
-      lastStepCompletedMidiRef.current !== null &&
-      playedMidis.includes(lastStepCompletedMidiRef.current) &&
-      now - lastStepCompletedTimeRef.current < 140
+      now - lastStepCompletedTimeRef.current < 160 &&
+      lastStepCompletedNotesRef.current.size > 0 &&
+      playedMidis.every((m) => lastStepCompletedNotesRef.current.has(m))
     ) {
       return;
     }
@@ -455,13 +491,16 @@ export function useScorePlayback({
       const diffMs = (currentBeat - noteOffset) * ((60 / tempo) * 1000);
 
       lastStepCompletedTimeRef.current = now;
-      lastStepCompletedMidiRef.current = targetNote.midi;
+      lastStepCompletedNotesRef.current = new Set(currentStepIndices.map((i) => notes[i].midi));
 
       processStrike(diffMs, lastIdx);
 
       satisfiedIndicesRef.current.clear();
       setSatisfiedIndices(new Set());
-      setCurrentIndex(nextIdx);
+      if (nextIdx > currentIndexRef.current) {
+        currentIndexRef.current = nextIdx;
+        setCurrentIndex(nextIdx);
+      }
 
       if (nextIdx >= notes.length) {
         onLessonCompleteRef.current?.();
@@ -515,7 +554,10 @@ export function useScorePlayback({
           satisfiedIndicesRef.current.add(nextMatch);
         }
         setSatisfiedIndices(new Set(satisfiedIndicesRef.current));
-        setCurrentIndex(nextStepStartIdx);
+        if (nextStepStartIdx > currentIndexRef.current) {
+          currentIndexRef.current = nextStepStartIdx;
+          setCurrentIndex(nextStepStartIdx);
+        }
         return;
       }
     }

@@ -1,15 +1,17 @@
 /**
  * repertoireDataExtended.ts
- * Barrel e agregador central de todo o repertorio da aplicacao.
+ * Barrel e agregador central de todo o repertório estendido da aplicação.
  *
- * Cada musica do catalogo estendido esta em src/core/songs/.
+ * Cada música do catálogo estendido está em src/core/songs/.
  * Este arquivo:
- *   1. Importa os arrays dos catalogos especializados (World & Psych).
- *   2. Importa individualmente cada musica do catalogo estendido.
- *   3. Exporta EXTENDED_REPERTOIRE_SONGS com todo o repertorio unificado.
+ *   1. Importa os arrays dos catálogos especializados (World, Psych e Expansão).
+ *   2. Importa individualmente cada música do catálogo estendido.
+ *   3. Aplica a ordenação cronológica rigorosa (sortScoreTrack) e atribui o auditStatus.
+ *   4. Exporta EXTENDED_REPERTOIRE_SONGS com todo o repertório unificado e auditado.
  */
 
 import type { RepertoireSong } from './repertoireData';
+import { sortScoreTrack } from './repertoireTypes';
 import { WORLD_FOLK_SONGS } from './repertoireDataWorld';
 import { PSYCHEDELIC_ROCK_SONGS } from './repertoireDataPsych';
 
@@ -56,6 +58,25 @@ import { GARCON_REGINALDO_ROSSI } from './songs/garconReginaldoRossi';
 import { A_RAPOSA_E_AS_UVAS } from './songs/aRaposaEAsUvas';
 import { LEVIANA_BARTO_GALENO } from './songs/levianaBartoGaleno';
 
+// ─── NOVAS OBRAS DE AMPLIAÇÃO DO REPERTÓRIO (Auditoria & Enriquecimento) ───
+// Gospel Clássico & Hinos Sacros
+import { AMAZING_GRACE } from './songs/amazingGrace';
+import { GRANDIOSO_ES_TU } from './songs/grandiosoEsTu';
+import { RUDE_CRUZ } from './songs/rudeCruz';
+
+// Clássico & Grandes Mestres
+import { PRELUDE_C_MAJOR_BACH } from './songs/preludeCMajorBach';
+import { SONATA_K545_MOZART } from './songs/sonataK545Mozart';
+import { CHOPIN_PRELUDE_E_MINOR } from './songs/chopinPreludeEMinor';
+
+// MPB & Choro Brasileiro
+import { TICO_TICO_NO_FUBA } from './songs/ticoTicoNoFuba';
+import { AQUARELA_DO_BRASIL } from './songs/aquarelaDoBrasil';
+
+// Internacional & Folk Universal
+import { GREENSLEEVES } from './songs/greensleeves';
+import { HOUSE_OF_THE_RISING_SUN } from './songs/houseOfTheRisingSun';
+
 export {
   THREE_LITTLE_BIRDS,
   XOTE_DAS_MENINAS,
@@ -84,6 +105,17 @@ export {
   GARCON_REGINALDO_ROSSI,
   A_RAPOSA_E_AS_UVAS,
   LEVIANA_BARTO_GALENO,
+  // Novas Obras
+  AMAZING_GRACE,
+  GRANDIOSO_ES_TU,
+  RUDE_CRUZ,
+  PRELUDE_C_MAJOR_BACH,
+  SONATA_K545_MOZART,
+  CHOPIN_PRELUDE_E_MINOR,
+  TICO_TICO_NO_FUBA,
+  AQUARELA_DO_BRASIL,
+  GREENSLEEVES,
+  HOUSE_OF_THE_RISING_SUN,
 };
 
 const EXTENDED_OWN_SONGS: RepertoireSong[] = [
@@ -123,8 +155,35 @@ const EXTENDED_OWN_SONGS: RepertoireSong[] = [
   LEVIANA_BARTO_GALENO,
 ];
 
-export const EXTENDED_REPERTOIRE_SONGS: RepertoireSong[] = [
+const NEW_EXPANSION_SONGS: RepertoireSong[] = [
+  // Gospel Clássico & Hinos Sacros
+  AMAZING_GRACE,
+  GRANDIOSO_ES_TU,
+  RUDE_CRUZ,
+  // Clássico & Grandes Mestres
+  PRELUDE_C_MAJOR_BACH,
+  SONATA_K545_MOZART,
+  CHOPIN_PRELUDE_E_MINOR,
+  // MPB & Choro Brasileiro
+  TICO_TICO_NO_FUBA,
+  AQUARELA_DO_BRASIL,
+  // Internacional & Folk Universal
+  GREENSLEEVES,
+  HOUSE_OF_THE_RISING_SUN,
+];
+
+const RAW_EXTENDED_CATALOG: RepertoireSong[] = [
   ...EXTENDED_OWN_SONGS,
+  ...NEW_EXPANSION_SONGS,
   ...WORLD_FOLK_SONGS,
   ...PSYCHEDELIC_ROCK_SONGS,
 ];
+
+/**
+ * Catálogo estendido com garantia de ordenação cronológica rigorosa e estado de auditoria.
+ */
+export const EXTENDED_REPERTOIRE_SONGS: RepertoireSong[] = RAW_EXTENDED_CATALOG.map((song) => ({
+  ...song,
+  auditStatus: song.auditStatus || 'CORRECTED',
+  scoreTrack: sortScoreTrack(song.scoreTrack, song.timeSignature),
+}));

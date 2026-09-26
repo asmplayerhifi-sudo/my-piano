@@ -19,9 +19,13 @@ import {
 import {
   Play, Pause, Square, Plus, Trash2, Download,
   Music, ChevronLeft, ChevronRight, Save, FileMusic,
-  Undo2, Redo2, SkipBack, Radio,
+  Undo2, Redo2, SkipBack, Radio, FolderOpen, FilePlus2, Copy,
 } from 'lucide-react';
 import { FormalScoreSheet } from './editor/FormalScoreSheet';
+import { StudioFolderBar } from '../common/StudioFolderBar';
+import { StudioProjectModal } from '../common/StudioProjectModal';
+import { useStudioStorage } from '../../core/studio/useStudioStorage';
+import type { StudioProjectEnvelope } from '../../core/studio/studioStorageTypes';
 
 // ────────────────────────────────────────────────────────────────────────────
 // Tipos do Editor
@@ -448,9 +452,16 @@ export const ScoreEditor: React.FC = () => {
   const [isChordMode, setIsChordMode] = useState<boolean>(false);
   const metronome = useMetronome();
 
+  const studioStorage = useStudioStorage();
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState<boolean>(false);
+  const [storageFeedback, setStorageFeedback] = useState<string | null>(null);
+
   const playbackRef = useRef<{ raf: number; startTime: number; startBeat: number } | null>(null);
   const projectRef = useRef(project);
-  projectRef.current = project;
+  useEffect(() => {
+    projectRef.current = project;
+  }, [project]);
 
   const handleToggleMetronome = useCallback(async () => {
     await soundEngine.ensureAudioReady();
@@ -707,32 +718,133 @@ export const ScoreEditor: React.FC = () => {
     }
   }, [isPlaying, startPlayback, stopPlayback]);
 
-  // ── Salvar / Exportar ────────────────────────────────────────────────────
+  // ── Salvar / Exportar Soberano ───────────────────────────────────────────
 
-  const saveToLocalStorage = useCallback(() => {
-    const updated = { ...projectRef.current, updatedAt: new Date().toISOString() };
-    try {
-      localStorage.setItem('harmonia-score-editor', JSON.stringify(updated));
-      setIsSaved(true);
-      setProject(updated);
-    } catch (e) {
-      console.warn('Falha ao salvar no localStorage:', e);
+  const handleSaveToSovereignFolder = useCallback(async () => {
+    if (!studioStorage.folderInfo?.isAvailable) {
+      setIsProjectModalOpen(true);
+      return;
     }
-  }, []);
 
-  const loadFromLocalStorage = useCallback(() => {
     try {
-      const raw = localStorage.getItem('harmonia-score-editor');
-      if (raw) {
-        const parsed = JSON.parse(raw) as ScoreProject;
-        setProject(parsed);
-        pushHistory(parsed.notes);
+      const current = projectRef.current;
+      if (currentProjectId) {
+        await studioStorage.saveProject({
+          id: currentProjectId,
+          module: 'score',
+          title: current.title,
+          data: current,
+          metadata: {
+            bpm: current.bpm,
+            timeSignature: current.timeSignature,
+            notesCount: current.notes.length,
+          },
+        });
         setIsSaved(true);
+        setStorageFeedback('Partitura salva com sucesso na pasta local!');
+        setTimeout(() => setStorageFeedback(null), 3000);
+      } else {
+        const res = await studioStorage.createProject({
+          module: 'score',
+          title: current.title || 'Minha Partitura',
+          data: current,
+          metadata: {
+            bpm: current.bpm,
+            timeSignature: current.timeSignature,
+            notesCount: current.notes.length,
+          },
+        });
+        setCurrentProjectId(res.item.id);
+        setIsSaved(true);
+        setStorageFeedback(`Projeto criado: ${res.item.relativePath}`);
+        setTimeout(() => setStorageFeedback(null), 3000);
       }
-    } catch (e) {
-      console.warn('Falha ao carregar do localStorage:', e);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setStorageFeedback(`Erro ao salvar: ${msg}`);
+      setTimeout(() => setStorageFeedback(null), 4000);
+    }
+  }, [studioStorage, currentProjectId]);
+
+  const handleOpenProject = useCallback((_path: string, envelope: StudioProjectEnvelope<any>) => {
+    const data = envelope.data;
+    if (data && Array.isArray(data.notes)) {
+      setProject({
+        title: envelope.title || data.title,
+        bpm: data.bpm || 120,
+        timeSignature: data.timeSignature || [4, 4],
+        notes: data.notes || [],
+        createdAt: envelope.createdAt || new Date().toISOString(),
+        updatedAt: envelope.updatedAt || new Date().toISOString(),
+      });
+      setCurrentProjectId(envelope.id);
+      pushHistory(data.notes || []);
+      setIsSaved(true);
+      setStorageFeedback(`Partitura "${envelope.title}" carregada.`);
+      setTimeout(() => setStorageFeedback(null), 3000);
     }
   }, [pushHistory]);
+
+  const handleCreateNewProject = useCallback(async (title: string) => {
+    const blank = buildDefaultProject();
+    blank.title = title;
+    try {
+      if (studioStorage.folderInfo?.isAvailable) {
+        const res = await studioStorage.createProject({
+          module: 'score',
+          title,
+          data: blank,
+          metadata: {
+            bpm: blank.bpm,
+            timeSignature: blank.timeSignature,
+            notesCount: 0,
+          },
+        });
+        setCurrentProjectId(res.item.id);
+      } else {
+        setCurrentProjectId(null);
+      }
+      setProject(blank);
+      pushHistory([]);
+      setIsSaved(true);
+      setStorageFeedback(`Nova partitura criada: ${title}`);
+      setTimeout(() => setStorageFeedback(null), 3000);
+    } catch (err) {
+      console.warn('Falha ao criar projeto na pasta:', err);
+      setProject(blank);
+      pushHistory([]);
+    }
+  }, [studioStorage, pushHistory]);
+
+  const handleSaveCurrentAs = useCallback(async (newTitle: string) => {
+    if (!studioStorage.folderInfo?.isAvailable) {
+      setIsProjectModalOpen(true);
+      return;
+    }
+    const current = { ...projectRef.current, title: newTitle };
+    try {
+      const res = await studioStorage.saveProjectAs({
+        originalId: currentProjectId || 'temp',
+        module: 'score',
+        newTitle,
+        data: current,
+        metadata: {
+          bpm: current.bpm,
+          timeSignature: current.timeSignature,
+          notesCount: current.notes.length,
+        },
+      });
+      setCurrentProjectId(res.item.id);
+      setProject(current);
+      setIsSaved(true);
+      setStorageFeedback(`Cópia salva como "${newTitle}"`);
+      setTimeout(() => setStorageFeedback(null), 3000);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setStorageFeedback(`Erro ao salvar como: ${msg}`);
+      setTimeout(() => setStorageFeedback(null), 4000);
+    }
+  }, [studioStorage, currentProjectId]);
 
   const exportMidi = useCallback(() => {
     const midi = projectToMidi(projectRef.current);
@@ -756,25 +868,19 @@ export const ScoreEditor: React.FC = () => {
     URL.revokeObjectURL(url);
   }, []);
 
-  // Carrega projeto salvo ao montar
-  useEffect(() => {
-    loadFromLocalStorage();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // Atalhos de teclado
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement) return;
       if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); undo(); }
       if ((e.ctrlKey || e.metaKey) && e.key === 'y') { e.preventDefault(); redo(); }
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveToLocalStorage(); }
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); handleSaveToSovereignFolder(); }
       if (e.key === 'Delete' || e.key === 'Backspace') { if (selectedNoteId) { e.preventDefault(); deleteSelectedNote(); } }
       if (e.key === ' ') { e.preventDefault(); togglePlayback(); }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [undo, redo, saveToLocalStorage, selectedNoteId, deleteSelectedNote, togglePlayback]);
+  }, [undo, redo, handleSaveToSovereignFolder, selectedNoteId, deleteSelectedNote, togglePlayback]);
 
   const octaveStandard = useOctaveStandard();
   const trebleNotes = useMemo(() => getTrebleNotes(octaveStandard), [octaveStandard]);
@@ -783,7 +889,17 @@ export const ScoreEditor: React.FC = () => {
   const noteRows = selectedClef === 'treble' ? trebleNotes : bassNotes;
 
   return (
-    <div className="w-full space-y-5" onClick={() => setSelectedNoteId(null)}>
+    <div className="w-full space-y-4" onClick={() => setSelectedNoteId(null)}>
+      {/* ── 1. Barra Soberana da Pasta do Usuário ── */}
+      <StudioFolderBar onOpenCatalog={() => setIsProjectModalOpen(true)} />
+
+      {/* Toast de Feedback */}
+      {storageFeedback && (
+        <div className="px-4 py-2 bg-emerald-950/80 border border-emerald-500/40 rounded-xl text-emerald-200 text-xs font-medium flex items-center justify-between shadow-lg animate-in fade-in">
+          <span>{storageFeedback}</span>
+        </div>
+      )}
+
       {/* ── Header ── */}
       <div className="glass-card rounded-3xl p-5 border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -922,18 +1038,45 @@ export const ScoreEditor: React.FC = () => {
           </button>
         </div>
 
-        {/* Salvar */}
+        {/* Ações Soberanas do Estúdio */}
         <button
-          onClick={saveToLocalStorage}
+          onClick={() => handleCreateNewProject('Nova Partitura')}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-white/5 border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 transition-all cursor-pointer"
+          title="Criar Nova Partitura"
+        >
+          <FilePlus2 className="w-3.5 h-3.5 text-violet-400" />
+          Novo
+        </button>
+
+        <button
+          onClick={() => setIsProjectModalOpen(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-violet-600/30 border border-violet-500/40 text-violet-200 hover:bg-violet-600/50 transition-all cursor-pointer shadow-md shadow-violet-600/20"
+          title="Abrir Catálogo de Partituras na Pasta Soberana"
+        >
+          <FolderOpen className="w-3.5 h-3.5 text-violet-300" />
+          Catálogo
+        </button>
+
+        <button
+          onClick={handleSaveToSovereignFolder}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
             isSaved
-              ? 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
-              : 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30'
+              ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300 hover:bg-emerald-900/50'
+              : 'bg-emerald-500/30 border-emerald-400 text-emerald-200 animate-pulse hover:bg-emerald-500/40'
           }`}
-          title="Salvar (Ctrl+S)"
+          title="Salvar na Pasta Soberana do Usuário (Ctrl+S)"
         >
           <Save className="w-3.5 h-3.5" />
-          {isSaved ? 'Salvo' : 'Salvar'}
+          {isSaved ? 'Salvo no Disco' : 'Salvar'}
+        </button>
+
+        <button
+          onClick={() => setIsProjectModalOpen(true)}
+          className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium bg-white/5 border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+          title="Salvar Cópia do Projeto"
+        >
+          <Copy className="w-3.5 h-3.5 text-amber-400" />
+          Salvar Como
         </button>
 
         {/* Exportar */}
@@ -1230,6 +1373,17 @@ export const ScoreEditor: React.FC = () => {
           </div>
         ))}
       </div>
+
+      {/* ── Modal Soberano de Projetos ── */}
+      <StudioProjectModal
+        isOpen={isProjectModalOpen}
+        onClose={() => setIsProjectModalOpen(false)}
+        activeModule="score"
+        currentProjectId={currentProjectId}
+        onOpenProject={handleOpenProject}
+        onCreateNewProject={handleCreateNewProject}
+        onSaveCurrentAs={handleSaveCurrentAs}
+      />
     </div>
   );
 };

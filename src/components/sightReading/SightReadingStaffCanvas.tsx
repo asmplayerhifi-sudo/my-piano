@@ -4,9 +4,14 @@
  * Palco Gráfico em Canvas Retina de Alta Fidelidade para Treino de Leitura de Partitura.
  * Suporta:
  *  - Clave de Sol (Treble), Clave de Fá (Bass) e Pauta Dupla (Grand Staff).
+ *  - Armaduras de Clave (Sustenidos e Bemóis nas linhas/espaços correspondentes).
+ *  - Fórmulas de Compasso (2/4, 3/4, 4/4, 6/8).
+ *  - Figuras Rítmicas (Semibreve, Mínima, Semínima, Colcheia com bandeirola).
+ *  - Contagem Temporal sob a pauta (1, 2, 3, 4).
+ *  - Cursor de Leitura / Linha Temporal Determinística (Requisito 3).
  *  - Linhas Suplementares superiores e inferiores automáticas.
  *  - Efeitos visuais dinâmicos: Glow na nota alvo, Acerto (Verde Neon) e Erro (Vermelho Pulsante).
- *  - Modos: Nota Única, Intervalos, Sequências Melódicas (com cursor de progresso) e Acordes (empilhamento harmônico).
+ *  - Modos: Nota Única, Intervalos, Sequências Melódicas e Acordes Polifônicos.
  *  - Dicas pedagógicas opcionais (Nomes de Notas e posição na pauta).
  */
 
@@ -14,12 +19,15 @@ import React, { useRef, useEffect, useState } from 'react';
 import type { SightReadingExercise, SightReadingNote } from '../../core/sightReadingEngine';
 import { getFormattedNoteName } from '../../core/sightReadingEngine';
 
-interface SightReadingStaffCanvasProps {
+export interface SightReadingStaffCanvasProps {
   exercise: SightReadingExercise;
   activeNoteIndex: number; // Para sequências e acordes (índice da nota sendo esperada)
   feedbackState: 'idle' | 'correct' | 'wrong';
   showNoteHints: boolean;
   showStaffPositionHints: boolean;
+  showBeatCount?: boolean;
+  cursorProgress?: number; // 0.0 a 1.0 (posição temporal contínua e determinística)
+  isTemporalActive?: boolean;
 }
 
 const STEP_Y = 6; // 6px por semitono/passo diatônico (12px entre linhas da pauta)
@@ -54,6 +62,9 @@ export const SightReadingStaffCanvas: React.FC<SightReadingStaffCanvasProps> = (
   feedbackState,
   showNoteHints,
   showStaffPositionHints,
+  showBeatCount = true,
+  cursorProgress,
+  isTemporalActive = false,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -72,11 +83,11 @@ export const SightReadingStaffCanvas: React.FC<SightReadingStaffCanvasProps> = (
   }, []);
 
   const isGrandStaff = exercise.clef === 'grand';
-  const canvasHeight = isGrandStaff ? 330 : 230;
+  const canvasHeight = isGrandStaff ? 340 : 240;
 
   // Coordenadas das 1ªs linhas (linhas inferiores da pauta de 5 linhas)
-  const trebleLine1Y = isGrandStaff ? 110 : 135;
-  const bassLine1Y = isGrandStaff ? 245 : 135;
+  const trebleLine1Y = isGrandStaff ? 115 : 140;
+  const bassLine1Y = isGrandStaff ? 255 : 140;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -95,19 +106,19 @@ export const SightReadingStaffCanvas: React.FC<SightReadingStaffCanvasProps> = (
 
     // Gradiente sutil Dark Hi-Fi
     const bgGradient = ctx.createLinearGradient(0, 0, 0, canvasHeight);
-    bgGradient.addColorStop(0, '#0a0b18');
+    bgGradient.addColorStop(0, '#090a16');
     bgGradient.addColorStop(1, '#0e0f22');
     ctx.fillStyle = bgGradient;
     ctx.fillRect(0, 0, containerWidth, canvasHeight);
 
     // Borda exterior suave
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.07)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
     ctx.lineWidth = 1;
     ctx.strokeRect(0, 0, containerWidth, canvasHeight);
 
     // ── 2. Desenho das Pautas (5 Linhas) ───────────────────────────────────
-    const staffStartX = 40;
-    const staffEndX = containerWidth - 40;
+    const staffStartX = 36;
+    const staffEndX = containerWidth - 36;
 
     const drawStaffLines = (line1Y: number) => {
       ctx.strokeStyle = 'rgba(226, 232, 240, 0.35)'; // Linhas em cinza claro translúcido nítido
@@ -144,7 +155,7 @@ export const SightReadingStaffCanvas: React.FC<SightReadingStaffCanvasProps> = (
     }
 
     // ── 3. Claves Musicais Oficiais (Unicode Alta Definição) ────────────────
-    const clefX = staffStartX + 20;
+    const clefX = staffStartX + 16;
 
     if (isGrandStaff || exercise.clef === 'treble') {
       ctx.fillStyle = '#818cf8';
@@ -172,16 +183,88 @@ export const SightReadingStaffCanvas: React.FC<SightReadingStaffCanvasProps> = (
     ctx.lineTo(staffStartX, isGrandStaff ? bassLine1Y : (exercise.clef === 'treble' ? trebleLine1Y : bassLine1Y));
     ctx.stroke();
 
+    // ── 3.1 Armadura de Clave (Requisito 2) ─────────────────────────────────
+    let currentX = clefX + 38;
+    const keySig = exercise.keySignature;
+
+    if (keySig && keySig.accidentalsCount > 0) {
+      const isSharp = keySig.type === 'sharp';
+      const symbol = isSharp ? '♯' : '♭';
+      ctx.font = 'bold 18px serif';
+      ctx.fillStyle = isSharp ? '#fbbf24' : '#38bdf8';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      // Posições verticais canônicas para sustenidos e bemóis na pauta
+      // Treble: F5 (line 5: -48), C5 (space 3: -36), G5 (space above: -54), D5 (line 4: -42)
+      // Bass: F3 (line 4: -36), C3 (space 2: -24), G3 (space 4: -42), D3 (line 3: -30)
+      const trebleSharpOffsets = [-48, -36, -54, -42];
+      const bassSharpOffsets = [-36, -24, -42, -30];
+      // Treble flats: B4 (line 3: -24), E5 (space 4: -42), A4 (space 2: -18)
+      // Bass flats: B2 (line 2: -12), E3 (space 3: -30), A2 (space 1: -6)
+      const trebleFlatOffsets = [-24, -42, -18];
+      const bassFlatOffsets = [-12, -30, -6];
+
+      for (let i = 0; i < Math.min(keySig.accidentalsCount, 4); i++) {
+        const accidentalX = currentX + i * 11;
+        if (isGrandStaff || exercise.clef === 'treble') {
+          const dy = isSharp ? trebleSharpOffsets[i] ?? -48 : trebleFlatOffsets[i] ?? -24;
+          ctx.fillText(symbol, accidentalX, trebleLine1Y + dy);
+        }
+        if (isGrandStaff || exercise.clef === 'bass') {
+          const dy = isSharp ? bassSharpOffsets[i] ?? -36 : bassFlatOffsets[i] ?? -12;
+          ctx.fillText(symbol, accidentalX, bassLine1Y + dy);
+        }
+      }
+
+      currentX += keySig.accidentalsCount * 11 + 6;
+    }
+
+    // ── 3.2 Fórmula de Compasso (Requisito 2) ──────────────────────────────
+    if (exercise.timeSignature) {
+      const parts = exercise.timeSignature.split('/');
+      const topNum = parts[0] || '4';
+      const botNum = parts[1] || '4';
+
+      const drawTimeSig = (line1Y: number) => {
+        ctx.save();
+        ctx.font = 'bold 20px "JetBrains Mono", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#e2e8f0';
+        // Número superior entre as linhas 3 e 5
+        ctx.fillText(topNum, currentX + 8, line1Y - 36);
+        // Número inferior entre as linhas 1 e 3
+        ctx.fillText(botNum, currentX + 8, line1Y - 12);
+        ctx.restore();
+      };
+
+      if (isGrandStaff || exercise.clef === 'treble') {
+        drawTimeSig(trebleLine1Y);
+      }
+      if (isGrandStaff || exercise.clef === 'bass') {
+        drawTimeSig(bassLine1Y);
+      }
+
+      currentX += 26;
+    }
+
     // ── 4. Posicionamento e Renderização das Notas ─────────────────────────
     const notesCount = exercise.notes.length;
-    const availableWidth = staffEndX - (clefX + 70);
+    const notesStartX = currentX + 22;
+    const availableWidth = staffEndX - notesStartX - 20;
     const stepX = notesCount > 1 ? availableWidth / (notesCount + 1) : availableWidth / 2;
+
+    // Guarda as posições calculadas para o cursor e notas
+    const notePositions: { x: number; y: number }[] = [];
 
     exercise.notes.forEach((note, index) => {
       // Se for acorde, todas as notas ficam no mesmo X; se for sequência, distribuem-se
       const isChord = exercise.type === 'chords';
-      const noteX = isChord ? clefX + 110 : clefX + 70 + (index + 1) * stepX;
+      const noteX = isChord ? notesStartX + 50 : notesStartX + (index + 0.8) * stepX;
       const noteY = calculateNoteY(note, trebleLine1Y, bassLine1Y);
+
+      notePositions.push({ x: noteX, y: noteY });
 
       const isActiveNote = index === activeNoteIndex || isChord;
       const isPastNote = index < activeNoteIndex && !isChord;
@@ -212,9 +295,9 @@ export const SightReadingStaffCanvas: React.FC<SightReadingStaffCanvasProps> = (
 
       // 4.2 Feedback Glow na Nota Ativa
       if (isActiveNote) {
-        let glowColor = 'rgba(99, 102, 241, 0.4)';
-        if (feedbackState === 'correct') glowColor = 'rgba(16, 185, 129, 0.7)';
-        if (feedbackState === 'wrong') glowColor = 'rgba(239, 68, 68, 0.7)';
+        let glowColor = 'rgba(99, 102, 241, 0.35)';
+        if (feedbackState === 'correct') glowColor = 'rgba(16, 185, 129, 0.65)';
+        if (feedbackState === 'wrong') glowColor = 'rgba(239, 68, 68, 0.65)';
 
         ctx.save();
         ctx.fillStyle = glowColor;
@@ -227,7 +310,13 @@ export const SightReadingStaffCanvas: React.FC<SightReadingStaffCanvasProps> = (
       // 4.3 Acidente Musical (# ou b)
       if (note.accidental) {
         ctx.save();
-        ctx.fillStyle = isActiveNote ? (feedbackState === 'correct' ? '#34d399' : feedbackState === 'wrong' ? '#f87171' : '#f8fafc') : '#94a3b8';
+        ctx.fillStyle = isActiveNote
+          ? feedbackState === 'correct'
+            ? '#34d399'
+            : feedbackState === 'wrong'
+            ? '#f87171'
+            : '#f8fafc'
+          : '#94a3b8';
         ctx.font = 'bold 20px serif';
         ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
@@ -236,7 +325,7 @@ export const SightReadingStaffCanvas: React.FC<SightReadingStaffCanvasProps> = (
         ctx.restore();
       }
 
-      // 4.4 Cabeça da Nota (Oval inclinada padrão musical profissional)
+      // 4.4 Cabeça da Nota & Figura Rítmica (Requisito 4)
       ctx.save();
       let headColor = '#f8fafc';
       if (isPastNote) headColor = '#10b981'; // Notas já acertadas ficam verdes
@@ -246,31 +335,55 @@ export const SightReadingStaffCanvas: React.FC<SightReadingStaffCanvasProps> = (
         else headColor = '#fbbf24'; // Alvo dourado brilhante
       }
 
+      const durationFigure = note.durationFigure || (exercise.type === 'chords' ? 'whole' : 'quarter');
+      const isHollow = durationFigure === 'whole' || durationFigure === 'half';
+      const hasStem = durationFigure !== 'whole';
+      const hasFlag = durationFigure === 'eighth';
+
       ctx.fillStyle = headColor;
+      ctx.strokeStyle = headColor;
+      ctx.lineWidth = 2.2;
+
       ctx.beginPath();
       // Elipse inclinada a -25 graus
       ctx.ellipse(noteX, noteY, 8.5, 6, -Math.PI / 8, 0, Math.PI * 2);
-      ctx.fill();
+
+      if (isHollow) {
+        ctx.stroke(); // Cabeça vazada para semibreve e mínima
+      } else {
+        ctx.fill(); // Cabeça preenchida para semínima e colcheia
+      }
 
       // 4.5 Haste da Nota (Stem)
-      // Se a nota estiver acima da linha média, haste desce pela esquerda; caso contrário, sobe pela direita
       const middleLineY = line1 - 24;
       const isStemUp = noteY >= middleLineY;
-      ctx.strokeStyle = headColor;
-      ctx.lineWidth = 1.8;
-      ctx.beginPath();
-      if (isStemUp) {
-        ctx.moveTo(noteX + 7, noteY);
-        ctx.lineTo(noteX + 7, noteY - 34);
-      } else {
-        ctx.moveTo(noteX - 7, noteY);
-        ctx.lineTo(noteX - 7, noteY + 34);
+
+      if (hasStem) {
+        ctx.beginPath();
+        const stemX = isStemUp ? noteX + 7 : noteX - 7;
+        const stemEndY = isStemUp ? noteY - 34 : noteY + 34;
+
+        ctx.moveTo(stemX, noteY);
+        ctx.lineTo(stemX, stemEndY);
+        ctx.stroke();
+
+        // 4.5.1 Bandeirola da Colcheia (Flag)
+        if (hasFlag) {
+          ctx.beginPath();
+          ctx.moveTo(stemX, stemEndY);
+          if (isStemUp) {
+            ctx.bezierCurveTo(stemX + 10, stemEndY + 6, stemX + 11, stemEndY + 18, stemX + 2, stemEndY + 22);
+          } else {
+            ctx.bezierCurveTo(stemX + 10, stemEndY - 6, stemX + 11, stemEndY - 18, stemX + 2, stemEndY - 22);
+          }
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
       }
-      ctx.stroke();
       ctx.restore();
 
       // 4.6 Cursor / Indicador da Nota Atual em Sequências
-      if (exercise.type === 'sequences' && isActiveNote) {
+      if (exercise.type === 'sequences' && isActiveNote && !isTemporalActive) {
         ctx.save();
         ctx.fillStyle = '#6366f1';
         ctx.beginPath();
@@ -284,7 +397,21 @@ export const SightReadingStaffCanvas: React.FC<SightReadingStaffCanvasProps> = (
         ctx.restore();
       }
 
-      // 4.7 Dicas Pedagógicas (Rótulo com Nome da Nota e Posição)
+      // 4.7 Contagem Temporal sob a pauta (Requisito 4)
+      if (showBeatCount && (exercise.type === 'sequences' || exercise.timeSignature)) {
+        const beatNum = note.beatOffset !== undefined ? (note.beatOffset % 4) + 1 : (index % 4) + 1;
+        const countY = isGrandStaff ? bassLine1Y + 36 : (exercise.clef === 'treble' ? trebleLine1Y + 36 : bassLine1Y + 36);
+
+        ctx.save();
+        ctx.font = 'bold 11px "JetBrains Mono", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = isActiveNote ? '#38bdf8' : 'rgba(148, 163, 184, 0.6)';
+        ctx.fillText(String(beatNum), noteX, countY);
+        ctx.restore();
+      }
+
+      // 4.8 Dicas Pedagógicas (Rótulo com Nome da Nota e Posição)
       if (showNoteHints && isActiveNote) {
         const { portuguese, english } = getFormattedNoteName(note.midi, note.accidental);
         const labelText = `${portuguese} (${english})`;
@@ -294,10 +421,10 @@ export const SightReadingStaffCanvas: React.FC<SightReadingStaffCanvasProps> = (
         const textMetrics = ctx.measureText(labelText);
         const boxW = textMetrics.width + 12;
         const boxH = 18;
-        const pillY = isGrandStaff ? bassLine1Y + 22 : (exercise.clef === 'treble' ? trebleLine1Y + 24 : bassLine1Y + 24);
+        const pillY = isGrandStaff ? bassLine1Y + 18 : (exercise.clef === 'treble' ? trebleLine1Y + 18 : bassLine1Y + 18);
 
         // Fundo do Pill
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
         ctx.strokeStyle = 'rgba(99, 102, 241, 0.4)';
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -320,18 +447,75 @@ export const SightReadingStaffCanvas: React.FC<SightReadingStaffCanvasProps> = (
       }
     });
 
-    // 4.8 Cifra do Acorde (se modo acorde)
+    // ── 5. Cursor de Leitura / Linha Temporal Determinística (Requisito 3) ──
+    if (isTemporalActive && cursorProgress !== undefined && cursorProgress >= 0) {
+      const minX = notesStartX + 10;
+      const maxX = staffEndX - 30;
+      const clampedProgress = Math.max(0, Math.min(1, cursorProgress));
+      const cursorX = minX + clampedProgress * (maxX - minX);
+
+      const topY = isGrandStaff ? trebleLine1Y - 60 : (exercise.clef === 'treble' ? trebleLine1Y - 60 : bassLine1Y - 60);
+      const botY = isGrandStaff ? bassLine1Y + 24 : (exercise.clef === 'treble' ? trebleLine1Y + 24 : bassLine1Y + 24);
+
+      ctx.save();
+
+      // Brilho difuso da linha do cursor
+      const glowGrad = ctx.createLinearGradient(0, topY, 0, botY);
+      glowGrad.addColorStop(0, 'rgba(56, 189, 248, 0)');
+      glowGrad.addColorStop(0.3, 'rgba(56, 189, 248, 0.4)');
+      glowGrad.addColorStop(0.7, 'rgba(99, 102, 241, 0.4)');
+      glowGrad.addColorStop(1, 'rgba(99, 102, 241, 0)');
+
+      ctx.fillStyle = glowGrad;
+      ctx.fillRect(cursorX - 4, topY, 8, botY - topY);
+
+      // Linha central nítida do cursor
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(cursorX, topY);
+      ctx.lineTo(cursorX, botY);
+      ctx.stroke();
+
+      // Indicador em losango no topo do cursor
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.moveTo(cursorX, topY - 2);
+      ctx.lineTo(cursorX + 5, topY - 9);
+      ctx.lineTo(cursorX, topY - 16);
+      ctx.lineTo(cursorX - 5, topY - 9);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    // ── 6. Cifra do Acorde (se modo acorde) ─────────────────────────────────
     if (exercise.type === 'chords' && exercise.chordSymbol) {
       ctx.save();
       ctx.font = 'black 18px "JetBrains Mono", sans-serif';
       ctx.fillStyle = '#fbbf24';
       ctx.textAlign = 'center';
-      const chordX = clefX + 110;
-      const chordTopY = isGrandStaff ? trebleLine1Y - 60 : (exercise.clef === 'treble' ? trebleLine1Y - 60 : bassLine1Y - 60);
+      const chordX = notesStartX + 50;
+      const chordTopY = isGrandStaff ? trebleLine1Y - 64 : (exercise.clef === 'treble' ? trebleLine1Y - 64 : bassLine1Y - 64);
       ctx.fillText(exercise.chordSymbol, chordX, chordTopY);
       ctx.restore();
     }
-  }, [exercise, activeNoteIndex, feedbackState, showNoteHints, showStaffPositionHints, containerWidth, canvasHeight, isGrandStaff, trebleLine1Y, bassLine1Y]);
+  }, [
+    exercise,
+    activeNoteIndex,
+    feedbackState,
+    showNoteHints,
+    showStaffPositionHints,
+    showBeatCount,
+    cursorProgress,
+    isTemporalActive,
+    containerWidth,
+    canvasHeight,
+    isGrandStaff,
+    trebleLine1Y,
+    bassLine1Y,
+  ]);
 
   return (
     <div ref={containerRef} className="w-full overflow-hidden rounded-2xl border border-white/10 shadow-2xl relative select-none">

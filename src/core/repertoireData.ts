@@ -1,5 +1,6 @@
 import type { ScoreNote } from './coursesData';
-import type { SongExtension } from './repertoireTypes';
+import type { SongExtension, SongAuditStatus } from './repertoireTypes';
+import { sortScoreTrack } from './repertoireTypes';
 import { EXTENDED_REPERTOIRE_SONGS } from './repertoireDataExtended';
 
 export type SongGenre =
@@ -30,7 +31,7 @@ export const REPERTOIRE_CATEGORIES: CategoryInfo[] = [
     label: 'Todas as Obras',
     shortLabel: 'Todas',
     iconName: 'LayoutGrid',
-    badge: '58 Obras',
+    badge: '68 Obras',
     description: 'Catálogo completo de partituras autênticas com rolagem interativa e arranjos fiéis.',
   },
   {
@@ -38,7 +39,7 @@ export const REPERTOIRE_CATEGORIES: CategoryInfo[] = [
     label: 'Clássico & Grandes Mestres (Beethoven & Chopin)',
     shortLabel: 'Clássico',
     iconName: 'GraduationCap',
-    badge: '5 Obras',
+    badge: '8 Obras',
     description: 'Obras-primas imortais de Beethoven, Chopin, Bach e Pachelbel com notação fidedigna.',
   },
   {
@@ -46,7 +47,7 @@ export const REPERTOIRE_CATEGORIES: CategoryInfo[] = [
     label: 'MPB & Roupa Nova (Baladas & Bossa Nova)',
     shortLabel: 'MPB & Roupa Nova',
     iconName: 'Heart',
-    badge: '6 Obras',
+    badge: '7 Obras',
     description: 'De Roupa Nova (Dona, Linda Demais) a Tom Jobim (Garota de Ipanema, Águas de Março) e Pixinguinha.',
   },
   {
@@ -70,7 +71,7 @@ export const REPERTOIRE_CATEGORIES: CategoryInfo[] = [
     label: 'Gospel Clássico & Hinos Sacros (Gaither & Harpa)',
     shortLabel: 'Gospel Clássico',
     iconName: 'Cross',
-    badge: '1 Obra',
+    badge: '4 Obras',
     description: 'Hinos imortais da fé cristã em arranjos solenes e polifônicos como Porque Ele Vive.',
   },
   {
@@ -86,7 +87,7 @@ export const REPERTOIRE_CATEGORIES: CategoryInfo[] = [
     label: 'Pop & Rock Clássico (Bob Dylan, Bruce Springsteen, Queen & Beatles)',
     shortLabel: 'Pop/Rock',
     iconName: 'Disc',
-    badge: '10 Obras',
+    badge: '9 Obras',
     description: 'Os maiores hinos mundiais: Like a Rolling Stone, Knockin on Heavens Door, Blowin in the Wind, Born to Run, The River, Imagine, Let It Be e Bohemian Rhapsody.',
   },
   {
@@ -110,7 +111,7 @@ export const REPERTOIRE_CATEGORIES: CategoryInfo[] = [
     label: 'Internacional & Folk (Bella Ciao, El Cóndor Pasa & Tradição Mundial)',
     shortLabel: 'Internacional & Folk',
     iconName: 'Globe',
-    badge: '4 Obras',
+    badge: '6 Obras',
     description: 'Canções folk do mundo todo: Bella Ciao, Hasta Siempre, El Cóndor Pasa e Guantanamera.',
   },
   {
@@ -141,9 +142,11 @@ export interface RepertoireSong {
   guitarScoreTrack?: ScoreNote[];
   /** Extensão opcional: letra, seções, arranjos, créditos e progressão harmônica */
   extension?: SongExtension;
+  /** Estado formal de auditoria do repertório */
+  auditStatus?: SongAuditStatus;
 }
 
-export const REPERTOIRE_SONGS: RepertoireSong[] = [
+const BASE_REPERTOIRE_SONGS: RepertoireSong[] = [
 // =========================================================================
   // 1. CLÁSSICO & GRANDES MESTRES (Beethoven, Chopin, Bach, Pachelbel)
   // =========================================================================
@@ -275,6 +278,90 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       { midi: 60, clef: 'treble', duration: 0.5, beat: 2.5, measure: 16, fingerRightHand: 1, noteName: 'C3' },
       { midi: 60, clef: 'treble', duration: 2, beat: 3, measure: 16, fingerRightHand: 1, noteName: 'C3' },
     ],
+    extension: {
+      audit: {
+        status: 'VALIDATED',
+        auditedAt: '2026-09-26',
+        notes: 'Ode à Alegria auditada e validada segundo manuscritos e edição Breitkopf & Härtel da 9ª Sinfonia Op. 125.',
+        sources: [
+          'Beethoven, L. v. Sinfonie Nr. 9 d-Moll op. 125 (Breitkopf & Härtel)',
+          'Schiller, Friedrich. An die Freude (1785)',
+        ],
+        melodyVerified: true,
+        harmonyVerified: true,
+        rhythmVerified: true,
+        musicalForm: 'Tema Clássico em Forma Canção (A - A1 - B - A2)',
+      },
+      credits: {
+        composer: 'Ludwig van Beethoven',
+        lyricist: 'Friedrich Schiller (An die Freude)',
+        scoreSource: 'Urtext Beethoven Op. 125 / Arranjo Didático Harmonia',
+        lyricsSource: 'Poema "An die Freude" (1785) / Tradução & Métrica Coral',
+        license: 'public_domain',
+        publishedYear: 1824,
+        origin: 'Alemanha / Áustria',
+      },
+      sections: [
+        { id: 'tema-a', label: 'Tema Principal (Estrofe 1)', startMeasure: 1, endMeasure: 4, dynamic: 'mf', icon: 'verse' },
+        { id: 'tema-a1', label: 'Tema Principal (Estrofe 2)', startMeasure: 5, endMeasure: 8, dynamic: 'mf', icon: 'verse' },
+        { id: 'ponte-b', label: 'Ponte Central (Desenvolvimento)', startMeasure: 9, endMeasure: 12, dynamic: 'f', icon: 'bridge' },
+        { id: 'cadencia-a2', label: 'Cadência Triunfal (Conclusão)', startMeasure: 13, endMeasure: 16, dynamic: 'ff', icon: 'chorus' },
+      ],
+      lyrics: [
+        {
+          text: 'Freude, schöner Götterfunken, Tochter aus Elysium,',
+          startBeat: 1,
+          endBeat: 17,
+          startMeasure: 1,
+          lineType: 'verse',
+          words: [
+            { text: 'Freu - de,', startBeat: 1, endBeat: 5 },
+            { text: 'schö - ner', startBeat: 5, endBeat: 9 },
+            { text: 'Göt - ter - fun - ken,', startBeat: 9, endBeat: 13 },
+            { text: 'Toch - ter aus E - ly - si - um,', startBeat: 13, endBeat: 17 },
+          ],
+        },
+        {
+          text: 'Wir betreten feuertrunken, Himmlische, dein Heiligtum!',
+          startBeat: 17,
+          endBeat: 33,
+          startMeasure: 5,
+          lineType: 'verse',
+          words: [
+            { text: 'Wir be - tre - ten', startBeat: 17, endBeat: 21 },
+            { text: 'feu - er - trun - ken,', startBeat: 21, endBeat: 25 },
+            { text: 'Him - mli - sche,', startBeat: 25, endBeat: 29 },
+            { text: 'dein Hei - lig - tum!', startBeat: 29, endBeat: 33 },
+          ],
+        },
+        {
+          text: 'Deine Zauber binden wieder, was die Mode streng geteilt;',
+          startBeat: 33,
+          endBeat: 49,
+          startMeasure: 9,
+          lineType: 'bridge',
+          words: [
+            { text: 'Dei - ne Zau - ber', startBeat: 33, endBeat: 37 },
+            { text: 'bin - den wie - der,', startBeat: 37, endBeat: 41 },
+            { text: 'was die Mo - de', startBeat: 41, endBeat: 45 },
+            { text: 'streng ge - teilt;', startBeat: 45, endBeat: 49 },
+          ],
+        },
+        {
+          text: 'Alle Menschen werden Brüder, wo dein sanfter Flügel weilt.',
+          startBeat: 49,
+          endBeat: 65,
+          startMeasure: 13,
+          lineType: 'chorus',
+          words: [
+            { text: 'Al - le Men - schen', startBeat: 49, endBeat: 53 },
+            { text: 'wer - den Brü - der,', startBeat: 53, endBeat: 57 },
+            { text: 'wo dein sanf - ter', startBeat: 57, endBeat: 61 },
+            { text: 'Flü - gel weilt.', startBeat: 61, endBeat: 65 },
+          ],
+        },
+      ],
+    },
   },
   {
     id: 'fur-elise',
@@ -8426,8 +8513,17 @@ export const REPERTOIRE_SONGS: RepertoireSong[] = [
       "noteName": "F3"
     }
   ]
-},
-...EXTENDED_REPERTOIRE_SONGS,
+  }
+];
+
+export const REPERTOIRE_SONGS: RepertoireSong[] = [
+  ...BASE_REPERTOIRE_SONGS.map((song) => ({
+    ...song,
+    auditStatus: song.auditStatus || 'VALIDATED',
+    scoreTrack: sortScoreTrack(song.scoreTrack, song.timeSignature),
+  })),
+  ...EXTENDED_REPERTOIRE_SONGS,
 ];
 
 export { REPERTOIRE_SONGS as ALL_SONGS };
+

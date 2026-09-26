@@ -1,13 +1,26 @@
 /**
  * components/sightReading/SightReadingView.tsx
  *
- * Tela de Treino de Leitura de Partitura (Clave de Sol e Clave de Fá).
- * Integrada ao menu PRÁTICA: do ecossistema Harmonia.
- *
- * Arquitetura de 3 Painéis:
- *  1. Painel Superior: Filtros de Clave, Tipo de Exercício, Acidentes e Modo (Livre vs Desafio).
- *  2. Painel Central: Palco de Leitura Gráfico de Alta Definição (Canvas) com feedback em tempo real.
- *  3. Painel Inferior: Teclado Virtual Interativo (MIDI / Mic / Toque) e Dashboard de Métricas com Mapa de Calor.
+ * Tela de Treino de Leitura de Partitura (Clave de Sol, Clave de Fá e Pauta Dupla).
+ * Otimizada e evoluída conforme requisitos pedagógicos:
+ *  1. Painel Superior e Módulos:
+ *     - Claves (Sol, Fá, Pauta Dupla) com alcance dinâmico calculado do exercício atual (ex: C4 – G5).
+ *     - Módulos expandidos: Sequências (escalas diatônicas, pentatônicas, modos gregos, arpejos), Acordes (tríades, inversões, tétrades, voicings abertos).
+ *     - Aba 📖 Tutorial interativo integrado.
+ *  2. Acidentes, Armadura e Métrica:
+ *     - Tonalidades / Armaduras de clave e fórmulas de compasso (2/4, 3/4, 4/4, 6/8).
+ *  3. Palco Central com Partitura como prioridade visual:
+ *     - Cursor de leitura temporal determinístico sincronizado ao BPM/beat.
+ *  4. Informação Rítmica:
+ *     - Figuras (Semibreve, Mínima, Semínima, Colcheia) e contagem sob a pauta (1 2 3 4).
+ *  5. Validação Polifônica de Acordes:
+ *     - Avaliação em bloco com tolerância humana (~200ms), identificação de notas faltantes e notas extras.
+ *  6. Métricas de Treinamento:
+ *     - Precisão, tempo médio, streaks e feedback de timing rítmico (ON TIME, EARLY, LATE).
+ *  7. Entradas:
+ *     - MIDI USB, Microfone (teclado acústico real), Teclado virtual.
+ *  8. Teclado Virtual:
+ *     - Iluminação de notas esperadas, acordes polifônicos e feedback imediato.
  */
 
 import React, { useState, useEffect, useRef, useCallback, useMemo, useSyncExternalStore } from 'react';
@@ -16,10 +29,13 @@ import type {
   AccidentalMode,
   ExerciseType,
   TrainingMode,
+  TimeSignature,
   SightReadingExercise,
   SightReadingNote,
+  RhythmicTimingResult,
 } from '../../core/sightReadingEngine';
 import {
+  KEY_SIGNATURES,
   SightReadingMetricsTracker,
   generateSingleNoteExercise,
   generateIntervalExercise,
@@ -28,8 +44,12 @@ import {
   generateLedgerExercise,
   getFormattedNoteName,
   getNotePool,
+  calculateExerciseRange,
+  evaluatePolyphonicChord,
+  evaluateRhythmicTiming,
 } from '../../core/sightReadingEngine';
 import { SightReadingStaffCanvas } from './SightReadingStaffCanvas';
+import { SightReadingTutorialModal } from './SightReadingTutorialModal';
 import { PianoKeyboard } from '../piano/PianoKeyboard';
 import { TimbreSelector } from '../audio/TimbreSelector';
 import { MicrophonePitchBar } from '../audio/MicrophonePitchBar';
@@ -49,6 +69,9 @@ import {
   XCircle,
   BarChart2,
   Footprints,
+  BookOpen,
+  Play,
+  Pause,
 } from 'lucide-react';
 
 export const SightReadingView: React.FC = () => {
@@ -58,9 +81,15 @@ export const SightReadingView: React.FC = () => {
   const [accidentalMode, setAccidentalMode] = useState<AccidentalMode>('natural');
   const [trainingMode, setTrainingMode] = useState<TrainingMode>('free');
 
-  // Toggles de Auxílio Pedagógico
+  // Armaduras e Métrica
+  const [selectedKeySigId, setSelectedKeySigId] = useState<string>('c_major');
+  const [selectedTimeSig, setSelectedTimeSig] = useState<TimeSignature>('4/4');
+
+  // Toggles de Auxílio Pedagógico e Tutorial
   const [showNoteHints, setShowNoteHints] = useState<boolean>(true);
   const [showStaffPositionHints, setShowStaffPositionHints] = useState<boolean>(false);
+  const [showBeatCount, setShowBeatCount] = useState<boolean>(true);
+  const [showTutorialModal, setShowTutorialModal] = useState<boolean>(false);
   const [showWeakNotesModal, setShowWeakNotesModal] = useState<boolean>(false);
   const [onlyWeakNotesMode, setOnlyWeakNotesMode] = useState<boolean>(false);
 
@@ -73,10 +102,22 @@ export const SightReadingView: React.FC = () => {
   const [feedbackMessage, setFeedbackMessage] = useState<string>('Toque a nota indicada na pauta...');
   const [lastWrongMidi, setLastWrongMidi] = useState<number | null>(null);
 
+  // ── Modo Rítmico / Cursor Temporal ─────────────────────────────────────────
+  const [isTemporalPlaying, setIsTemporalPlaying] = useState<boolean>(false);
+  const [bpm, setBpm] = useState<number>(60);
+  const [cursorProgress, setCursorProgress] = useState<number>(0);
+  const [timingResult, setTimingResult] = useState<RhythmicTimingResult | null>(null);
+
+  // Buffer e estado de Acordes Polifônicos
+  const chordBufferRef = useRef<number[]>([]);
+  const chordTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [activeChordPressedKeys, setActiveChordPressedKeys] = useState<number[]>([]);
+
   // ── Métricas de Performance ────────────────────────────────────────────────
-  const metricsTracker = useRef<SightReadingMetricsTracker>(new SightReadingMetricsTracker());
-  const [metrics, setMetrics] = useState(metricsTracker.current.getMetrics());
-  const noteStartTimeRef = useRef<number>(Date.now());
+  const [tracker] = useState<SightReadingMetricsTracker>(() => new SightReadingMetricsTracker());
+  const [metrics, setMetrics] = useState(() => new SightReadingMetricsTracker().getMetrics());
+  const noteStartTimeRef = useRef<number>(0);
+  const targetBeatTimeRef = useRef<number>(0);
 
   // ── Modo Desafio (Speed Run 60s) ───────────────────────────────────────────
   const [challengeTimeLeft, setChallengeTimeLeft] = useState<number>(60);
@@ -101,6 +142,11 @@ export const SightReadingView: React.FC = () => {
   });
 
   const isSustainActive = useSyncExternalStore(sustainPedalStore.subscribe, sustainPedalStore.getSnapshot);
+
+  // ── Alcance Dinâmico do Exercício Atual (Requisito 1 & Critério 4) ───────────
+  const dynamicRange = useMemo(() => {
+    return calculateExerciseRange(exercise.notes, clef);
+  }, [exercise.notes, clef]);
 
   // ── Gerador do Próximo Exercício ───────────────────────────────────────────
   const nextExercise = useCallback(
@@ -128,20 +174,38 @@ export const SightReadingView: React.FC = () => {
           nextEx = generateSingleNoteExercise(clef, accidentalMode, lastMidi, customPool);
       }
 
+      // Aplica tonalidade e fórmula de compasso selecionadas
+      const activeKeySig = KEY_SIGNATURES.find((k) => k.id === selectedKeySigId);
+      nextEx.keySignature = activeKeySig;
+      nextEx.timeSignature = selectedTimeSig;
+
       setExercise(nextEx);
       setActiveNoteIndex(0);
       setFeedbackState('idle');
       setLastWrongMidi(null);
-      setFeedbackMessage('Toque a nota indicada na pauta...');
+      setTimingResult(null);
+      chordBufferRef.current = [];
+      setActiveChordPressedKeys([]);
+      setFeedbackMessage(
+        nextEx.type === 'chords'
+          ? 'Toque todas as notas do acorde simultaneamente...'
+          : 'Toque a nota indicada na pauta...'
+      );
       noteStartTimeRef.current = Date.now();
+      targetBeatTimeRef.current = Date.now();
     },
-    [clef, exerciseType, accidentalMode, exercise]
+    [clef, exerciseType, accidentalMode, selectedKeySigId, selectedTimeSig, exercise.notes]
   );
 
-  // Atualiza exercício ao alterar filtros
+  // Atualiza exercício ao alterar filtros estruturais (ignora montagem inicial já gerada)
+  const isFirstMount = useRef(true);
   useEffect(() => {
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
     nextExercise();
-  }, [clef, exerciseType, accidentalMode]);
+  }, [clef, exerciseType, accidentalMode, selectedKeySigId, selectedTimeSig, nextExercise]);
 
   // ── Cronômetro do Modo Desafio ─────────────────────────────────────────────
   useEffect(() => {
@@ -163,13 +227,105 @@ export const SightReadingView: React.FC = () => {
   }, [trainingMode, isChallengeActive, challengeFinished]);
 
   const startChallenge = () => {
-    metricsTracker.current.reset();
-    setMetrics(metricsTracker.current.getMetrics());
+    tracker.reset();
+    setMetrics(tracker.getMetrics());
     setChallengeTimeLeft(60);
     setIsChallengeActive(true);
     setChallengeFinished(false);
     nextExercise();
   };
+
+  // ── Cursor Temporal e Loop de Leitura (Requisito 3 & 4) ────────────────────
+  useEffect(() => {
+    if (!isTemporalPlaying) return;
+
+    const totalNotes = Math.max(1, exercise.notes.length);
+    // Duração total do ciclo em ms: cada nota = 1 beat a 60/bpm segundos
+    const beatDurationMs = (60 / bpm) * 1000;
+    const cycleDurationMs = totalNotes * beatDurationMs;
+    const startTime = performance.now();
+
+    let animationFrameId: number;
+
+    const step = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = (elapsed % cycleDurationMs) / cycleDurationMs;
+      setCursorProgress(progress);
+
+      // Determina a nota atual correspondente ao progresso
+      const currentNoteIdx = Math.min(totalNotes - 1, Math.floor(progress * totalNotes));
+      setActiveNoteIndex(currentNoteIdx);
+
+      // Marca o tempo esperado do beat para a nota ativa
+      targetBeatTimeRef.current = Date.now();
+
+      animationFrameId = requestAnimationFrame(step);
+    };
+
+    animationFrameId = requestAnimationFrame(step);
+
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [isTemporalPlaying, bpm, exercise.notes.length]);
+
+  // ── Validação Polifônica de Acordes (Requisito 5) ───────────────────────────
+  const processPolyphonicChordStrike = useCallback(
+    (playedMidi: number) => {
+      // Adiciona a nota ao buffer polifônico
+      if (!chordBufferRef.current.includes(playedMidi)) {
+        chordBufferRef.current.push(playedMidi);
+        setActiveChordPressedKeys([...chordBufferRef.current]);
+      }
+
+      // Limpa timer anterior para acumular notas dentro da janela humana (~220ms)
+      if (chordTimerRef.current) {
+        clearTimeout(chordTimerRef.current);
+      }
+
+      chordTimerRef.current = setTimeout(() => {
+        const buffer = [...chordBufferRef.current];
+        const result = evaluatePolyphonicChord(buffer, exercise.expectedMidis);
+
+        const reactionTime = Math.max(100, Date.now() - (noteStartTimeRef.current || Date.now()));
+
+        if (result.isComplete) {
+          // Acorde completo validado!
+          const targetNote = exercise.notes[0] || { midi: playedMidi, accidental: '', clef: 'treble' as const };
+          tracker.recordAttempt(targetNote as SightReadingNote, true, reactionTime);
+          setMetrics(tracker.getMetrics());
+
+          setFeedbackState('correct');
+          setFeedbackMessage(result.statusText);
+          setLastWrongMidi(null);
+
+          setTimeout(() => {
+            chordBufferRef.current = [];
+            setActiveChordPressedKeys([]);
+            nextExercise();
+          }, 450);
+        } else if (result.extraMidis.length > 0) {
+          // Nota extra / incorreta
+          const targetNote = exercise.notes[0] || { midi: playedMidi, accidental: '', clef: 'treble' as const };
+          tracker.recordAttempt(targetNote as SightReadingNote, false, reactionTime);
+          setMetrics(tracker.getMetrics());
+
+          setFeedbackState('wrong');
+          setFeedbackMessage(result.statusText);
+          setLastWrongMidi(result.extraMidis[0] ?? null);
+
+          setTimeout(() => {
+            setFeedbackState('idle');
+            chordBufferRef.current = [];
+            setActiveChordPressedKeys([]);
+          }, 900);
+        } else {
+          // Acorde incompleto: não avança, indica notas faltantes
+          setFeedbackState('idle');
+          setFeedbackMessage(result.statusText);
+        }
+      }, 200);
+    },
+    [exercise, nextExercise, tracker]
+  );
 
   // ── Validação e Processamento de Toques (MIDI, Virtual, Mic) ───────────────
   const handleNoteTriggered = useCallback(
@@ -180,11 +336,23 @@ export const SightReadingView: React.FC = () => {
       soundEngine.startPianoNote(playedMidi, 0.85);
       setTimeout(() => soundEngine.stopPianoNote(playedMidi), 400);
 
+      // Se for exercício de acorde, direciona para o avaliador polifônico
+      if (exercise.type === 'chords') {
+        processPolyphonicChordStrike(playedMidi);
+        return;
+      }
+
       const targetNote = exercise.notes[activeNoteIndex];
       if (!targetNote) return;
 
       const reactionTime = Math.max(100, Date.now() - noteStartTimeRef.current);
       const isExactMatch = playedMidi === targetNote.midi;
+
+      // Classificação rítmica quando o cursor temporal estiver ativo (Requisito 6)
+      if (isTemporalPlaying) {
+        const timing = evaluateRhythmicTiming(Date.now(), targetBeatTimeRef.current, bpm, 140);
+        setTimingResult(timing);
+      }
 
       // Verifica se acertou a classe de tom mas errou a oitava (Dica Pedagógica Avançada)
       const pitchClassTarget = targetNote.midi % 12;
@@ -193,31 +361,32 @@ export const SightReadingView: React.FC = () => {
 
       if (isExactMatch) {
         // Acerto Confirmado!
-        metricsTracker.current.recordAttempt(targetNote, true, reactionTime);
-        setMetrics(metricsTracker.current.getMetrics());
+        tracker.recordAttempt(targetNote, true, reactionTime);
+        setMetrics(tracker.getMetrics());
         setFeedbackState('correct');
         setLastWrongMidi(null);
 
         const { portuguese } = getFormattedNoteName(targetNote.midi, targetNote.accidental);
         setFeedbackMessage(`✨ Perfeito! ${portuguese} em ${reactionTime}ms`);
 
-        // Avança para a próxima nota (se sequência ou acorde) ou próximo exercício
-        const isSequenceOrChord = exercise.type === 'sequences' || exercise.type === 'chords';
-        const hasMoreNotes = isSequenceOrChord && activeNoteIndex + 1 < exercise.notes.length;
+        // Avança para a próxima nota (se sequência) ou próximo exercício
+        const isSequence = exercise.type === 'sequences';
+        const hasMoreNotes = isSequence && activeNoteIndex + 1 < exercise.notes.length;
 
         setTimeout(() => {
           if (hasMoreNotes) {
             setActiveNoteIndex((idx) => idx + 1);
             setFeedbackState('idle');
             noteStartTimeRef.current = Date.now();
+            targetBeatTimeRef.current = Date.now();
           } else {
             nextExercise();
           }
         }, 180);
       } else {
         // Erro Registrado
-        metricsTracker.current.recordAttempt(targetNote, false, reactionTime);
-        setMetrics(metricsTracker.current.getMetrics());
+        tracker.recordAttempt(targetNote, false, reactionTime);
+        setMetrics(tracker.getMetrics());
         setFeedbackState('wrong');
         setLastWrongMidi(playedMidi);
 
@@ -227,7 +396,9 @@ export const SightReadingView: React.FC = () => {
         if (isOctaveError) {
           const isHigher = playedMidi > targetNote.midi;
           setFeedbackMessage(
-            `⚠️ Nota correta (${playedInfo.portuguese}), mas na oitava errada! Toque mais ${isHigher ? 'grave (à esquerda)' : 'agudo (à direita)'}.`
+            `⚠️ Nota correta (${playedInfo.portuguese}), mas na oitava errada! Toque mais ${
+              isHigher ? 'grave (à esquerda)' : 'agudo (à direita)'
+            }.`
           );
         } else {
           setFeedbackMessage(`❌ Você tocou ${playedInfo.portuguese}. O correto é ${expectedInfo.portuguese}!`);
@@ -239,7 +410,16 @@ export const SightReadingView: React.FC = () => {
         }, 800);
       }
     },
-    [exercise, activeNoteIndex, feedbackState, nextExercise]
+    [
+      exercise,
+      activeNoteIndex,
+      feedbackState,
+      isTemporalPlaying,
+      bpm,
+      nextExercise,
+      processPolyphonicChordStrike,
+      tracker,
+    ]
   );
 
   // Monitora alterações em notas ativas externas (MIDI USB)
@@ -247,18 +427,27 @@ export const SightReadingView: React.FC = () => {
   useEffect(() => {
     const newlyPressed = activeExternalNotes.filter((m) => !prevActiveRef.current.includes(m));
     if (newlyPressed.length > 0) {
-      handleNoteTriggered(newlyPressed[0]);
+      newlyPressed.forEach((m) => handleNoteTriggered(m));
     }
     prevActiveRef.current = [...activeExternalNotes];
   }, [activeExternalNotes, handleNoteTriggered]);
 
-  // Teclas iluminadas para o teclado virtual
+  // Teclas iluminadas para o teclado virtual (Requisito 8)
   const currentTargetNote = exercise.notes[activeNoteIndex];
   const highlightedKeys = useMemo(() => {
     const list: { midi: number; color?: string; degreeName?: string }[] = [];
 
-    // Se as dicas estiverem ativas ou houve erro recente, orienta o aluno
-    if ((showNoteHints || feedbackState === 'wrong') && currentTargetNote) {
+    // Se for modo de acordes, destaca todo o conjunto esperado
+    if (exercise.type === 'chords') {
+      exercise.notes.forEach((n) => {
+        const isPressed = activeChordPressedKeys.includes(n.midi);
+        list.push({
+          midi: n.midi,
+          color: isPressed ? '#10b981' : '#6366f1',
+          degreeName: n.pitchLetter,
+        });
+      });
+    } else if ((showNoteHints || feedbackState === 'wrong') && currentTargetNote) {
       list.push({
         midi: currentTargetNote.midi,
         color: feedbackState === 'wrong' ? '#ef4444' : '#6366f1',
@@ -275,7 +464,7 @@ export const SightReadingView: React.FC = () => {
     }
 
     return list;
-  }, [showNoteHints, feedbackState, currentTargetNote, lastWrongMidi]);
+  }, [exercise, showNoteHints, feedbackState, currentTargetNote, lastWrongMidi, activeChordPressedKeys]);
 
   // Oitava inicial do teclado baseada na clave selecionada
   const startOctave = useMemo(() => {
@@ -284,32 +473,54 @@ export const SightReadingView: React.FC = () => {
     return 2; // Grand staff
   }, [clef]);
 
-  const weakestNotes = useMemo(() => metricsTracker.current.getWeakestNotes(6), [metrics]);
+  const weakestNotes = useMemo(() => {
+    return tracker.getWeakestNotes(6);
+  }, [tracker, metrics.totalAttempts]);
 
   return (
     <div className="flex-1 flex flex-col gap-3 w-full max-w-none pb-6">
       {/* ── PAINEL SUPERIOR: FILTROS & CONFIGURAÇÃO DO EXERCÍCIO ────────────── */}
       <div className="glass-card rounded-2xl p-3 sm:p-4 border border-white/10 shadow-xl space-y-3">
-        {/* Linha 1: Título da Tela e Alternador de Modo Livre vs Desafio */}
+        {/* Linha 1: Título da Tela, Alcance Dinâmico e Controles Principais */}
         <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/5">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 text-indigo-300">
               <Target className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-black tracking-wide text-white flex items-center gap-2">
-                Treino de Leitura de Partitura
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-base sm:text-lg font-black tracking-wide text-white">
+                  Treino de Leitura de Partitura
+                </h2>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase font-mono">
                   Claves de Sol &amp; Fá
                 </span>
-              </h2>
+                {/* Badge de Alcance Dinâmico Real (Requisito 1 & Critério 4) */}
+                <span
+                  className="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1 shadow-sm"
+                  title="Alcance aproximado de leitura calculado das notas do exercício ativo"
+                >
+                  <span className="opacity-70 font-sans text-[10px]">Alcance:</span>
+                  <strong className="text-white">{dynamicRange.rangeText}</strong>
+                </span>
+              </div>
               <p className="text-xs text-slate-400">
-                Fixação visual de pauta, notas diatônicas, acidentes, intervalos e fluência melódica
+                Fixação visual de pauta, notas diatônicas, acidentes, intervalos, ritmo e polifonia
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Botão Oficial Aba Tutorial (Requisito 1) */}
+            <button
+              type="button"
+              onClick={() => setShowTutorialModal(true)}
+              className="px-3 py-1.5 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 hover:text-white border border-indigo-500/40 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-sm active:scale-95"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-indigo-300" />
+              <span>📖 Tutorial</span>
+            </button>
+
             <TimbreSelector compact />
 
             {/* Alternador Modo Livre vs Desafio */}
@@ -349,13 +560,18 @@ export const SightReadingView: React.FC = () => {
           </div>
         </div>
 
-        {/* Linha 2: Seletor de Clave, Tipo de Exercício e Acidentes */}
+        {/* Linha 2: Seletor de Clave, Tipo de Exercício, Acidentes e Armadura */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {/* Seletor de Claves */}
+          {/* 1. Seletor de Claves */}
           <div className="bg-black/30 p-2.5 rounded-xl border border-white/5 space-y-1.5">
-            <span className="text-[10px] font-mono text-slate-400 uppercase font-bold tracking-wider">
-              1. Seleção de Clave
-            </span>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-mono text-slate-400 uppercase font-bold tracking-wider">
+                1. Seleção de Clave
+              </span>
+              <span className="text-[10px] font-mono text-indigo-300">
+                {dynamicRange.rangeText}
+              </span>
+            </div>
             <div className="grid grid-cols-3 gap-1.5 text-xs font-bold">
               <button
                 type="button"
@@ -401,7 +617,7 @@ export const SightReadingView: React.FC = () => {
             </div>
           </div>
 
-          {/* Seletor de Tipo de Exercício */}
+          {/* 2. Seletor de Módulo de Exercício (Expandido com Escalas, Modos e Acordes) */}
           <div className="bg-black/30 p-2.5 rounded-xl border border-white/5 space-y-1.5">
             <span className="text-[10px] font-mono text-slate-400 uppercase font-bold tracking-wider">
               2. Módulo de Fixação
@@ -410,15 +626,15 @@ export const SightReadingView: React.FC = () => {
               {[
                 { id: 'single', label: 'Nota Única', short: 'Flashcard' },
                 { id: 'intervals', label: 'Intervalos', short: '2ª a 8ª' },
-                { id: 'sequences', label: 'Sequências', short: 'Fluência' },
-                { id: 'chords', label: 'Acordes', short: 'Harmonia' },
+                { id: 'sequences', label: 'Sequências', short: 'Escalas/Modos' },
+                { id: 'chords', label: 'Acordes', short: 'Harmonia/Polif.' },
                 { id: 'ledger', label: 'Linhas Supl.', short: 'Extremos' },
               ].map((m) => (
                 <button
                   key={m.id}
                   type="button"
                   onClick={() => setExerciseType(m.id as ExerciseType)}
-                  className={`px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-all cursor-pointer flex-1 text-center min-w-[75px] ${
+                  className={`px-2 py-1.5 rounded-lg border text-xs font-bold transition-all cursor-pointer flex-1 text-center min-w-[70px] ${
                     exerciseType === m.id
                       ? 'bg-amber-500/20 border-amber-400 text-amber-200 shadow-sm'
                       : 'bg-white/5 border-white/5 text-slate-400 hover:text-white'
@@ -431,12 +647,33 @@ export const SightReadingView: React.FC = () => {
             </div>
           </div>
 
-          {/* Acidentes e Toggles de Dica */}
+          {/* 3. Acidentes, Armadura e Métrica (Requisito 2) */}
           <div className="bg-black/30 p-2.5 rounded-xl border border-white/5 space-y-1.5 flex flex-col justify-between">
             <div>
-              <span className="text-[10px] font-mono text-slate-400 uppercase font-bold tracking-wider">
-                3. Acidentes &amp; Alterações
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono text-slate-400 uppercase font-bold tracking-wider">
+                  3. Acidentes &amp; Tonalidade
+                </span>
+                {/* Seletor de Métrica de Compasso */}
+                <div className="flex items-center gap-1">
+                  {(['2/4', '3/4', '4/4', '6/8'] as TimeSignature[]).map((ts) => (
+                    <button
+                      key={ts}
+                      type="button"
+                      onClick={() => setSelectedTimeSig(ts)}
+                      className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold transition-colors cursor-pointer ${
+                        selectedTimeSig === ts
+                          ? 'bg-indigo-600 text-white shadow-xs'
+                          : 'bg-white/5 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {ts}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Botões de Acidentes Diatônicos/Cromáticos */}
               <div className="grid grid-cols-4 gap-1 mt-1 text-xs font-bold">
                 {[
                   { id: 'natural', label: 'Naturais' },
@@ -458,11 +695,27 @@ export const SightReadingView: React.FC = () => {
                   </button>
                 ))}
               </div>
+
+              {/* Seletor de Armadura de Clave / Tonalidade */}
+              <div className="mt-1.5 flex items-center gap-1.5">
+                <span className="text-[10px] font-mono text-slate-400">Armadura:</span>
+                <select
+                  value={selectedKeySigId}
+                  onChange={(e) => setSelectedKeySigId(e.target.value)}
+                  className="flex-1 bg-black/50 border border-white/10 rounded-lg px-2 py-0.5 text-[11px] text-slate-200 focus:outline-hidden focus:border-indigo-400 cursor-pointer"
+                >
+                  {KEY_SIGNATURES.map((k) => (
+                    <option key={k.id} value={k.id} className="bg-slate-900 text-white">
+                      {k.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            {/* Dicas Pedagógicas */}
+            {/* Dicas Pedagógicas, Contagem e Pular */}
             <div className="flex items-center justify-between pt-1 border-t border-white/5 text-[11px]">
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2.5">
                 <label className="flex items-center gap-1.5 text-slate-300 cursor-pointer select-none">
                   <input
                     type="checkbox"
@@ -483,13 +736,23 @@ export const SightReadingView: React.FC = () => {
                   />
                   <span>Linha/Espaço</span>
                 </label>
+
+                <label className="flex items-center gap-1.5 text-slate-400 hover:text-slate-300 cursor-pointer select-none text-[10px]">
+                  <input
+                    type="checkbox"
+                    checked={showBeatCount}
+                    onChange={(e) => setShowBeatCount(e.target.checked)}
+                    className="rounded text-indigo-500 focus:ring-0 cursor-pointer"
+                  />
+                  <span>Contagem (1 2 3 4)</span>
+                </label>
               </div>
 
               <button
                 type="button"
                 onClick={() => nextExercise()}
                 className="px-2 py-0.5 rounded-md bg-white/5 hover:bg-white/10 text-slate-300 text-xs flex items-center gap-1 cursor-pointer transition-colors"
-                title="Pular nota e gerar próximo exercício"
+                title="Pular e gerar próximo exercício"
               >
                 <RotateCcw className="w-3 h-3" />
                 <span>Pular</span>
@@ -499,11 +762,11 @@ export const SightReadingView: React.FC = () => {
         </div>
       </div>
 
-      {/* ── PAINEL CENTRAL: PALCO DE LEITURA (PAUTA GRÁFICA) ────────────────── */}
+      {/* ── PAINEL CENTRAL: PALCO DE LEITURA (PAUTA GRÁFICA PRIORITÁRIA) ────── */}
       <div className="glass-card rounded-3xl p-4 sm:p-5 border border-white/10 shadow-2xl relative flex flex-col gap-3">
-        {/* Top Header do Palco: Título do Exercício e Timer (se Desafio) */}
+        {/* Top Header do Palco: Título, Modo Rítmico / Metrônomo e Cronômetro */}
         <div className="flex flex-wrap items-center justify-between gap-2 px-1">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <span className="text-xs font-black tracking-wider uppercase text-amber-400 font-mono">
               {exercise.title}
             </span>
@@ -526,25 +789,69 @@ export const SightReadingView: React.FC = () => {
             )}
           </div>
 
-          {/* Cronômetro do Modo Desafio */}
-          {trainingMode === 'challenge' && (
-            <div className="flex items-center gap-3 bg-black/60 px-3 py-1 rounded-xl border border-amber-500/30">
-              <Clock className="w-4 h-4 text-amber-400" />
-              <span className="font-mono text-base font-black text-amber-300">{challengeTimeLeft}s</span>
-              <span className="text-xs font-mono text-emerald-400 font-bold">
-                {metrics.correctHits} acertos
-              </span>
+          <div className="flex items-center gap-2">
+            {/* Controle do Cursor Temporal Determinístico / Modo Rítmico (Requisito 3 & 6) */}
+            <div className="flex items-center gap-2 bg-black/40 px-2.5 py-1 rounded-xl border border-white/10 text-xs">
+              <button
+                type="button"
+                onClick={() => setIsTemporalPlaying(!isTemporalPlaying)}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  isTemporalPlaying
+                    ? 'bg-rose-600 text-white shadow-sm'
+                    : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm'
+                }`}
+                title="Ativar Cursor Temporal Determinístico para treino de fluência e timing"
+              >
+                {isTemporalPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                <span>{isTemporalPlaying ? 'Pausar' : 'Cursor Rítmico'}</span>
+              </button>
+
+              <div className="flex items-center gap-1 font-mono text-[11px] text-slate-300">
+                <span className="opacity-60">BPM:</span>
+                <input
+                  type="number"
+                  min="40"
+                  max="180"
+                  value={bpm}
+                  onChange={(e) => setBpm(Math.max(40, Math.min(180, Number(e.target.value) || 60)))}
+                  className="w-12 bg-black/50 border border-white/10 rounded px-1 text-center text-amber-300 font-bold focus:outline-hidden"
+                />
+              </div>
+
+              {/* Feedback de Timing Rítmico (ON TIME, EARLY, LATE) */}
+              {timingResult && isTemporalPlaying && (
+                <span
+                  style={{ color: timingResult.color }}
+                  className="font-mono text-[11px] font-black px-2 py-0.5 rounded bg-black/60 border border-white/10 shadow-xs animate-in zoom-in-95"
+                >
+                  {timingResult.label} ({timingResult.deltaMs > 0 ? `+${timingResult.deltaMs}ms` : `${timingResult.deltaMs}ms`})
+                </span>
+              )}
             </div>
-          )}
+
+            {/* Cronômetro do Modo Desafio */}
+            {trainingMode === 'challenge' && (
+              <div className="flex items-center gap-2 bg-black/60 px-3 py-1 rounded-xl border border-amber-500/30">
+                <Clock className="w-4 h-4 text-amber-400" />
+                <span className="font-mono text-base font-black text-amber-300">{challengeTimeLeft}s</span>
+                <span className="text-xs font-mono text-emerald-400 font-bold">
+                  {metrics.correctHits} acertos
+                </span>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Palco do Canvas Retina */}
+        {/* Palco do Canvas Retina com Pauta, Armadura, Compasso e Cursor Determinístico */}
         <SightReadingStaffCanvas
           exercise={exercise}
           activeNoteIndex={activeNoteIndex}
           feedbackState={feedbackState}
           showNoteHints={showNoteHints}
           showStaffPositionHints={showStaffPositionHints}
+          showBeatCount={showBeatCount}
+          cursorProgress={cursorProgress}
+          isTemporalActive={isTemporalPlaying}
         />
 
         {/* Faixa de Feedback Imediato */}
@@ -571,7 +878,12 @@ export const SightReadingView: React.FC = () => {
           <div className="text-[11px] font-mono text-slate-400 flex items-center gap-3">
             {currentTargetNote && (
               <span>
-                Alvo: <strong className="text-white">{currentTargetNote.staffPosition.description}</strong>
+                Alvo:{' '}
+                <strong className="text-white">
+                  {exercise.type === 'chords'
+                    ? `Acorde ${exercise.chordSymbol}`
+                    : currentTargetNote.staffPosition.description}
+                </strong>
               </span>
             )}
             <span className="hidden md:inline">|</span>
@@ -631,8 +943,8 @@ export const SightReadingView: React.FC = () => {
             <button
               type="button"
               onClick={() => {
-                metricsTracker.current.reset();
-                setMetrics(metricsTracker.current.getMetrics());
+                tracker.reset();
+                setMetrics(tracker.getMetrics());
               }}
               className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
               title="Zerar estatísticas da sessão"
@@ -642,7 +954,7 @@ export const SightReadingView: React.FC = () => {
           </div>
         </div>
 
-        {/* Barra de Entrada de Microfone / Cabo / Teclado Real */}
+        {/* Barra de Entrada de Microfone / Cabo / Teclado Real (Requisito 7) */}
         <MicrophonePitchBar
           onNoteHold={(midi) => {
             if (midi !== null) handleNoteTriggered(midi);
@@ -651,10 +963,10 @@ export const SightReadingView: React.FC = () => {
           onAcousticChordNotesChange={setMicAcousticNotes}
           expectedMidi={currentTargetNote?.midi}
           expectedNoteName={currentTargetNote ? getFormattedNoteName(currentTargetNote.midi).english : undefined}
-          customLabel="Ouvir Piano Real / Microfone para Leitura de Partitura"
+          customLabel="Entrada: Piano Real / Microfone para Leitura de Partitura"
         />
 
-        {/* Barra de Ações Rápidas: Pedal de Sustain */}
+        {/* Barra de Ações Rápidas: Pedal de Sustain & Estado dos Dispositivos (Requisito 7) */}
         <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-black/40 border border-white/5 text-xs">
           <div className="flex items-center gap-3">
             <button
@@ -665,7 +977,7 @@ export const SightReadingView: React.FC = () => {
                   ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 border-amber-300 shadow-amber-500/25 font-black ring-1 ring-amber-300'
                   : 'bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border-white/10'
               }`}
-              title="Ativar/Desativar Pedal de Sustain (Atalho: segure ou dê toque na Barra de Espaço)"
+              title="Ativar/Desativar Pedal de Sustain (Atalho: Barra de Espaço)"
             >
               <Footprints className={`w-4 h-4 ${isSustainActive ? 'text-slate-950 animate-bounce' : 'text-amber-400'}`} />
               <span>{isSustainActive ? 'Pedal Sustain: LIGADO' : 'Ativar Pedal Sustain'}</span>
@@ -687,13 +999,13 @@ export const SightReadingView: React.FC = () => {
             />
             <span>
               {midiDevices.length > 0
-                ? `${midiDevices.length} teclado(s) MIDI conectado(s)`
+                ? `${midiDevices.length} teclado(s) MIDI conectado(s) (${midiDevices[0]?.name || 'MIDI USB'})`
                 : 'Aguardando teclado MIDI USB'}
             </span>
           </div>
         </div>
 
-        {/* Teclado Virtual Interativo */}
+        {/* Teclado Virtual Interativo com Feedback de Notas e Acordes (Requisito 8) */}
         <PianoKeyboard
           startOctave={startOctave}
           allowOctaveControls={true}
@@ -702,6 +1014,26 @@ export const SightReadingView: React.FC = () => {
           onKeyPlay={(midi) => handleNoteTriggered(midi)}
         />
       </div>
+
+      {/* ── MODAL DE TUTORIAL DE LEITURA (REQUISITO 1) ───────────────────────── */}
+      <SightReadingTutorialModal
+        isOpen={showTutorialModal}
+        onClose={() => setShowTutorialModal(false)}
+        onSelectTopicExercise={(topicId) => {
+          if (topicId === 'clefs') {
+            setClef('grand');
+            setExerciseType('single');
+          } else if (topicId === 'rhythm_figures' || topicId === 'time_signatures') {
+            setExerciseType('sequences');
+          } else if (topicId === 'chords_polyphony') {
+            setExerciseType('chords');
+          } else if (topicId === 'accidentals_key_signatures') {
+            setAccidentalMode('all');
+          } else if (topicId === 'octaves_central_c') {
+            setExerciseType('ledger');
+          }
+        }}
+      />
 
       {/* ── MODAL DE NOTAS FRACAS / MAPA DE CALOR ───────────────────────────── */}
       {showWeakNotesModal && (

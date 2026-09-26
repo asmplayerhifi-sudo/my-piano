@@ -83,7 +83,7 @@ describe('Expanded Repertoire & Quality Standard', () => {
     }
   });
 
-  it('contém exatamente 58 obras completas no catálogo de repertório', () => {
-    expect(REPERTOIRE_SONGS.length).toBe(58);
+  it('contém o catálogo completo expandido de 68 obras auditadas', () => {
+    expect(REPERTOIRE_SONGS.length).toBe(68);
   });
 });

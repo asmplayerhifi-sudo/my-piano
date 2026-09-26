@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   Play,
   Pause,
@@ -10,7 +10,13 @@ import {
   Wand2,
   ChevronRight,
   BookOpen,
+  FolderOpen,
+  Save,
 } from 'lucide-react';
+import { StudioFolderBar } from '../common/StudioFolderBar';
+import { StudioProjectModal } from '../common/StudioProjectModal';
+import { useStudioStorage } from '../../core/studio/useStudioStorage';
+import type { StudioProjectEnvelope } from '../../core/studio/studioStorageTypes';
 import { soundEngine } from '../../core/soundEngine';
 import { useOctaveStandard } from '../../core/octaveConfigStore';
 import { getNoteInfo } from '../../core/musicTheory';
@@ -56,6 +62,136 @@ export const PhraseEditorView: React.FC = () => {
 
   // Filtro da Biblioteca de Licks
   const [selectedGenre, setSelectedGenre] = useState<PhrasingGenre | 'all'>('all');
+
+  // ── Armazenamento Soberano Local do Estúdio ──
+  const studioStorage = useStudioStorage();
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  const [storageFeedback, setStorageFeedback] = useState<string | null>(null);
+
+  const handleSavePhrase = useCallback(async () => {
+    if (!studioStorage.folderInfo?.isAvailable) {
+      setIsProjectModalOpen(true);
+      return;
+    }
+
+    try {
+      if (currentProjectId) {
+        await studioStorage.saveProject({
+          id: currentProjectId,
+          module: 'phrase',
+          title: currentLickTitle,
+          data: {
+            notes,
+            bpm,
+            tonalityOffset: selectedTonalityOffset,
+          },
+          metadata: {
+            bpm,
+            notesCount: notes.length,
+            genre: selectedGenre === 'all' ? 'Lick' : selectedGenre,
+          },
+        });
+        setStorageFeedback('Frase salva com sucesso no disco!');
+        setTimeout(() => setStorageFeedback(null), 3000);
+      } else {
+        const res = await studioStorage.createProject({
+          module: 'phrase',
+          title: currentLickTitle,
+          category: selectedGenre === 'all' ? 'Lick' : selectedGenre,
+          data: {
+            notes,
+            bpm,
+            tonalityOffset: selectedTonalityOffset,
+          },
+          metadata: {
+            bpm,
+            notesCount: notes.length,
+            genre: selectedGenre === 'all' ? 'Lick' : selectedGenre,
+          },
+        });
+        setCurrentProjectId(res.item.id);
+        setStorageFeedback(`Frase salva: ${res.item.relativePath}`);
+        setTimeout(() => setStorageFeedback(null), 3000);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setStorageFeedback(`Erro ao salvar frase: ${msg}`);
+      setTimeout(() => setStorageFeedback(null), 4000);
+    }
+  }, [studioStorage, currentProjectId, currentLickTitle, notes, bpm, selectedTonalityOffset, selectedGenre]);
+
+  const handleOpenPhrase = useCallback((_path: string, envelope: StudioProjectEnvelope<any>) => {
+    const data = envelope.data;
+    if (data && Array.isArray(data.notes)) {
+      setNotes(data.notes);
+      if (data.bpm) setBpm(data.bpm);
+      if (data.tonalityOffset !== undefined) setSelectedTonalityOffset(data.tonalityOffset);
+      setCurrentLickTitle(envelope.title);
+      setCurrentProjectId(envelope.id);
+      setStorageFeedback(`Frase "${envelope.title}" carregada.`);
+      setTimeout(() => setStorageFeedback(null), 3000);
+    }
+  }, []);
+
+  const handleCreateNewPhrase = useCallback(async (title: string) => {
+    const blankNotes = PHRASING_LICKS[0].notes;
+    setCurrentLickTitle(title);
+    setNotes(blankNotes);
+    if (studioStorage.folderInfo?.isAvailable) {
+      try {
+        const res = await studioStorage.createProject({
+          module: 'phrase',
+          title,
+          data: {
+            notes: blankNotes,
+            bpm,
+            tonalityOffset: 0,
+          },
+          metadata: {
+            bpm,
+            notesCount: blankNotes.length,
+          },
+        });
+        setCurrentProjectId(res.item.id);
+      } catch (err) {
+        console.warn('Falha ao registrar nova frase:', err);
+      }
+    }
+    setStorageFeedback(`Nova frase criada: ${title}`);
+    setTimeout(() => setStorageFeedback(null), 3000);
+  }, [studioStorage, bpm]);
+
+  const handleSavePhraseAs = useCallback(async (newTitle: string) => {
+    if (!studioStorage.folderInfo?.isAvailable) {
+      setIsProjectModalOpen(true);
+      return;
+    }
+    try {
+      const res = await studioStorage.saveProjectAs({
+        originalId: currentProjectId || 'temp',
+        module: 'phrase',
+        newTitle,
+        data: {
+          notes,
+          bpm,
+          tonalityOffset: selectedTonalityOffset,
+        },
+        metadata: {
+          bpm,
+          notesCount: notes.length,
+        },
+      });
+      setCurrentProjectId(res.item.id);
+      setCurrentLickTitle(newTitle);
+      setStorageFeedback(`Cópia salva como "${newTitle}"`);
+      setTimeout(() => setStorageFeedback(null), 3000);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setStorageFeedback(`Erro ao salvar como: ${msg}`);
+      setTimeout(() => setStorageFeedback(null), 4000);
+    }
+  }, [studioStorage, currentProjectId, notes, bpm, selectedTonalityOffset]);
 
   // Timers de Playback
   const playbackTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -258,34 +394,66 @@ export const PhraseEditorView: React.FC = () => {
   }, [selectedGenre]);
 
   return (
-    <div className="w-full flex-1 flex flex-col min-h-0 bg-[#070b16] rounded-2xl border border-white/5 shadow-2xl overflow-hidden text-slate-100 select-none">
-      {/* ── 1. CABEÇALHO CONTEXTUAL DA FERRAMENTA (Linha Única 52px) ── */}
-      <div className="h-[52px] px-4 bg-[#0a1024] border-b border-white/10 flex items-center justify-between gap-3 shrink-0">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-300 shrink-0">
-            <Wand2 className="w-4 h-4" />
-          </div>
-          <div className="truncate">
-            <div className="flex items-center gap-2">
-              <h2 className="text-xs sm:text-sm font-black font-display text-white tracking-wide truncate">
-                Editor de Fraseados &amp; Text-to-Melody
-              </h2>
-              <span className="hidden md:inline px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[9px] font-bold">
-                ESTÚDIO
-              </span>
-            </div>
-            <p className="text-[10px] text-slate-400 hidden sm:block truncate">
-              {currentLickTitle} • {notes.length} notas
-            </p>
-          </div>
-        </div>
+    <div className="w-full flex-1 flex flex-col min-h-0 space-y-3">
+      {/* ── 0. Barra Soberana da Pasta do Usuário ── */}
+      <StudioFolderBar onOpenCatalog={() => setIsProjectModalOpen(true)} />
 
-        {/* Controles de Transporte e Áudio */}
-        <div className="flex items-center gap-2">
-          {/* Seletor de Timbre */}
-          <div className="hidden lg:block">
-            <TimbreSelector />
+      {/* Toast de Feedback */}
+      {storageFeedback && (
+        <div className="px-4 py-2 bg-emerald-950/80 border border-emerald-500/40 rounded-xl text-emerald-200 text-xs font-medium flex items-center justify-between shadow-lg animate-in fade-in">
+          <span>{storageFeedback}</span>
+        </div>
+      )}
+
+      <div className="w-full flex-1 flex flex-col min-h-0 bg-[#070b16] rounded-2xl border border-white/5 shadow-2xl overflow-hidden text-slate-100 select-none">
+        {/* ── 1. CABEÇALHO CONTEXTUAL DA FERRAMENTA (Linha Única 52px) ── */}
+        <div className="h-[52px] px-4 bg-[#0a1024] border-b border-white/10 flex items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-300 shrink-0">
+              <Wand2 className="w-4 h-4" />
+            </div>
+            <div className="truncate">
+              <div className="flex items-center gap-2">
+                <h2 className="text-xs sm:text-sm font-black font-display text-white tracking-wide truncate">
+                  Editor de Fraseados &amp; Text-to-Melody
+                </h2>
+                <span className="hidden md:inline px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[9px] font-bold">
+                  ESTÚDIO
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400 hidden sm:block truncate">
+                {currentLickTitle} • {notes.length} notas
+              </p>
+            </div>
           </div>
+
+          {/* Controles de Transporte e Áudio */}
+          <div className="flex items-center gap-2">
+            {/* Ações Soberanas do Estúdio */}
+            <button
+              type="button"
+              onClick={() => setIsProjectModalOpen(true)}
+              className="h-8 px-2.5 rounded-xl border border-purple-500/40 bg-purple-600/20 text-purple-200 hover:bg-purple-600/35 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-md shadow-purple-600/20"
+              title="Abrir Catálogo de Frases na Pasta Soberana"
+            >
+              <FolderOpen className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Catálogo</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSavePhrase}
+              className="h-8 px-2.5 rounded-xl border border-emerald-500/40 bg-emerald-600/20 text-emerald-200 hover:bg-emerald-600/35 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-md"
+              title="Salvar Frase no Disco"
+            >
+              <Save className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Salvar</span>
+            </button>
+
+            {/* Seletor de Timbre */}
+            <div className="hidden lg:block">
+              <TimbreSelector />
+            </div>
 
           {/* Controle de BPM */}
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/5 border border-white/10 text-xs font-mono">
@@ -647,6 +815,18 @@ export const PhraseEditorView: React.FC = () => {
           </div>
         </section>
       </div>
+    </div>
+
+      {/* ── Modal Soberano de Projetos ── */}
+      <StudioProjectModal
+        isOpen={isProjectModalOpen}
+        onClose={() => setIsProjectModalOpen(false)}
+        activeModule="phrase"
+        currentProjectId={currentProjectId}
+        onOpenProject={handleOpenPhrase}
+        onCreateNewProject={handleCreateNewPhrase}
+        onSaveCurrentAs={handleSavePhraseAs}
+      />
     </div>
   );
 };
