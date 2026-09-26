@@ -45,6 +45,8 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
   hidePlaybackControls = false,
   onActiveNotesChange,
   onBeatTick,
+  mode = 'wait',
+  onStepChange,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -104,6 +106,8 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
     pixelsPerBeat,
     instrument,
     sustainMode: activeSustainMode,
+    mode,
+    onStepChange,
   });
 
   // 1. Carrega e prepara a partitura apenas quando as notas ou o compasso realmente mudarem
@@ -263,7 +267,7 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
       if (displayOptions.showRests) {
         drawScoreRests({ ctx, width: containerWidth, theme: scoreTheme, restsList, attackLineX, scrollOffset: playback.scrollOffsetRef.current, pixelsPerBeat });
       }
-      drawScoreNotes({ ctx, width: containerWidth, notes, theme: scoreTheme, displayOptions, noteOffsets: timeline.noteOffsets, currentIndex: playback.currentIndex, attackLineX, scrollOffset: playback.scrollOffsetRef.current, pixelsPerBeat, instrument, isDemoMode, lastError: playback.lastError });
+      drawScoreNotes({ ctx, width: containerWidth, notes, theme: scoreTheme, displayOptions, noteOffsets: timeline.noteOffsets, currentIndex: playback.currentIndex, attackLineX, scrollOffset: playback.scrollOffsetRef.current, pixelsPerBeat, instrument, isDemoMode, lastError: playback.lastError, satisfiedIndices: playback.satisfiedIndices });
       drawScoreImpactLine(ctx, h, scoreTheme, attackLineX);
 
       animId = requestAnimationFrame(render);

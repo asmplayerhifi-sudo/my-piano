@@ -4,13 +4,13 @@
  * Regra: Hook puro de lógica (< 140 linhas).
  */
 
-import { useRef, useState, useCallback, useEffect } from 'react';
+import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import { getNoteInfo, parseChord, CHROMATIC_NOTES_SHARP, CHROMATIC_NOTES_FLAT } from '../../../core/musicTheory';
 import { soundEngine } from '../../../core/soundEngine';
 import { NoteConfirmationValidator } from '../../../core/noteConfirmationValidator';
 import { EvaluateRhythmStrikeUseCase } from '../../../application/use-cases/EvaluateRhythmStrikeUseCase';
 import type { ScoreNote } from '../../../core/coursesData';
-import type { ChordSpan, ScoreErrorEvent, ScoreSustainMode } from './types';
+import type { ChordSpan, ScoreErrorEvent, ScoreSustainMode, MidiInputNote } from './types';
 
 interface PlaybackTimeline {
   noteOffsets: number[];
@@ -23,6 +23,7 @@ interface UseScorePlaybackProps {
   bpm: number;
   toleranceMs: number;
   isDemoMode: boolean;
+  mode?: 'wait' | 'flow';
   controlledIsPlaying?: boolean;
   onPlayPauseToggle?: (playing: boolean) => void;
   onTempoChange?: (tempo: number) => void;
@@ -30,12 +31,13 @@ interface UseScorePlaybackProps {
   onNoteError?: (error: ScoreErrorEvent) => void;
   onTargetNoteChange?: (note: ScoreNote | null, index: number) => void;
   onLessonComplete?: () => void;
-  currentMidiPressed?: number | { midi: number } | null;
+  currentMidiPressed?: MidiInputNote;
   currentNoteIndex?: number;
   timeline: PlaybackTimeline;
   pixelsPerBeat: number;
   instrument?: 'piano' | 'guitar';
   sustainMode?: ScoreSustainMode;
+  onStepChange?: (stepIndices: number[], satisfiedIndices: Set<number>) => void;
 }
 
 export function useScorePlayback({
@@ -43,6 +45,7 @@ export function useScorePlayback({
   bpm,
   toleranceMs,
   isDemoMode,
+  mode = 'wait',
   controlledIsPlaying,
   onPlayPauseToggle,
   onTempoChange,
@@ -55,8 +58,11 @@ export function useScorePlayback({
   timeline,
   pixelsPerBeat,
   instrument = 'piano',
-  sustainMode = 'all',
+  sustainMode = 'off',
+  onStepChange,
 }: UseScorePlaybackProps) {
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
   const [internalIsPlaying, setInternalIsPlaying] = useState<boolean>(false);
   const isPlaying = controlledIsPlaying !== undefined ? controlledIsPlaying : internalIsPlaying;
   const [tempo, setTempo] = useState<number>(bpm);
@@ -152,6 +158,58 @@ export function useScorePlayback({
     onTempoChangeRef.current?.(clamped);
   };
 
+  const [satisfiedIndices, setSatisfiedIndices] = useState<Set<number>>(new Set());
+  const satisfiedIndicesRef = useRef<Set<number>>(new Set());
+
+  const currentStepIndices = useMemo(() => {
+    if (!notes || notes.length === 0 || currentIndex >= notes.length) return [];
+    const off = timeline.noteOffsets[currentIndex] ?? 0;
+    const indices: number[] = [];
+    for (let i = currentIndex; i < notes.length; i++) {
+      const o = timeline.noteOffsets[i] ?? 0;
+      if (Math.abs(o - off) < 0.05) {
+        indices.push(i);
+      } else {
+        break;
+      }
+    }
+    return indices.length > 0 ? indices : [currentIndex];
+  }, [currentIndex, notes, timeline.noteOffsets]);
+
+  const onStepChangeRef = useRef(onStepChange);
+  onStepChangeRef.current = onStepChange;
+
+  useEffect(() => {
+    onStepChangeRef.current?.(currentStepIndices, satisfiedIndices);
+  }, [currentStepIndices, satisfiedIndices]);
+
+  const prevIndexRef = useRef(currentIndex);
+  useEffect(() => {
+    if (prevIndexRef.current !== currentIndex) {
+      prevIndexRef.current = currentIndex;
+      satisfiedIndicesRef.current.clear();
+      setSatisfiedIndices(new Set());
+    }
+  }, [currentIndex]);
+
+  const playSoundForNote = useCallback(
+    (targetNote: ScoreNote) => {
+      const beatSec = 60 / tempo;
+      const isNotesSustain = sustainMode === 'notes' || sustainMode === 'all';
+      const targetDurSec = (targetNote.duration || 1) * beatSec;
+      const targetSoundDuration = isNotesSustain
+        ? Math.max(targetDurSec * 1.6, 2.5)
+        : Math.max(0.18, targetDurSec * 0.85);
+
+      if (instrument === 'guitar') {
+        soundEngine.playGuitarPluck(targetNote.midi, targetSoundDuration, undefined, 0.8, isNotesSustain);
+      } else {
+        soundEngine.playPianoNote(targetNote.midi, targetSoundDuration, undefined, 0.8, isNotesSustain);
+      }
+    },
+    [tempo, sustainMode, instrument]
+  );
+
   const handleRestart = () => {
     scrollOffsetRef.current = 0;
     setCurrentIndex(0);
@@ -160,6 +218,8 @@ export function useScorePlayback({
     playedNotesRef.current.clear();
     playedChordsRef.current.clear();
     playedBeatsRef.current.clear();
+    satisfiedIndicesRef.current.clear();
+    setSatisfiedIndices(new Set());
     isPausedWaitingRef.current = false;
     validatorRef.current.reset();
   };
@@ -201,6 +261,8 @@ export function useScorePlayback({
         playedNotesRef.current.clear();
         playedChordsRef.current.clear();
         playedBeatsRef.current.clear();
+        satisfiedIndicesRef.current.clear();
+        setSatisfiedIndices(new Set());
         isPausedWaitingRef.current = false;
         validatorRef.current.reset();
       } else {
@@ -222,108 +284,165 @@ export function useScorePlayback({
 
   useEffect(() => {
     if (isDemoMode || currentMidiPressed === null || currentMidiPressed === undefined) return;
-    const rawMidi = typeof currentMidiPressed === 'number' ? currentMidiPressed : currentMidiPressed.midi;
+    const playedMidis: number[] = [];
+    let velocity = 80;
+    let explicitChordName: string | undefined = undefined;
+
+    if (typeof currentMidiPressed === 'number') {
+      playedMidis.push(currentMidiPressed);
+    } else if (Array.isArray(currentMidiPressed)) {
+      playedMidis.push(...currentMidiPressed);
+    } else if (typeof currentMidiPressed === 'object' && currentMidiPressed !== null) {
+      if ('velocity' in currentMidiPressed && typeof (currentMidiPressed as { velocity?: number }).velocity === 'number') {
+        velocity = (currentMidiPressed as { velocity?: number }).velocity ?? 80;
+      }
+      if ('chordName' in currentMidiPressed && typeof (currentMidiPressed as { chordName?: string }).chordName === 'string') {
+        explicitChordName = (currentMidiPressed as { chordName?: string }).chordName;
+      }
+      if ('midis' in currentMidiPressed && Array.isArray((currentMidiPressed as { midis?: number[] }).midis)) {
+        playedMidis.push(...((currentMidiPressed as { midis?: number[] }).midis ?? []));
+      }
+      if ('midi' in currentMidiPressed && typeof (currentMidiPressed as { midi?: number }).midi === 'number') {
+        const m = (currentMidiPressed as { midi: number }).midi;
+        if (!playedMidis.includes(m)) {
+          playedMidis.push(m);
+        }
+      }
+    }
+
+    if (playedMidis.length === 0) return;
+
     const targetNote = notes[currentIndex];
     if (!targetNote) return;
 
-    const nextNote = notes[currentIndex + 1] || null;
     const now = performance.now();
-    const intensity =
-      typeof currentMidiPressed === 'object' && currentMidiPressed !== null && 'velocity' in currentMidiPressed
-        ? ((currentMidiPressed as { velocity?: number }).velocity ?? 80) / 127
-        : 0.75;
-    validatorRef.current.getEvaluator().feedNote(rawMidi, intensity, now);
+    const intensity = velocity / 127;
+    let matchedAny = false;
 
-    // Verifica se a nota tocada é compatível com o acorde da nota atual
-    let isChordNoteMatch = false;
-    if (targetNote.chordName) {
-      const parsedChord = parseChord(targetNote.chordName);
-      if (parsedChord) {
-        const rawPitchClass = ((rawMidi % 12) + 12) % 12;
-        isChordNoteMatch = parsedChord.notes.some(n => {
-          const idx = CHROMATIC_NOTES_SHARP.indexOf(n);
-          return (idx !== -1 ? idx : CHROMATIC_NOTES_FLAT.indexOf(n)) === rawPitchClass;
-        });
+    // Processa cada nota executada (MIDI ou Acústica) contra as notas do passo atual
+    playedMidis.forEach((rawMidi) => {
+      validatorRef.current.getEvaluator().feedNote(rawMidi, intensity, now);
+
+      // 1. Acerto direto de nota do passo (Clave de Fá ou Clave de Sol)
+      const matchIdx = currentStepIndices.find(
+        (idx: number) => !satisfiedIndicesRef.current.has(idx) && (rawMidi === -1 || notes[idx].midi === rawMidi)
+      );
+
+      if (matchIdx !== undefined) {
+        satisfiedIndicesRef.current.add(matchIdx);
+        validatorRef.current.onNoteCompleted(notes[matchIdx].midi, now);
+        playSoundForNote(notes[matchIdx]);
+        matchedAny = true;
+        return;
       }
-    }
 
-    // 1. Acerto Imediato (Zero Latência): Toque rítmico genérico (-1), nota correta ou nota do acorde
-    if (rawMidi === -1 || targetNote.midi === rawMidi || isChordNoteMatch) {
-      validatorRef.current.onNoteCompleted(targetNote.midi, now);
+      // 2. Acerto por harmonia/acorde no passo atual
+      const stepChord = notes.find((_n, i) => currentStepIndices.includes(i) && _n.chordName)?.chordName || explicitChordName;
+      if (stepChord) {
+        const parsedChord = parseChord(stepChord);
+        if (parsedChord) {
+          const rawPitchClass = ((rawMidi % 12) + 12) % 12;
+          const isChordNote = parsedChord.notes.some((n) => {
+            const idx = CHROMATIC_NOTES_SHARP.indexOf(n);
+            return (idx !== -1 ? idx : CHROMATIC_NOTES_FLAT.indexOf(n)) === rawPitchClass;
+          });
+          if (isChordNote) {
+            const unfulfilledIdx = currentStepIndices.find((idx: number) => !satisfiedIndicesRef.current.has(idx));
+            if (unfulfilledIdx !== undefined) {
+              satisfiedIndicesRef.current.add(unfulfilledIdx);
+              validatorRef.current.onNoteCompleted(notes[unfulfilledIdx].midi, now);
+              playSoundForNote(notes[unfulfilledIdx]);
+              matchedAny = true;
+              return;
+            }
+          }
+        }
+      }
+    });
+
+    // 3. Verifica se todas as notas do passo foram satisfeitas
+    const allSatisfied = currentStepIndices.every((idx: number) => satisfiedIndicesRef.current.has(idx));
+
+    if (allSatisfied) {
       setLastError(null);
+      isPausedWaitingRef.current = false;
+      const lastIdx = currentStepIndices[currentStepIndices.length - 1];
+      const nextIdx = lastIdx + 1;
       const noteOffset = timeline.noteOffsets[currentIndex] ?? 0;
       const currentBeat = scrollOffsetRef.current / pixelsPerBeat;
       const diffMs = (currentBeat - noteOffset) * ((60 / tempo) * 1000);
-      processStrike(diffMs, currentIndex);
 
-      // Emite o som da nota acertada
-      const beatSec = 60 / tempo;
-      const isNotesSustain = sustainMode === 'notes' || sustainMode === 'all';
-      const targetDurSec = (targetNote.duration || 1) * beatSec;
-      const targetSoundDuration = isNotesSustain
-        ? Math.max(targetDurSec * 1.6, 2.5)
-        : Math.max(0.18, targetDurSec * 0.85);
+      processStrike(diffMs, lastIdx);
 
-      if (instrument === 'guitar') {
-        soundEngine.playGuitarPluck(targetNote.midi, targetSoundDuration, undefined, 0.8, isNotesSustain);
+      satisfiedIndicesRef.current.clear();
+      setSatisfiedIndices(new Set());
+      setCurrentIndex(nextIdx);
+
+      if (nextIdx < notes.length) {
+        const nextOffset = timeline.noteOffsets[nextIdx] ?? 0;
+        scrollOffsetRef.current = nextOffset * pixelsPerBeat;
       } else {
-        soundEngine.playPianoNote(targetNote.midi, targetSoundDuration, undefined, 0.8, isNotesSustain);
+        onLessonCompleteRef.current?.();
       }
       return;
     }
 
-    // Verifica compatibilidade com acorde da próxima nota
-    let isNextChordNoteMatch = false;
-    if (nextNote?.chordName) {
-      const parsedNext = parseChord(nextNote.chordName);
-      if (parsedNext) {
-        const rawPitchClass = ((rawMidi % 12) + 12) % 12;
-        isNextChordNoteMatch = parsedNext.notes.some(n => {
-          const idx = CHROMATIC_NOTES_SHARP.indexOf(n);
-          return (idx !== -1 ? idx : CHROMATIC_NOTES_FLAT.indexOf(n)) === rawPitchClass;
-        });
-      }
-    }
-
-    // 2. Transição Antecipada: Usuário tocou a próxima nota da partitura ou nota do próximo acorde
-    if (nextNote && (nextNote.midi === rawMidi || isNextChordNoteMatch)) {
-      validatorRef.current.onNoteCompleted(nextNote.midi, now);
+    if (matchedAny) {
+      // Passo parcialmente satisfeito (ex: tocou primeiro a mão esquerda ou nota do acorde)
+      setSatisfiedIndices(new Set(satisfiedIndicesRef.current));
       setLastError(null);
-      const nextIdx = currentIndex + 1;
-      const noteOffset = timeline.noteOffsets[nextIdx] ?? 0;
-      const currentBeat = scrollOffsetRef.current / pixelsPerBeat;
-      const diffMs = (currentBeat - noteOffset) * ((60 / tempo) * 1000);
-      processStrike(diffMs, nextIdx);
+      return;
+    }
 
-      const beatSec = 60 / tempo;
-      const isNotesSustain = sustainMode === 'notes' || sustainMode === 'all';
-      const nextDurSec = (nextNote.duration || 1) * beatSec;
-      const nextSoundDuration = isNotesSustain
-        ? Math.max(nextDurSec * 1.6, 2.5)
-        : Math.max(0.18, nextDurSec * 0.85);
+    // 4. Tratamento de notas que não coincidiram
+    const primaryPlayed = playedMidis[0];
 
-      if (instrument === 'guitar') {
-        soundEngine.playGuitarPluck(nextNote.midi, nextSoundDuration, undefined, 0.8, isNotesSustain);
-      } else {
-        soundEngine.playPianoNote(nextNote.midi, nextSoundDuration, undefined, 0.8, isNotesSustain);
+    // Ignora se for tecla repetida já satisfeita no passo atual
+    const isAlreadySatisfiedInStep = currentStepIndices.some(
+      (idx: number) => satisfiedIndicesRef.current.has(idx) && notes[idx].midi === primaryPlayed
+    );
+    if (isAlreadySatisfiedInStep) return;
+
+    // Ignora resíduo acústico da nota anterior
+    if (validatorRef.current.isPreviousSustain(primaryPlayed, now)) return;
+
+    // 5. Transição Antecipada para o próximo passo se o usuário já tocou a próxima nota
+    const lastCurrentIdx = currentStepIndices[currentStepIndices.length - 1];
+    const nextStepStartIdx = lastCurrentIdx + 1;
+    if (nextStepStartIdx < notes.length) {
+      const nextOffset = timeline.noteOffsets[nextStepStartIdx] ?? 0;
+      const nextStepIndices: number[] = [];
+      for (let i = nextStepStartIdx; i < notes.length; i++) {
+        if (Math.abs((timeline.noteOffsets[i] ?? 0) - nextOffset) < 0.05) {
+          nextStepIndices.push(i);
+        } else {
+          break;
+        }
       }
-      return;
+      const matchesNextStep = nextStepIndices.some((idx: number) => notes[idx].midi === primaryPlayed);
+      if (matchesNextStep) {
+        const noteOffset = timeline.noteOffsets[currentIndex] ?? 0;
+        const currentBeat = scrollOffsetRef.current / pixelsPerBeat;
+        const diffMs = (currentBeat - noteOffset) * ((60 / tempo) * 1000);
+
+        processStrike(diffMs, lastCurrentIdx);
+
+        satisfiedIndicesRef.current.clear();
+        const nextMatch = nextStepIndices.find((idx: number) => notes[idx].midi === primaryPlayed);
+        if (nextMatch !== undefined) {
+          satisfiedIndicesRef.current.add(nextMatch);
+          playSoundForNote(notes[nextMatch]);
+        }
+        setSatisfiedIndices(new Set(satisfiedIndicesRef.current));
+        setCurrentIndex(nextStepStartIdx);
+        scrollOffsetRef.current = nextOffset * pixelsPerBeat;
+        return;
+      }
     }
 
-    // 3. Tolerância de Sustain: Decaimento acústico da nota anterior ainda ressoando
-    if (validatorRef.current.isPreviousSustain(rawMidi, now)) {
-      // Ignora silenciosamente resíduo acústico da nota anterior
-      return;
-    }
-
-    // 4. Janela de Confirmação de Erro (Anti-Falsos Erros):
-    // Não classifica prematuramente como erro durante transições ou ruídos.
-    // Agenda janela de estabilização; se a nota correta for executada antes do estouro, cancela o erro.
-    const candidateMidi = rawMidi;
+    // 6. Janela de Confirmação de Erro (Anti-Falsos Erros)
     const expectedMidi = targetNote.midi;
-
-    validatorRef.current.schedulePendingError(candidateMidi, expectedMidi, (errPayload) => {
-      // Confirma o erro apenas se o alvo atual ainda for o mesmo (não acertou nem avançou no intervalo)
+    validatorRef.current.schedulePendingError(primaryPlayed, expectedMidi, (errPayload) => {
       const currentTarget = notes[currentIndexRef.current];
       if (currentTarget && currentTarget.midi === errPayload.expectedMidi) {
         const err: ScoreErrorEvent = {
@@ -333,15 +452,33 @@ export function useScorePlayback({
         };
         setLastError(err);
         const playedInfo = getNoteInfo(errPayload.playedMidi);
-        const targetInfo = getNoteInfo(errPayload.expectedMidi);
+        const unfulfilledNotes = currentStepIndices
+          .filter((i: number) => !satisfiedIndicesRef.current.has(i))
+          .map((i: number) => {
+            const inf = getNoteInfo(notes[i].midi);
+            return `${inf.name}${inf.octave}`;
+          });
+        const expectedDisplay = unfulfilledNotes.length > 0 ? unfulfilledNotes.join(' + ') : `${getNoteInfo(errPayload.expectedMidi).name}`;
         setFeedback({
-          text: `✕ NOTA ERRADA: Tocou ${playedInfo.name}${playedInfo.octave} (Esperada: ${targetInfo.name}${targetInfo.octave})`,
+          text: `✕ NOTA ERRADA: Tocou ${playedInfo.name}${playedInfo.octave} (Esperada: ${expectedDisplay})`,
           color: 'text-rose-400',
         });
         onNoteErrorRef.current?.(err);
       }
     });
-  }, [currentMidiPressed, currentIndex, notes, timeline, tempo, isDemoMode, processStrike, pixelsPerBeat, instrument]);
+  }, [
+    currentMidiPressed,
+    currentIndex,
+    notes,
+    timeline,
+    tempo,
+    isDemoMode,
+    processStrike,
+    pixelsPerBeat,
+    instrument,
+    currentStepIndices,
+    playSoundForNote,
+  ]);
 
   return {
     isPlaying,
@@ -356,6 +493,8 @@ export function useScorePlayback({
     playedNotesRef,
     playedChordsRef,
     playedBeatsRef,
+    satisfiedIndices,
+    currentStepIndices,
     handlePlayToggle,
     handleTempoChange,
     handleRestart,

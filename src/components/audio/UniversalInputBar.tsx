@@ -34,6 +34,7 @@ export interface UniversalInputBarProps {
   onNoteHold?: (midi: number | null, noteName?: string) => void;
   onChordDetected?: (chord: IdentifiedChord, midiNotes: number[]) => void;
   onAcousticChordNotesChange?: (notes: number[]) => void;
+  onActiveNotesChange?: (notes: number[]) => void;
   onClapDetected?: () => void;
   onOnsetDetected?: (rms: number) => void;
   className?: string;
@@ -57,6 +58,7 @@ export const UniversalInputBar: React.FC<UniversalInputBarProps> = ({
   onNoteHold,
   onChordDetected,
   onAcousticChordNotesChange,
+  onActiveNotesChange,
   onClapDetected,
   onOnsetDetected,
   className = '',
@@ -104,6 +106,9 @@ export const UniversalInputBar: React.FC<UniversalInputBarProps> = ({
 
   const onAcousticChordNotesChangeRef = useRef(onAcousticChordNotesChange);
   onAcousticChordNotesChangeRef.current = onAcousticChordNotesChange;
+
+  const onActiveNotesChangeRef = useRef(onActiveNotesChange);
+  onActiveNotesChangeRef.current = onActiveNotesChange;
 
   const onClapDetectedRef = useRef(onClapDetected);
   onClapDetectedRef.current = onClapDetected;
@@ -222,18 +227,26 @@ export const UniversalInputBar: React.FC<UniversalInputBarProps> = ({
     onAcousticChordNotesChangeRef.current?.(activeAcousticMidis);
   }, [activeAcousticMidis]);
 
+  const allActiveMidis = useMemo(() => {
+    return Array.from(new Set([...Array.from(activeMidiKeys), ...activeAcousticMidis]));
+  }, [activeMidiKeys, activeAcousticMidis]);
+
+  useEffect(() => {
+    onActiveNotesChangeRef.current?.(allActiveMidis);
+  }, [allActiveMidis]);
+
   const liveDetectedChord = useMemo(() => {
-    if (activeAcousticMidis.length >= 2) {
-      return identifyChordFromMidi(activeAcousticMidis, octaveStandard);
+    if (allActiveMidis.length >= 2) {
+      return identifyChordFromMidi(allActiveMidis, octaveStandard);
     }
     return null;
-  }, [activeAcousticMidis, octaveStandard]);
+  }, [allActiveMidis, octaveStandard]);
 
   useEffect(() => {
     if (liveDetectedChord) {
-      onChordDetectedRef.current?.(liveDetectedChord, activeAcousticMidis);
+      onChordDetectedRef.current?.(liveDetectedChord, allActiveMidis);
     }
-  }, [liveDetectedChord, activeAcousticMidis]);
+  }, [liveDetectedChord, allActiveMidis]);
 
   // Carrega dispositivos de entrada de áudio
   useEffect(() => {

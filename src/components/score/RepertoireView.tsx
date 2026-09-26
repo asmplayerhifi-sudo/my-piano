@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { REPERTOIRE_SONGS } from '../../core/repertoireData';
 import type { RepertoireSong } from '../../core/repertoireData';
 import { ScrollingScoreCanvas } from './ScrollingScoreCanvas';
@@ -14,7 +14,8 @@ import { musicalPlaybackEngine } from '../../core/musicalPlaybackEngine';
 import { useOctaveStandard, octaveConfigStore } from '../../core/octaveConfigStore';
 import { computeNoteOffsets } from './scrolling/scoreGeometry';
 import { useFullscreen } from '../../hooks/useFullscreen';
-import type { ScoreSustainMode } from './scrolling/types';
+import type { ScoreSustainMode, DetailedMidiInput } from './scrolling/types';
+import { midiManager, type MidiEventPayload } from '../../core/midiManager';
 import {
   Music,
   Play,
@@ -34,6 +35,10 @@ import {
   Sparkles,
   Guitar,
   Layers,
+  CheckCircle2,
+  Target,
+  AlertCircle,
+  Trophy,
 } from 'lucide-react';
 import {
   generateGuitarArrangementForKeyboard,
@@ -49,10 +54,24 @@ export const RepertoireView: React.FC = () => {
   const [tempo, setTempo] = useState<number>(REPERTOIRE_SONGS[0].recommendedBpm);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [currentNoteIdx, setCurrentNoteIdx] = useState<number>(0);
-  const [lastMidiEvent, setLastMidiEvent] = useState<{ midi: number; timestamp: number } | null>(null);
+  const [lastMidiEvent, setLastMidiEvent] = useState<DetailedMidiInput | null>(null);
   const [activeDemoMidi, setActiveDemoMidi] = useState<number[]>([]);
   const [micHearingMidi, setMicHearingMidi] = useState<number | null>(null);
   const { isFullscreen: isFullscreenStage, toggleFullscreen: toggleFullscreenStage } = useFullscreen();
+
+  // Modo de Execução: 'playback' (Ouvir Demonstração Sonora) vs 'practice' (Modo Prática Interativo)
+  const [viewMode, setViewMode] = useState<'playback' | 'practice'>('playback');
+  const [practiceType, setPracticeType] = useState<'wait' | 'flow'>('wait');
+  const [isPracticing, setIsPracticing] = useState<boolean>(false);
+  const [practiceHits, setPracticeHits] = useState<number>(0);
+  const [practiceErrors, setPracticeErrors] = useState<number>(0);
+  const [practiceScore, setPracticeScore] = useState<number>(0);
+  const [activeMidiKeys, setActiveMidiKeys] = useState<Set<number>>(new Set());
+  const [micAcousticNotes, setMicAcousticNotes] = useState<number[]>([]);
+  const [_currentStepIndices, setCurrentStepIndices] = useState<number[]>([]);
+  const [satisfiedStepIndices, setSatisfiedStepIndices] = useState<Set<number>>(new Set());
+  const [practiceResetKey, setPracticeResetKey] = useState<number>(0);
+  const [showPracticeCompletionModal, setShowPracticeCompletionModal] = useState<boolean>(false);
 
   // Modo de Arranjo: 'piano' (Pianístico Tradicional) vs 'guitar' (Violão no Teclado)
   const [arrangementMode, setArrangementMode] = useState<'piano' | 'guitar'>('piano');
@@ -104,11 +123,17 @@ export const RepertoireView: React.FC = () => {
   // Atualiza tempo recomendado ao trocar de música
   const handleSelectSong = (song: RepertoireSong) => {
     setShowCompletionBanner(false);
+    setShowPracticeCompletionModal(false);
     soundEngine.stopAllNotes(0.025);
     musicalPlaybackEngine.stop();
     setIsPlaying(false);
+    setIsPracticing(false);
     setActiveDemoMidi([]);
     setCurrentNoteIdx(0);
+    setSatisfiedStepIndices(new Set());
+    setPracticeHits(0);
+    setPracticeErrors(0);
+    setPracticeScore(0);
     setActiveSong(song);
     setTempo(song.recommendedBpm);
     metronomeEngine.setBpm(song.recommendedBpm);
@@ -132,8 +157,10 @@ export const RepertoireView: React.FC = () => {
     soundEngine.stopAllNotes(0.025);
     musicalPlaybackEngine.stop();
     setIsPlaying(false);
+    setIsPracticing(false);
     setActiveDemoMidi([]);
     setCurrentNoteIdx(0);
+    setSatisfiedStepIndices(new Set());
     setArrangementMode(mode);
 
     if (mode === 'guitar') {
@@ -152,9 +179,85 @@ export const RepertoireView: React.FC = () => {
     musicalPlaybackEngine.loadScore(nextTrack, activeSong.timeSignature, tempo);
   };
 
-  const handleNoteInput = (midi: number) => {
-    setLastMidiEvent({ midi, timestamp: performance.now() });
+  const handleSwitchViewMode = async (mode: 'playback' | 'practice') => {
+    if (mode === viewMode) return;
+    await soundEngine.ensureAudioReady();
+    soundEngine.stopAllNotes(0.025);
+    musicalPlaybackEngine.stop();
+    setIsPlaying(false);
+    setIsPracticing(false);
+    setActiveDemoMidi([]);
+    setCurrentNoteIdx(0);
+    setSatisfiedStepIndices(new Set());
+    setPracticeHits(0);
+    setPracticeErrors(0);
+    setPracticeScore(0);
+    setViewMode(mode);
   };
+
+  const handleTogglePractice = async () => {
+    await soundEngine.ensureAudioReady();
+    if (isPracticing) {
+      setIsPracticing(false);
+      if (practiceType === 'flow') {
+        musicalPlaybackEngine.pause();
+      }
+    } else {
+      setIsPracticing(true);
+      setShowPracticeCompletionModal(false);
+      if (practiceType === 'flow') {
+        musicalPlaybackEngine.loadScore(sortedScoreTrack, activeSong.timeSignature, tempo);
+        musicalPlaybackEngine.setSustainMode(sustainOption);
+        musicalPlaybackEngine.setMetronomeEnabled(metronome.isPlaying);
+        const startBeat = noteOffsets[currentNoteIdx] ?? 0;
+        musicalPlaybackEngine.play(startBeat);
+      }
+    }
+  };
+
+  const handleResetPractice = () => {
+    setShowPracticeCompletionModal(false);
+    setIsPracticing(false);
+    if (practiceType === 'flow') {
+      musicalPlaybackEngine.stop();
+    }
+    setCurrentNoteIdx(0);
+    setSatisfiedStepIndices(new Set());
+    setPracticeHits(0);
+    setPracticeErrors(0);
+    setPracticeScore(0);
+    setPracticeResetKey((k) => k + 1);
+  };
+
+  const handleNoteInput = useCallback((midi: number, midis?: number[], chordName?: string) => {
+    setLastMidiEvent({
+      midi,
+      midis: midis || [midi],
+      chordName,
+      timestamp: performance.now(),
+    });
+  }, []);
+
+  // Escuta entradas MIDI diretas do teclado físico externo (USB / OTG / Bluetooth)
+  useEffect(() => {
+    const unsub = midiManager.subscribe((payload: MidiEventPayload) => {
+      if (payload.isDown) {
+        setActiveMidiKeys((prev) => {
+          const next = new Set(prev);
+          next.add(payload.midi);
+          handleNoteInput(payload.midi, Array.from(next), payload.noteName);
+          return next;
+        });
+      } else {
+        setActiveMidiKeys((prev) => {
+          const next = new Set(prev);
+          next.delete(payload.midi);
+          return next;
+        });
+      }
+    });
+    return unsub;
+  }, [handleNoteInput]);
 
   // Garante que o scoreTrack esteja SEMPRE estritamente ordenado por compasso e tempo
   const sortedScoreTrack = useMemo(() => {
@@ -205,27 +308,72 @@ export const RepertoireView: React.FC = () => {
     );
   }, [activeSong, currentMeasure]);
 
-  // Apontamento de dedos para as teclas do piano com foco apenas na nota atual da música
+  // Passo ativo: identifica todas as notas do mesmo instante métrico (acordes e multi-mãos)
+  const currentTargetOffset = noteOffsets[currentNoteIdx] ?? 0;
+  const currentStepNotes = useMemo(() => {
+    return sortedScoreTrack.filter(
+      (_note, idx) => Math.abs((noteOffsets[idx] ?? 0) - currentTargetOffset) < 0.05
+    );
+  }, [sortedScoreTrack, noteOffsets, currentTargetOffset]);
+
+  // Apontamento de dedos para as teclas do piano com foco em todas as notas ativas do passo
   const highlightedSongKeys = useMemo(() => {
-    if (!currentSongTargetNote) return [];
-    return [{
-      midi: currentSongTargetNote.midi,
-      finger: currentSongTargetNote.fingerRightHand || currentSongTargetNote.fingerLeftHand,
-      color: arrangementMode === 'guitar' ? '#f59e0b' : '#6366f1',
-    }];
-  }, [currentSongTargetNote, arrangementMode]);
+    if (!currentStepNotes || currentStepNotes.length === 0) return [];
+
+    return currentStepNotes.map((note) => {
+      const idx = sortedScoreTrack.indexOf(note);
+      const isSatisfied = satisfiedStepIndices.has(idx);
+      const isBass = note.clef === 'bass' || note.midi < 60;
+      const finger = note.fingerRightHand || note.fingerLeftHand || (isBass ? 5 : (note.midi === 60 ? 1 : 2));
+
+      let keyColor = isBass ? '#38bdf8' : '#6366f1';
+      if (arrangementMode === 'guitar') {
+        keyColor = '#f59e0b';
+      } else if (isSatisfied) {
+        keyColor = '#10b981';
+      } else if (!isBass) {
+        keyColor = '#a855f7';
+      }
+
+      return {
+        midi: note.midi,
+        finger,
+        color: keyColor,
+      };
+    });
+  }, [currentStepNotes, sortedScoreTrack, satisfiedStepIndices, arrangementMode]);
 
   const activeFingerPrompt = useMemo(() => {
-    if (!currentSongTargetNote) return null;
-    const fingerNum = currentSongTargetNote.fingerRightHand || currentSongTargetNote.fingerLeftHand;
-    const hand = currentSongTargetNote.clef === 'bass' || currentSongTargetNote.midi < 60 ? 'ME' : 'MD';
+    if (!currentStepNotes || currentStepNotes.length === 0) return null;
     const names = ['', 'Polegar', 'Indicador', 'Médio', 'Anelar', 'Mínimo'];
     const colors = ['', '#f59e0b', '#38bdf8', '#10b981', '#c084fc', '#f43f5e'];
-    const f = fingerNum || (hand === 'MD' ? (currentSongTargetNote.midi === 60 ? 1 : 2) : 5);
+
+    if (currentStepNotes.length > 1) {
+      const parts = currentStepNotes.map((n) => {
+        const isBass = n.clef === 'bass' || n.midi < 60;
+        const hand = isBass ? 'M.E.' : 'M.D.';
+        const f = n.fingerRightHand || n.fingerLeftHand || (isBass ? 5 : (n.midi === 60 ? 1 : 2));
+        const noteName = octaveConfigStore.midiToNoteName(n.midi, octaveStandard);
+        return `${hand}: D${f} (${noteName})`;
+      });
+
+      return {
+        finger: 0,
+        label: 'Acorde',
+        fingerName: parts.join(' + '),
+        noteName: currentStepNotes.map((n) => octaveConfigStore.midiToNoteName(n.midi, octaveStandard)).join(' + '),
+        color: '#f59e0b',
+      };
+    }
+
+    const singleNote = currentStepNotes[0] || currentSongTargetNote;
+    const fingerNum = singleNote.fingerRightHand || singleNote.fingerLeftHand;
+    const hand = singleNote.clef === 'bass' || singleNote.midi < 60 ? 'ME' : 'MD';
+    const f = fingerNum || (hand === 'MD' ? (singleNote.midi === 60 ? 1 : 2) : 5);
 
     let pimaLabel = '';
     if (arrangementMode === 'guitar') {
-      if (currentSongTargetNote.clef === 'bass') {
+      if (singleNote.clef === 'bass') {
         pimaLabel = 'P (Polegar - Baixo)';
       } else if (f === 2) {
         pimaLabel = 'I (Indicador)';
@@ -242,10 +390,26 @@ export const RepertoireView: React.FC = () => {
       finger: f,
       label: `${f}`,
       fingerName: pimaLabel || names[f] || `D${f}`,
-      noteName: octaveConfigStore.midiToNoteName(currentSongTargetNote.midi, octaveStandard),
+      noteName: octaveConfigStore.midiToNoteName(singleNote.midi, octaveStandard),
       color: arrangementMode === 'guitar' ? '#f59e0b' : (colors[f] || '#38bdf8'),
     };
-  }, [currentSongTargetNote, octaveStandard, arrangementMode]);
+  }, [currentStepNotes, currentSongTargetNote, octaveStandard, arrangementMode]);
+
+  const activeInputMidis = useMemo(() => {
+    if (viewMode === 'playback' && isPlaying) {
+      return activeDemoMidi;
+    }
+    return Array.from(
+      new Set([
+        ...Array.from(activeMidiKeys),
+        ...(micHearingMidi !== null ? [micHearingMidi] : []),
+        ...micAcousticNotes,
+      ])
+    );
+  }, [viewMode, isPlaying, activeDemoMidi, activeMidiKeys, micHearingMidi, micAcousticNotes]);
+
+  const totalEvaluated = practiceHits + practiceErrors;
+  const practiceAccuracy = totalEvaluated > 0 ? Math.round((practiceHits / totalEvaluated) * 100) : 100;
 
   // Controles de Reprodução Unificados pelo Motor Central (Single Source of Time)
   const handleTogglePlayPause = async () => {
@@ -402,67 +566,155 @@ export const RepertoireView: React.FC = () => {
             </button>
           </div>
 
+          {/* Seletor de Modo: Ouvir Demonstração vs Modo Prática Interativo */}
+          <div className="flex items-center bg-black/60 p-1 rounded-2xl border border-white/10 shadow-lg shrink-0">
+            <button
+              onClick={() => handleSwitchViewMode('playback')}
+              className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                viewMode === 'playback'
+                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-900/40 ring-1 ring-emerald-400'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Modo Demonstração Sonora: ouvir a obra musical com reprodução automática"
+            >
+              <Play className="w-3.5 h-3.5 fill-current" />
+              <span>🎧 Reproduzir</span>
+            </button>
+            <button
+              onClick={() => handleSwitchViewMode('practice')}
+              className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                viewMode === 'practice'
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-900/40 ring-1 ring-purple-400'
+                  : 'text-slate-400 hover:text-purple-300'
+              }`}
+              title="Modo Prática Interativo: toque você mesmo as notas e acordes no teclado MIDI ou instrumento acústico"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <span>🎯 Modo Prática</span>
+            </button>
+          </div>
+
           {/* Seletor de Timbre */}
           <TimbreSelector compact />
 
-          {/* Botão Principal PLAY / PAUSE */}
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={handleTogglePlayPause}
-              className={`px-4 sm:px-5 py-2.5 rounded-2xl font-black font-display text-xs uppercase tracking-wider flex items-center gap-2 shadow-xl transition-all cursor-pointer active:scale-95 ${
-                isPlaying
-                  ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/25 animate-pulse'
-                  : 'bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-black shadow-emerald-500/20'
-              }`}
-            >
-              {isPlaying ? (
-                <>
-                  <Pause className="w-4 h-4 fill-current" />
-                  <span>Pausar</span>
-                </>
-              ) : (
-                <>
-                  <Play className="w-4 h-4 fill-current" />
-                  <span>Reproduzir</span>
-                </>
-              )}
-            </button>
+          {/* Controles de Ação Conforme o Modo Ativo */}
+          {viewMode === 'playback' ? (
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={handleTogglePlayPause}
+                className={`px-4 sm:px-5 py-2.5 rounded-2xl font-black font-display text-xs uppercase tracking-wider flex items-center gap-2 shadow-xl transition-all cursor-pointer active:scale-95 ${
+                  isPlaying
+                    ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/25 animate-pulse'
+                    : 'bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-black shadow-emerald-500/20'
+                }`}
+              >
+                {isPlaying ? (
+                  <>
+                    <Pause className="w-4 h-4 fill-current" />
+                    <span>Pausar</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-4 h-4 fill-current" />
+                    <span>Reproduzir</span>
+                  </>
+                )}
+              </button>
 
-            {/* Alternador de Modo de Fim vs Repetição */}
-            <button
-              onClick={() => {
-                const nextMode = playbackEndMode === 'end' ? 'repeat' : 'end';
-                setPlaybackEndMode(nextMode);
-                musicalPlaybackEngine.setLoopMode(nextMode);
-              }}
-              className={`px-3 py-2 rounded-2xl border text-xs font-bold font-mono flex items-center gap-1.5 transition-all cursor-pointer ${
-                playbackEndMode === 'repeat'
-                  ? 'bg-purple-600/30 border-purple-500/50 text-purple-200'
-                  : 'bg-white/5 border-white/10 text-slate-300 hover:text-white'
-              }`}
-              title={playbackEndMode === 'repeat' ? 'Modo Repetição (Loop contínuo após o fim)' : 'Modo Fim (Cessa após a última nota)'}
-            >
-              {playbackEndMode === 'repeat' ? (
-                <>
-                  <Repeat className="w-3.5 h-3.5 text-purple-400" />
-                  <span className="hidden xl:inline">Repetição</span>
-                </>
-              ) : (
-                <>
-                  <Square className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="hidden xl:inline">Modo Fim</span>
-                </>
-              )}
-            </button>
+              {/* Alternador de Modo de Fim vs Repetição */}
+              <button
+                onClick={() => {
+                  const nextMode = playbackEndMode === 'end' ? 'repeat' : 'end';
+                  setPlaybackEndMode(nextMode);
+                  musicalPlaybackEngine.setLoopMode(nextMode);
+                }}
+                className={`px-3 py-2 rounded-2xl border text-xs font-bold font-mono flex items-center gap-1.5 transition-all cursor-pointer ${
+                  playbackEndMode === 'repeat'
+                    ? 'bg-purple-600/30 border-purple-500/50 text-purple-200'
+                    : 'bg-white/5 border-white/10 text-slate-300 hover:text-white'
+                }`}
+                title={playbackEndMode === 'repeat' ? 'Modo Repetição (Loop contínuo após o fim)' : 'Modo Fim (Cessa após a última nota)'}
+              >
+                {playbackEndMode === 'repeat' ? (
+                  <>
+                    <Repeat className="w-3.5 h-3.5 text-purple-400" />
+                    <span className="hidden xl:inline">Repetição</span>
+                  </>
+                ) : (
+                  <>
+                    <Square className="w-3.5 h-3.5 text-amber-400" />
+                    <span className="hidden xl:inline">Modo Fim</span>
+                  </>
+                )}
+              </button>
 
-            <button
-              onClick={handleResetPlayback}
-              className="p-2.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/5 cursor-pointer transition-colors"
-              title="Reiniciar música do início"
-            >
-              <RotateCcw className="w-4 h-4" />
-            </button>
-          </div>
+              <button
+                onClick={handleResetPlayback}
+                className="p-2.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/5 cursor-pointer transition-colors"
+                title="Reiniciar música do início"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5">
+              {/* Seletor de Tipo de Prática: Modo Espera vs Modo Fluido */}
+              <div className="flex items-center bg-black/60 p-1 rounded-2xl border border-white/10 text-xs shrink-0">
+                <button
+                  onClick={() => setPracticeType('wait')}
+                  className={`px-2.5 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
+                    practiceType === 'wait'
+                      ? 'bg-purple-600 text-white shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                  title="Modo Espera: a partitura aguarda você tocar as notas e acordes corretos para avançar"
+                >
+                  Modo Espera
+                </button>
+                <button
+                  onClick={() => setPracticeType('flow')}
+                  className={`px-2.5 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
+                    practiceType === 'flow'
+                      ? 'bg-indigo-600 text-white shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                  title="Modo Fluido: a partitura rola no andamento (BPM) e avalia sua precisão rítmica"
+                >
+                  Modo Fluido
+                </button>
+              </div>
+
+              {/* Iniciar / Pausar Prática */}
+              <button
+                onClick={handleTogglePractice}
+                className={`px-4 sm:px-5 py-2.5 rounded-2xl font-black font-display text-xs uppercase tracking-wider flex items-center gap-2 shadow-xl transition-all cursor-pointer active:scale-95 ${
+                  isPracticing
+                    ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/25 animate-pulse'
+                    : 'bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 text-white font-black shadow-purple-500/20'
+                }`}
+              >
+                {isPracticing ? (
+                  <>
+                    <Pause className="w-4 h-4 fill-current" />
+                    <span>Pausar</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-4 h-4 fill-current" />
+                    <span>Praticar</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={handleResetPractice}
+                className="p-2.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/5 cursor-pointer transition-colors"
+                title="Reiniciar prática do início (Compasso 1)"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+            </div>
+          )}
 
           {/* Ajuste de Andamento (BPM) */}
           <div className="flex items-center gap-1.5 bg-black/40 px-2.5 py-1.5 rounded-2xl border border-white/5">
@@ -724,30 +976,298 @@ export const RepertoireView: React.FC = () => {
         </div>
       )}
 
-      {/* 2. Informações de Contexto & Acordes (Layout Adaptativo: Abas no Mobile, 3 Colunas no Tablet/Desktop) */}
+      {/* 2. Palco Total: Partitura Deslizante (Widescreen 100% com Bordas Sutis) */}
+      <div
+        className={`glass-card rounded-3xl p-4 sm:p-5 border border-white/5 space-y-3 transition-all ${
+          isFullscreenStage
+            ? 'fixed inset-0 z-50 bg-[#080811] p-4 sm:p-8 overflow-y-auto m-0 rounded-none border-none shadow-2xl'
+            : ''
+        }`}
+      >
+        <div className="flex items-center justify-between pb-1 border-b border-white/5">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono font-bold uppercase text-purple-400">
+              Palco de Execução &amp; Partitura
+            </span>
+            <span className="text-[10px] text-slate-400 font-mono">
+              • {activeSong.title} ({activeSong.recommendedBpm} BPM) {arrangementMode === 'guitar' ? '• [🎸 Arranjo de Violão no Teclado]' : ''}
+            </span>
+          </div>
+
+          <button
+            onClick={toggleFullscreenStage}
+            className={`p-1.5 px-2.5 rounded-xl border text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              isFullscreenStage
+                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 ring-1 ring-rose-400'
+                : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border-white/5'
+            }`}
+            title={isFullscreenStage ? 'Sair da Tela Cheia (Esc)' : 'Tela Cheia no Palco de Execução'}
+          >
+            {isFullscreenStage ? (
+              <>
+                <Shrink className="w-3.5 h-3.5 text-rose-400" />
+                <span>Sair Tela Cheia (Esc)</span>
+              </>
+            ) : (
+              <>
+                <Expand className="w-3.5 h-3.5 text-purple-400" />
+                <span>Tela Cheia</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Letra Sincronizada com o Compasso em Tempo Real */}
+        {activeSong.extension?.lyrics && activeSong.extension.lyrics.length > 0 && (
+          <div className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-purple-950/40 via-black/50 to-indigo-950/40 border border-purple-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-lg backdrop-blur-sm">
+            <div className="flex items-center gap-2.5 overflow-hidden">
+              <span className="px-2 py-0.5 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-mono font-bold uppercase tracking-wider shrink-0 flex items-center gap-1">
+                <span>🎤 Letra</span>
+              </span>
+              <p className="text-sm font-display font-medium text-white truncate">
+                "{currentLyricLine?.text || activeSong.extension.lyrics[0].text}"
+              </p>
+            </div>
+            <span className="text-[10px] font-mono text-slate-400 shrink-0 self-end sm:self-auto">
+              Compasso {currentMeasure}
+            </span>
+          </div>
+        )}
+
+        {/* Painel HUD do Modo Prática Interativo */}
+        {viewMode === 'practice' && (
+          <div className="p-3.5 px-4 rounded-2xl bg-gradient-to-r from-purple-950/50 via-indigo-950/60 to-slate-950/70 border border-purple-500/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-xl backdrop-blur-md animate-in fade-in duration-300">
+            {/* Lado Esquerdo: Identificação do Modo e Instrução Biomecânica */}
+            <div className="flex items-center gap-3">
+              <span className="w-8 h-8 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center shrink-0">
+                <Target className="w-4 h-4 text-purple-300" />
+              </span>
+              <div className="text-xs">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-bold text-white flex items-center gap-1.5">
+                    <span>Modo Prática Ativo</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-mono font-bold">
+                      {practiceType === 'wait' ? 'Modo Espera (Wait)' : 'Modo Fluido (Flow)'}
+                    </span>
+                  </span>
+                  <span className="text-[11px] text-slate-400 font-mono hidden lg:inline">
+                    • Compasso {currentMeasure} • Multi-Mãos &amp; Acordes Sincronizados
+                  </span>
+                </div>
+                <p className="text-purple-200/80 text-[11px] mt-0.5">
+                  {practiceType === 'wait'
+                    ? 'A partitura aguarda você tocar todas as notas do compasso atual. Toque as notas com ambas as mãos juntas ou separadas.'
+                    : `A partitura corre no andamento (${tempo} BPM). Acerte as notas na linha vertical de impacto!`}
+                </p>
+              </div>
+            </div>
+
+            {/* Lado Direito: Métricas em Tempo Real (Acurácia, Acertos, Erros, Pontuação) */}
+            <div className="flex flex-wrap items-center gap-2 self-stretch md:self-auto justify-end shrink-0">
+              <div className="flex items-center gap-1 bg-black/50 px-2.5 py-1.5 rounded-xl border border-white/10">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="text-[10px] font-mono text-slate-400">Acurácia:</span>
+                <span
+                  className={`text-xs font-mono font-bold ${
+                    practiceAccuracy >= 90
+                      ? 'text-emerald-400'
+                      : practiceAccuracy >= 70
+                      ? 'text-cyan-300'
+                      : 'text-amber-400'
+                  }`}
+                >
+                  {practiceAccuracy}%
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1 bg-black/50 px-2.5 py-1.5 rounded-xl border border-white/10">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="text-[10px] font-mono text-slate-400">Acertos:</span>
+                <span className="text-xs font-mono font-bold text-emerald-300">{practiceHits}</span>
+              </div>
+
+              <div className="flex items-center gap-1 bg-black/50 px-2.5 py-1.5 rounded-xl border border-white/10">
+                <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
+                <span className="text-[10px] font-mono text-slate-400">Erros:</span>
+                <span className="text-xs font-mono font-bold text-rose-300">{practiceErrors}</span>
+              </div>
+
+              <div className="flex items-center gap-1 bg-purple-500/10 px-2.5 py-1.5 rounded-xl border border-purple-500/20">
+                <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                <span className="text-[10px] font-mono text-purple-300">Pontos:</span>
+                <span className="text-xs font-mono font-bold text-amber-300">{practiceScore}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Monitor das Notas do Passo Atual no Modo Prática */}
+        {viewMode === 'practice' && currentStepNotes.length > 0 && (
+          <div className="px-4 py-2.5 rounded-2xl bg-black/40 border border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
+                Toque no Passo Atual:
+              </span>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {currentStepNotes.map((note) => {
+                  const idx = sortedScoreTrack.indexOf(note);
+                  const isSatisfied = satisfiedStepIndices.has(idx);
+                  const isBass = note.clef === 'bass' || note.midi < 60;
+                  const hand = isBass ? 'M.E.' : 'M.D.';
+                  const finger = note.fingerRightHand || note.fingerLeftHand || (isBass ? 5 : (note.midi === 60 ? 1 : 2));
+                  const noteName = octaveConfigStore.midiToNoteName(note.midi, octaveStandard);
+
+                  return (
+                    <span
+                      key={`${idx}-${note.midi}`}
+                      className={`px-2.5 py-1 rounded-xl font-mono text-xs font-bold border flex items-center gap-1.5 transition-all ${
+                        isSatisfied
+                          ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 line-through decoration-emerald-400'
+                          : isBass
+                          ? 'bg-sky-500/20 border-sky-500/40 text-sky-200 animate-pulse'
+                          : 'bg-purple-500/20 border-purple-500/40 text-purple-200 animate-pulse'
+                      }`}
+                    >
+                      {isSatisfied ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : null}
+                      <span>
+                        {hand} D{finger} ({noteName})
+                      </span>
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Teclas ouvidas agora em tempo real */}
+            {activeInputMidis.length > 0 && (
+              <div className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-400 bg-emerald-950/40 px-2.5 py-1 rounded-xl border border-emerald-500/30">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                <span>Ouvindo: {activeInputMidis.map((m) => octaveConfigStore.midiToNoteName(m, octaveStandard)).join(', ')}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Barra de Escuta Unificada (MIDI USB & Microfone Acústico) */}
+        <MicrophonePitchBar
+          disabled={viewMode === 'playback' && isPlaying}
+          disabledMessage="Demonstração em reprodução: escuta do microfone e avaliação de performance desativadas (apenas demonstração sonora da obra)."
+          onNoteDetected={(midi) => {
+            handleNoteInput(midi, [midi]);
+          }}
+          onNoteHold={(midi) => {
+            setMicHearingMidi(midi);
+          }}
+          onChordDetected={(chord, midis) => {
+            handleNoteInput(midis[0], midis, chord.symbol);
+          }}
+          onAcousticChordNotesChange={(notes) => {
+            setMicAcousticNotes(notes);
+          }}
+          onActiveNotesChange={(notes) => {
+            setMicAcousticNotes(notes);
+            if (notes.length > 0) {
+              handleNoteInput(notes[0], notes);
+            }
+          }}
+        />
+
+        {/* Partitura Deslizante 60 FPS com Suporte Completo a Reprodução e Prática */}
+        <ScrollingScoreCanvas
+          key={`${activeSong.id}-${arrangementMode}-${viewMode}-${practiceResetKey}`}
+          notes={sortedScoreTrack}
+          timeSignature={activeSong.timeSignature}
+          bpm={tempo}
+          isPlaying={viewMode === 'playback' ? isPlaying : (practiceType === 'flow' ? isPracticing : false)}
+          isDemoMode={viewMode === 'playback'}
+          mode={practiceType}
+          autoPlayAudio={viewMode === 'playback'}
+          instrument={arrangementMode === 'guitar' ? 'guitar' : 'piano'}
+          enableMetronomeSound={metronome.isPlaying}
+          hidePlaybackControls={true}
+          currentNoteIndex={currentNoteIdx}
+          sustainMode={sustainOption}
+          onSustainModeChange={handleSustainOptionChange}
+          onActiveNotesChange={(midis) => {
+            setActiveDemoMidi(midis);
+          }}
+          onTargetNoteChange={(_target, idx) => {
+            setCurrentNoteIdx(idx);
+          }}
+          onStepChange={(stepIndices, satisfiedIndices) => {
+            setCurrentStepIndices(stepIndices);
+            setSatisfiedStepIndices(new Set(satisfiedIndices));
+          }}
+          onNoteHit={(_note, diffMs) => {
+            setPracticeHits((h) => h + 1);
+            const pts = Math.abs(diffMs) < 60 ? 100 : Math.abs(diffMs) < 120 ? 70 : 40;
+            setPracticeScore((s) => s + pts);
+          }}
+          onNoteError={(_err) => {
+            setPracticeErrors((e) => e + 1);
+          }}
+          onLessonComplete={() => {
+            if (viewMode === 'practice') {
+              setIsPracticing(false);
+              setShowPracticeCompletionModal(true);
+            } else {
+              setShowCompletionBanner(true);
+            }
+          }}
+          onPlayPauseToggle={(playing) => {
+            if (viewMode === 'playback') {
+              if (playing && !isPlaying) handleTogglePlayPause();
+              else if (!playing && isPlaying) handleTogglePlayPause();
+            } else {
+              setIsPracticing(playing);
+            }
+          }}
+          onTempoChange={(newBpm) => handleTempoChange(newBpm)}
+          currentMidiPressed={viewMode === 'playback' && isPlaying ? null : lastMidiEvent}
+        />
+
+        {/* Teclado Virtual com Rastro Synthesia (100% da Largura, Zero Scroll, Bordas Sutis) */}
+        <div className="pt-1">
+          <PianoKeyboard
+            startOctave={2}
+            allowOctaveControls={true}
+            highlightedKeys={highlightedSongKeys}
+            activeFingerPrompt={activeFingerPrompt}
+            activeExternalNotes={activeInputMidis}
+            onKeyPlay={(midi) => {
+              handleNoteInput(midi, [midi]);
+            }}
+            onKeyRelease={() => {
+              setLastMidiEvent(null);
+            }}
+          />
+        </div>
+      </div>
+
+      {/* 3. Informações Pedagógicas, Contexto Histórico & Acordes (Posicionado no Final da Página) */}
       {/* Visualização para Telas Maiores (Tablet / Computador >= 768px) */}
-      <div className="hidden md:grid md:grid-cols-3 gap-2.5 text-xs">
-        <div className="p-3 rounded-2xl bg-white/[0.02] border border-white/5 space-y-1">
+      <div className="hidden md:grid md:grid-cols-3 gap-2.5 text-xs pt-1">
+        <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 space-y-1 backdrop-blur-sm shadow-sm">
           <span className="font-bold text-slate-300 flex items-center gap-1.5 text-[11px]">
             <Compass className="w-3.5 h-3.5 text-purple-400" />
             <span>Contexto Histórico:</span>
           </span>
-          <p className="text-slate-400 text-[11px] leading-relaxed line-clamp-2">
+          <p className="text-slate-400 text-[11px] leading-relaxed line-clamp-3">
             {octaveConfigStore.formatNoteOctavesInText(activeSong.historicalContext, octaveStandard)}
           </p>
         </div>
 
-        <div className="p-3 rounded-2xl bg-cyan-950/20 border border-cyan-500/20 space-y-1">
+        <div className="p-3.5 rounded-2xl bg-cyan-950/20 border border-cyan-500/20 space-y-1 backdrop-blur-sm shadow-sm">
           <span className="font-bold text-cyan-300 flex items-center gap-1.5 text-[11px]">
             <Lightbulb className="w-3.5 h-3.5 text-cyan-400" />
             <span>Dica de Biomecânica:</span>
           </span>
-          <p className="text-slate-300 text-[11px] leading-relaxed line-clamp-2">
+          <p className="text-slate-300 text-[11px] leading-relaxed line-clamp-3">
             {octaveConfigStore.formatNoteOctavesInText(activeSong.biomechanicsTip, octaveStandard)}
           </p>
         </div>
 
-        <div className="p-3 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col justify-between">
+        <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col justify-between backdrop-blur-sm shadow-sm">
           <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider block mb-1">
             Acordes Envolvidos na Obra:
           </span>
@@ -755,7 +1275,7 @@ export const RepertoireView: React.FC = () => {
             {activeSong.chords.map((chord, i) => (
               <span
                 key={i}
-                className="px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/20 text-xs font-mono font-black"
+                className="px-2.5 py-1 rounded-xl bg-amber-500/10 text-amber-300 border border-amber-500/20 text-xs font-mono font-black"
               >
                 {chord}
               </span>
@@ -764,9 +1284,9 @@ export const RepertoireView: React.FC = () => {
         </div>
       </div>
 
-      {/* Faixa Superior de Diagramas de Acordes de Violão (Widescreen / Desktop) */}
+      {/* Faixa de Diagramas de Acordes de Violão (Widescreen / Desktop) */}
       {arrangementMode === 'guitar' && showGuitarDiagrams && (
-        <div className="hidden md:block animate-in fade-in duration-300">
+        <div className="hidden md:block animate-in fade-in duration-300 pt-1">
           <GuitarChordStrip
             chords={activeSong.chords}
             title={`Diagramas de Acordes de Violão (${guitarInfo.styleBadge}) — "${activeSong.title}":`}
@@ -776,7 +1296,7 @@ export const RepertoireView: React.FC = () => {
       )}
 
       {/* Visualização Adaptativa para Celulares (< 768px) com Abas Compactas */}
-      <div className="md:hidden space-y-2 text-xs">
+      <div className="md:hidden space-y-2 text-xs pt-1">
         <div className="flex items-center gap-1 bg-black/40 p-1 rounded-2xl border border-white/5">
           <button
             onClick={() => setMobileContextTab('context')}
@@ -870,126 +1390,6 @@ export const RepertoireView: React.FC = () => {
         )}
       </div>
 
-      {/* 3. Palco Total: Partitura Deslizante (Widescreen 100% com Bordas Sutis) */}
-      <div
-        className={`glass-card rounded-3xl p-4 sm:p-5 border border-white/5 space-y-3 transition-all ${
-          isFullscreenStage
-            ? 'fixed inset-0 z-50 bg-[#080811] p-4 sm:p-8 overflow-y-auto m-0 rounded-none border-none shadow-2xl'
-            : ''
-        }`}
-      >
-        <div className="flex items-center justify-between pb-1 border-b border-white/5">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-mono font-bold uppercase text-purple-400">
-              Palco de Execução &amp; Partitura
-            </span>
-            <span className="text-[10px] text-slate-400 font-mono">
-              • {activeSong.title} ({activeSong.recommendedBpm} BPM) {arrangementMode === 'guitar' ? '• [🎸 Arranjo de Violão no Teclado]' : ''}
-            </span>
-          </div>
-
-          <button
-            onClick={toggleFullscreenStage}
-            className={`p-1.5 px-2.5 rounded-xl border text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-              isFullscreenStage
-                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 ring-1 ring-rose-400'
-                : 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border-white/5'
-            }`}
-            title={isFullscreenStage ? 'Sair da Tela Cheia (Esc)' : 'Tela Cheia no Palco de Execução'}
-          >
-            {isFullscreenStage ? (
-              <>
-                <Shrink className="w-3.5 h-3.5 text-rose-400" />
-                <span>Sair Tela Cheia (Esc)</span>
-              </>
-            ) : (
-              <>
-                <Expand className="w-3.5 h-3.5 text-purple-400" />
-                <span>Tela Cheia</span>
-              </>
-            )}
-          </button>
-        </div>
-
-        {/* Letra Sincronizada com o Compasso em Tempo Real */}
-        {activeSong.extension?.lyrics && activeSong.extension.lyrics.length > 0 && (
-          <div className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-purple-950/40 via-black/50 to-indigo-950/40 border border-purple-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-lg backdrop-blur-sm">
-            <div className="flex items-center gap-2.5 overflow-hidden">
-              <span className="px-2 py-0.5 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-mono font-bold uppercase tracking-wider shrink-0 flex items-center gap-1">
-                <span>🎤 Letra</span>
-              </span>
-              <p className="text-sm font-display font-medium text-white truncate">
-                "{currentLyricLine?.text || activeSong.extension.lyrics[0].text}"
-              </p>
-            </div>
-            <span className="text-[10px] font-mono text-slate-400 shrink-0 self-end sm:self-auto">
-              Compasso {currentMeasure}
-            </span>
-          </div>
-        )}
-
-        {/* Barra de Escuta do Microfone (Acústico) - Pausada durante a demonstração sonora */}
-        <MicrophonePitchBar
-          disabled={isPlaying}
-          disabledMessage="Demonstração em reprodução: escuta do microfone e avaliação de performance desativadas (apenas demonstração sonora da obra)."
-          onNoteDetected={(midi) => {
-            if (!isPlaying) handleNoteInput(midi);
-          }}
-          onNoteHold={(midi) => {
-            if (!isPlaying) setMicHearingMidi(midi);
-          }}
-        />
-
-        {/* Partitura Deslizante 60 FPS com Divisão de Compasso em Modo Demonstração */}
-        <ScrollingScoreCanvas
-          key={`${activeSong.id}-${arrangementMode}`}
-          notes={sortedScoreTrack}
-          timeSignature={activeSong.timeSignature}
-          bpm={tempo}
-          isPlaying={isPlaying}
-          isDemoMode={true}
-          autoPlayAudio={true}
-          instrument={arrangementMode === 'guitar' ? 'guitar' : 'piano'}
-          enableMetronomeSound={metronome.isPlaying}
-          hidePlaybackControls={true}
-          currentNoteIndex={currentNoteIdx}
-          sustainMode={sustainOption}
-          onSustainModeChange={handleSustainOptionChange}
-          onActiveNotesChange={(midis) => {
-            setActiveDemoMidi(midis);
-          }}
-          onTargetNoteChange={(_target, idx) => {
-            setCurrentNoteIdx(idx);
-          }}
-          onPlayPauseToggle={(playing) => {
-            if (playing && !isPlaying) {
-              handleTogglePlayPause();
-            } else if (!playing && isPlaying) {
-              handleTogglePlayPause();
-            }
-          }}
-          onTempoChange={(newBpm) => handleTempoChange(newBpm)}
-          currentMidiPressed={isPlaying ? null : lastMidiEvent}
-        />
-
-        {/* Teclado Virtual com Rastro Synthesia (100% da Largura, Zero Scroll, Bordas Sutis) */}
-        <div className="pt-1">
-          <PianoKeyboard
-            startOctave={2}
-            allowOctaveControls={true}
-            highlightedKeys={highlightedSongKeys}
-            activeFingerPrompt={activeFingerPrompt}
-            activeExternalNotes={isPlaying ? activeDemoMidi : (micHearingMidi !== null ? [micHearingMidi] : [])}
-            onKeyPlay={(midi) => {
-              if (!isPlaying) handleNoteInput(midi);
-            }}
-            onKeyRelease={() => {
-              setLastMidiEvent(null);
-            }}
-          />
-        </div>
-      </div>
-
       {/* 4. Modal de Catálogo Completo de Repertório */}
       <RepertoireCatalogModal
         isOpen={isCatalogModalOpen}
@@ -1005,6 +1405,88 @@ export const RepertoireView: React.FC = () => {
         currentSong={activeSong}
         onSelectSong={(song) => handleSelectSong(song)}
       />
+
+      {/* 6. Modal de Conclusão da Prática Interativa */}
+      {showPracticeCompletionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="w-full max-w-md bg-gradient-to-b from-[#18142a] via-[#100d1e] to-[#08070f] border border-purple-500/30 rounded-3xl p-6 sm:p-7 shadow-2xl space-y-6 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-purple-600 to-amber-500 p-0.5 mx-auto shadow-xl shadow-purple-500/20">
+              <div className="w-full h-full bg-[#120f22] rounded-[14px] flex items-center justify-center">
+                <Trophy className="w-8 h-8 text-amber-400 animate-bounce" />
+              </div>
+            </div>
+
+            <div>
+              <span className="px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 text-[10px] font-mono font-bold uppercase tracking-wider border border-purple-500/30">
+                Prática Finalizada com Sucesso!
+              </span>
+              <h3 className="text-xl sm:text-2xl font-black font-display text-white mt-2">
+                {activeSong.title}
+              </h3>
+              <p className="text-xs text-slate-400 mt-1">
+                {activeSong.composerOrArtist} • {activeSong.genre}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2.5">
+              <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1">
+                <span className="text-[10px] font-mono text-slate-400 uppercase">Acurácia</span>
+                <p
+                  className={`text-xl font-mono font-black ${
+                    practiceAccuracy >= 90
+                      ? 'text-emerald-400'
+                      : practiceAccuracy >= 70
+                      ? 'text-cyan-300'
+                      : 'text-amber-400'
+                  }`}
+                >
+                  {practiceAccuracy}%
+                </p>
+              </div>
+              <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1">
+                <span className="text-[10px] font-mono text-slate-400 uppercase">Acertos</span>
+                <p className="text-xl font-mono font-black text-emerald-300">
+                  {practiceHits}
+                </p>
+              </div>
+              <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1">
+                <span className="text-[10px] font-mono text-slate-400 uppercase">Pontos</span>
+                <p className="text-xl font-mono font-black text-amber-300">
+                  {practiceScore}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-2 pt-2">
+              <button
+                onClick={handleResetPractice}
+                className="w-full py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-purple-900/30 cursor-pointer transition-all active:scale-95"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>Praticar Novamente</span>
+              </button>
+              <button
+                onClick={() => {
+                  setShowPracticeCompletionModal(false);
+                  handleSwitchViewMode('playback');
+                  setTimeout(() => handleTogglePlayPause(), 300);
+                }}
+                className="w-full py-3 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95"
+              >
+                <Play className="w-4 h-4" />
+                <span>Ouvir Obra</span>
+              </button>
+            </div>
+
+            <button
+              onClick={() => setShowPracticeCompletionModal(false)}
+              className="text-xs text-slate-400 hover:text-white transition-colors cursor-pointer"
+            >
+              Fechar resumo
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

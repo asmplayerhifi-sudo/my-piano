@@ -6,7 +6,15 @@
 
 import type { ScoreNote } from '../../../core/coursesData';
 
-export type MidiInputNote = number | { midi: number; timestamp?: number } | null;
+export interface DetailedMidiInput {
+  midi?: number;
+  midis?: number[];
+  timestamp?: number;
+  velocity?: number;
+  chordName?: string;
+}
+
+export type MidiInputNote = number | number[] | DetailedMidiInput | null;
 
 export interface ChordSpan {
   chordName: string;
@@ -73,6 +81,10 @@ export interface ScrollingScoreProps {
   onActiveNotesChange?: (activeMidis: number[]) => void;
   /** Notifica batida rítmica e compasso em tempo real para sincronização de metrônomo */
   onBeatTick?: (measure: number, beat: number, isDownbeat: boolean) => void;
+  /** Modo de execução interativo: 'wait' (espera a nota/acorde ser tocado) ou 'flow' (rola no tempo da métrica) */
+  mode?: 'wait' | 'flow';
+  /** Notifica mudanças nas notas do passo ativo e notas já satisfeitas */
+  onStepChange?: (stepIndices: number[], satisfiedIndices: Set<number>) => void;
 }
 
 

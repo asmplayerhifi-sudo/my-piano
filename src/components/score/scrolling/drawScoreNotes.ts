@@ -25,6 +25,7 @@ interface DrawNotesParams {
   instrument: 'piano' | 'guitar';
   isDemoMode: boolean;
   lastError?: ScoreErrorEvent | null;
+  satisfiedIndices?: Set<number>;
 }
 
 export function drawScoreNotes({
@@ -41,17 +42,28 @@ export function drawScoreNotes({
   instrument,
   isDemoMode,
   lastError,
+  satisfiedIndices,
 }: DrawNotesParams): void {
   const isTrad = theme === 'traditional';
   const { middleCY, trebleBaseY, trebleLineStep, trebleNoteNameY, trebleFingerY, bassTopY, bassBaseY, bassLineStep, bassNoteNameY, bassFingerY } = SCORE_GEOMETRY;
   const beamCandidates: BeamCandidate[] = [];
 
+  const currentOffset = noteOffsets[currentIndex] ?? 0;
+
   notes.forEach((note, idx) => {
     const noteOffset = noteOffsets[idx] ?? 0;
     const noteX = attackLineX + noteOffset * pixelsPerBeat - scrollOffset;
     const noteY = getNoteY(note.midi, note.clef);
-    const isCurrentTarget = isDemoMode ? Math.abs(noteX - attackLineX) <= 14 : idx === currentIndex;
-    const hasPassed = isDemoMode ? noteX < attackLineX - 11 : idx < currentIndex;
+
+    const isStepTarget = Math.abs(noteOffset - currentOffset) < 0.05;
+    const isSatisfied = !!satisfiedIndices?.has(idx);
+
+    const isCurrentTarget = isDemoMode
+      ? Math.abs(noteX - attackLineX) <= 14
+      : isStepTarget && !isSatisfied;
+    const hasPassed = isDemoMode
+      ? noteX < attackLineX - 11
+      : (noteOffset < currentOffset - 0.04 || isSatisfied);
     const isMiddleC = note.midi === 60;
     const dur = note.duration || 1;
 
