@@ -24,7 +24,7 @@ interface HighlightedKey {
 
 interface Props {
   startOctave?: number;      // Padrão inicial: 2 ou 3
-  octaveCount?: number;      // Padrão inicial: 3 ou 4
+  octaveCount?: number;      // Padrão responsivo: 4 em tela grande, 3 em tablet, 2 em celular
   highlightedKeys?: HighlightedKey[];
   onKeyPlay?: (midi: number) => void;
   onKeyRelease?: (midi: number) => void;
@@ -45,9 +45,32 @@ export const FINGER_INFO: Record<number, { name: string; short: string; color: s
   5: { name: 'Mínimo', short: 'D5', color: '#f43f5e', bg: '#881337' },
 };
 
+/**
+ * Determina a quantidade padrão de oitavas baseada na resolução da tela:
+ * - Tela grande (Desktop / Notebook >= 1024px ou container >= 900px): 4 oitavas por default
+ * - Celulares compactos (< 520px): 2 oitavas para conforto ergonômico no toque
+ * - Tablets e telas médias (520px a 1023px): 3 oitavas
+ */
+export const getResponsiveDefaultOctaveCount = (explicitCount?: number, measuredWidth?: number): number => {
+  if (explicitCount !== undefined) {
+    return explicitCount;
+  }
+  if (measuredWidth !== undefined) {
+    if (measuredWidth >= 900) return 4;
+    if (measuredWidth < 520) return 2;
+    return 3;
+  }
+  if (typeof window !== 'undefined') {
+    if (window.innerWidth >= 1024) return 4;
+    if (window.innerWidth < 520) return 2;
+    return 3;
+  }
+  return 4; // Default para telas grandes / desktop
+};
+
 export const PianoKeyboard: React.FC<Props> = ({
   startOctave: initialStartOctave = 2,
-  octaveCount: initialOctaveCount = 3,
+  octaveCount: propOctaveCount,
   highlightedKeys = [],
   onKeyPlay,
   onKeyRelease,
@@ -60,7 +83,9 @@ export const PianoKeyboard: React.FC<Props> = ({
   activeFingerPrompt = null,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [containerWidth, setContainerWidth] = useState<number>(1000);
+  const [containerWidth, setContainerWidth] = useState<number>(() =>
+    typeof window !== 'undefined' ? window.innerWidth : 1000
+  );
 
   const keyboardId = useId().replace(/:/g, '');
   const whiteKeyGradId = `whiteKeyGrad_${keyboardId}`;
@@ -74,7 +99,9 @@ export const PianoKeyboard: React.FC<Props> = ({
   onKeyReleaseRef.current = onKeyRelease;
 
   const [startOctave, setStartOctave] = useState<number>(initialStartOctave);
-  const [octaveCount, setOctaveCount] = useState<number>(initialOctaveCount);
+  const [octaveCount, setOctaveCount] = useState<number>(() =>
+    getResponsiveDefaultOctaveCount(propOctaveCount)
+  );
   const userSelectedOctaveCountRef = useRef<boolean>(false);
   const [isWaterfallActive, setIsWaterfallActive] = useState<boolean>(showWaterfall);
   const [showFingerGuide, setShowFingerGuide] = useState<boolean>(showFingerPointer);
@@ -86,6 +113,13 @@ export const PianoKeyboard: React.FC<Props> = ({
   const centralNoteName = octaveStandard === 'C4' ? 'C4' : 'C3';
   const displayOctaveOffset = octaveStandard === 'C4' ? 1 : 0;
 
+  // Sincroniza caso a prop externa seja definida ou alterada
+  useEffect(() => {
+    if (propOctaveCount !== undefined) {
+      setOctaveCount(propOctaveCount);
+    }
+  }, [propOctaveCount]);
+
   // Monitora a largura real disponível para preencher 100% da tela sem scrollbar
   useEffect(() => {
     const updateWidth = () => {
@@ -93,9 +127,9 @@ export const PianoKeyboard: React.FC<Props> = ({
         const measured = containerRef.current.clientWidth;
         if (measured > 150) {
           setContainerWidth(measured);
-          // Em celulares compactos (< 520px), adapta para 2 oitavas para teclas largas e fáceis de tocar por toque
-          if (measured < 520 && !userSelectedOctaveCountRef.current && initialOctaveCount > 2) {
-            setOctaveCount(2);
+          // Se o usuário ainda não escolheu manualmente um número de oitavas e o prop é livre:
+          if (!userSelectedOctaveCountRef.current && propOctaveCount === undefined) {
+            setOctaveCount(getResponsiveDefaultOctaveCount(undefined, measured));
           }
         }
       }
@@ -116,7 +150,7 @@ export const PianoKeyboard: React.FC<Props> = ({
       observer.disconnect();
       window.removeEventListener('resize', updateWidth);
     };
-  }, [initialOctaveCount]);
+  }, [propOctaveCount]);
 
   // Número total de teclas brancas para a quantidade de oitavas selecionada
   const totalWhiteKeys = octaveCount * 7;
@@ -306,8 +340,16 @@ export const PianoKeyboard: React.FC<Props> = ({
     return null;
   })();
 
+  // Limite seguro de oitava inicial para não ultrapassar a faixa válida de notas MIDI (máx. 127)
+  const maxStartOctave = Math.max(1, 8 - octaveCount);
+
+  // Garante que o deslocamento de oitava atual sempre permaneça seguro caso octaveCount mude
+  useEffect(() => {
+    setStartOctave(prev => Math.min(prev, Math.max(1, 8 - octaveCount)));
+  }, [octaveCount]);
+
   const handleShiftOctave = (delta: number) => {
-    setStartOctave(prev => Math.max(1, Math.min(5, prev + delta)));
+    setStartOctave(prev => Math.max(1, Math.min(maxStartOctave, prev + delta)));
   };
 
   const endOctave = startOctave + octaveCount - 1;
@@ -844,7 +886,7 @@ export const PianoKeyboard: React.FC<Props> = ({
               </span>
               <button
                 onClick={() => handleShiftOctave(1)}
-                disabled={startOctave >= 5}
+                disabled={startOctave >= maxStartOctave}
                 className="p-1 rounded-lg hover:bg-white/10 disabled:opacity-30 text-slate-300 hover:text-white transition-all cursor-pointer"
                 title="Subir uma oitava mais aguda"
               >

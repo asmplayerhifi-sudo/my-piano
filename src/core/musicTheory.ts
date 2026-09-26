@@ -564,3 +564,19 @@ export function identifyChordFromMidi(midiNotes: number[], octaveStandard?: Octa
   return null;
 }
 
+export const INTERVAL_NAMES_PT: Record<number, { name: string; short: string; quality: string }> = {
+  0: { name: 'Uníssono Justo', short: '1J', quality: 'Consonância Perfeita' },
+  1: { name: 'Segunda Menor', short: '2ªm', quality: 'Dissonância Forte' },
+  2: { name: 'Segunda Maior', short: '2ªM', quality: 'Dissonância Suave' },
+  3: { name: 'Terça Menor', short: '3ªm', quality: 'Consonância Imperfeita (Menor)' },
+  4: { name: 'Terça Maior', short: '3ªM', quality: 'Consonância Imperfeita (Maior)' },
+  5: { name: 'Quarta Justa', short: '4ªJ', quality: 'Consonância Perfeita' },
+  6: { name: 'Trítono (4ª Aum / 5ª Dim)', short: 'Trit', quality: 'Tensão Máxima (Trítono)' },
+  7: { name: 'Quinta Justa', short: '5ªJ', quality: 'Consonância Perfeita' },
+  8: { name: 'Sexta Menor', short: '6ªm', quality: 'Consonância Imperfeita' },
+  9: { name: 'Sexta Maior', short: '6ªM', quality: 'Consonância Imperfeita' },
+  10: { name: 'Sétima Menor', short: '7ªm', quality: 'Dissonância Suave' },
+  11: { name: 'Sétima Maior', short: '7ªM', quality: 'Dissonância Forte / Tensão' },
+  12: { name: 'Oitava Justa', short: '8ªJ', quality: 'Consonância Perfeita' },
+};
+

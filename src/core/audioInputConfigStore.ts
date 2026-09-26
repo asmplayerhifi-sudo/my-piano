@@ -2,6 +2,8 @@
  * audioInputConfigStore.ts
  *
  * Gerenciador reativo centralizado das configurações de entrada:
+ * - Tipo de Entrada / Modo de Conexão: 'midi' | 'mic' | 'line-in' | 'headset'
+ * - Canal MIDI (0 = todos / OMNI, 1..16)
  * - Dispositivo de Entrada de Áudio Selecionado (Microfone, Cabo P2, Interface USB)
  * - Sensibilidade do Microfone (10% a 100%)
  * - Presets: 'low' (25%), 'normal' (50%), 'high' (75%)
@@ -14,12 +16,18 @@
 import { useSyncExternalStore } from 'react';
 import { micPitchDetector } from './pitchDetector';
 
+export type InputModeType = 'midi' | 'mic' | 'line-in' | 'headset';
+
 export interface AudioInputConfig {
   selectedDeviceId: string;
   sensitivityPercent: number;
+  inputMode: InputModeType;
+  midiChannel: number;
 }
 
 const STORAGE_DEVICE_KEY = 'harmonia_selected_audio_device';
+const STORAGE_MODE_KEY = 'harmonia_selected_input_mode';
+const STORAGE_CHANNEL_KEY = 'harmonia_selected_midi_channel';
 
 type Listener = () => void;
 
@@ -30,9 +38,13 @@ class AudioInputConfigStore {
   constructor() {
     const devId = this.loadDeviceId();
     const sens = micPitchDetector.getSensitivityPercent();
+    const mode = this.loadInputMode();
+    const ch = this.loadMidiChannel();
     this.state = {
       selectedDeviceId: devId,
       sensitivityPercent: sens,
+      inputMode: mode,
+      midiChannel: ch,
     };
   }
 
@@ -42,6 +54,35 @@ class AudioInputConfigStore {
       return localStorage.getItem(STORAGE_DEVICE_KEY) || '';
     } catch {
       return '';
+    }
+  }
+
+  private loadInputMode(): InputModeType {
+    if (typeof window === 'undefined') return 'mic';
+    try {
+      const saved = localStorage.getItem(STORAGE_MODE_KEY);
+      if (saved === 'midi' || saved === 'mic' || saved === 'line-in' || saved === 'headset') {
+        return saved;
+      }
+      return 'mic';
+    } catch {
+      return 'mic';
+    }
+  }
+
+  private loadMidiChannel(): number {
+    if (typeof window === 'undefined') return 0;
+    try {
+      const saved = localStorage.getItem(STORAGE_CHANNEL_KEY);
+      if (saved !== null) {
+        const parsed = parseInt(saved, 10);
+        if (!isNaN(parsed) && parsed >= 0 && parsed <= 16) {
+          return parsed;
+        }
+      }
+      return 0;
+    } catch {
+      return 0;
     }
   }
 
@@ -88,6 +129,39 @@ class AudioInputConfigStore {
   public setPreset(preset: 'low' | 'normal' | 'high') {
     const target = preset === 'high' ? 75 : preset === 'low' ? 25 : 50;
     this.setSensitivityPercent(target);
+  }
+
+  public setInputMode(mode: InputModeType) {
+    if (this.state.inputMode === mode) return;
+    this.state = {
+      ...this.state,
+      inputMode: mode,
+    };
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_MODE_KEY, mode);
+      }
+    } catch {
+      // ignore
+    }
+    this.notify();
+  }
+
+  public setMidiChannel(channel: number) {
+    const clamped = Math.max(0, Math.min(16, Math.round(channel)));
+    if (this.state.midiChannel === clamped) return;
+    this.state = {
+      ...this.state,
+      midiChannel: clamped,
+    };
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_CHANNEL_KEY, clamped.toString());
+      }
+    } catch {
+      // ignore
+    }
+    this.notify();
   }
 }
 

@@ -660,7 +660,6 @@ export const KeyboardCourseView: React.FC = () => {
             <div className="w-full overflow-hidden rounded-2xl border border-white/10 bg-[#090814] p-1 sm:p-2">
               <PianoKeyboard
                 startOctave={2}
-                octaveCount={3}
                 allowOctaveControls={true}
                 highlightedKeys={highlightedLessonKeys}
                 activeFingerPrompt={activeFingerPrompt}

@@ -25,6 +25,7 @@ import { useAccompaniment } from '../../core/accompanimentStore';
 import { useFullscreen } from '../../hooks/useFullscreen';
 import { latencyManager } from '../../core/latencyManager';
 import { midiManager } from '../../core/midiManager';
+import { useAudioInputConfig } from '../../core/audioInputConfigStore';
 
 export interface GlobalHeaderProps {
   activeTab: TabId;
@@ -44,6 +45,7 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
 
   const octaveStandard = useOctaveStandard();
   const accState = useAccompaniment();
+  const inputConfig = useAudioInputConfig();
   const { isFullscreen, toggleFullscreen } = useFullscreen();
   const volumeMenuRef = useRef<HTMLDivElement>(null);
 
@@ -361,15 +363,18 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
             <span className="font-bold text-indigo-300">({octaveStandard})</span>
           </button>
 
-          {/* Botão de Configuração de Entradas: [🎙️/🔌 Entradas] */}
+          {/* Botão de Configuração de Entradas: [🎛️ Entradas] */}
           <button
             id="btn-global-input-settings"
             onClick={() => setShowInputModal(true)}
             className="h-7.5 sm:h-8 flex items-center gap-1.5 px-2 sm:px-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-200 hover:text-white transition-all cursor-pointer group"
-            title="Configuração de Entradas: Microfone, Cabo Auxiliar, Interface USB, MIDI e Latência"
+            title="Configuração Global de Entradas: MIDI USB/Bluetooth, Microfone, Cabo Line-In, Headset e Latência"
           >
-            <Cable className="w-3.5 h-3.5 text-cyan-400 group-hover:text-cyan-300 shrink-0" />
+            <span className="text-xs">🎛️</span>
             <span className="hidden sm:inline text-slate-200 font-sans text-xs">Entradas</span>
+            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 hidden md:inline">
+              {inputConfig.inputMode === 'midi' ? '🎹 MIDI' : inputConfig.inputMode === 'mic' ? '🎙️ Mic' : inputConfig.inputMode === 'line-in' ? '🔌 Cabo' : '🎧 Fones'}
+            </span>
             {hasMidiDevices && (
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" title="Teclado MIDI Conectado" />
             )}

@@ -188,6 +188,74 @@ export const AudioInputConfigModal: React.FC<Props> = ({
               </button>
             </div>
 
+            {/* ── SELETOR DE MODO DE ENTRADA UNIVERSAL (4 Modos Suportados) ── */}
+            <div className="px-6 py-2.5 bg-black/40 border-b border-white/10 flex items-center justify-between gap-2 flex-wrap">
+              <span className="text-[10px] font-mono text-slate-400 uppercase font-bold">
+                Tipo de Entrada:
+              </span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <button
+                  onClick={() => {
+                    audioInputConfigStore.setInputMode('midi');
+                    setActiveTab('midi');
+                  }}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border select-none ${
+                    config.inputMode === 'midi'
+                      ? 'bg-indigo-600 text-white border-indigo-400 shadow-md shadow-indigo-600/30 ring-1 ring-indigo-400'
+                      : 'bg-white/5 border-transparent text-slate-300 hover:bg-white/10'
+                  }`}
+                >
+                  <span>🎹</span>
+                  <span>MIDI USB / Bluetooth</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    audioInputConfigStore.setInputMode('mic');
+                    setActiveTab('audio');
+                  }}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border select-none ${
+                    config.inputMode === 'mic'
+                      ? 'bg-emerald-600 text-white border-emerald-400 shadow-md shadow-emerald-600/30 ring-1 ring-emerald-400'
+                      : 'bg-white/5 border-transparent text-slate-300 hover:bg-white/10'
+                  }`}
+                >
+                  <span>🎙️</span>
+                  <span>Microfone Embutido</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    audioInputConfigStore.setInputMode('line-in');
+                    setActiveTab('audio');
+                  }}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border select-none ${
+                    config.inputMode === 'line-in'
+                      ? 'bg-amber-600 text-slate-950 font-black border-amber-400 shadow-md shadow-amber-600/30 ring-1 ring-amber-400'
+                      : 'bg-white/5 border-transparent text-slate-300 hover:bg-white/10'
+                  }`}
+                >
+                  <span>🔌</span>
+                  <span>Cabo Line-In / Interface</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    audioInputConfigStore.setInputMode('headset');
+                    setActiveTab('audio');
+                  }}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border select-none ${
+                    config.inputMode === 'headset'
+                      ? 'bg-purple-600 text-white border-purple-400 shadow-md shadow-purple-600/30 ring-1 ring-purple-400'
+                      : 'bg-white/5 border-transparent text-slate-300 hover:bg-white/10'
+                  }`}
+                >
+                  <span>🎧</span>
+                  <span>Fones / Headset</span>
+                </button>
+              </div>
+            </div>
+
             {/* ── ABAS DE NAVEGAÇÃO ── */}
             <div className="flex border-b border-white/10 bg-black/30 px-6 pt-2 gap-2 overflow-x-auto">
               <button
@@ -495,6 +563,38 @@ export const AudioInputConfigModal: React.FC<Props> = ({
                         </p>
                       </div>
                     )}
+                  </div>
+
+                  {/* Mapeamento Automático de Canais MIDI (1–16) */}
+                  <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-bold text-slate-300 flex items-center gap-2">
+                        <Sliders className="w-4 h-4 text-emerald-400" />
+                        <span>Mapeamento de Canais MIDI:</span>
+                      </h4>
+                      <span className="text-xs font-mono font-bold text-emerald-300 bg-emerald-500/20 px-2.5 py-0.5 rounded border border-emerald-500/30">
+                        {config.midiChannel === 0 ? 'Omni (Todos os Canais 1–16)' : `Canal ${config.midiChannel}`}
+                      </span>
+                    </div>
+
+                    <select
+                      value={config.midiChannel}
+                      onChange={(e) => audioInputConfigStore.setMidiChannel(Number(e.target.value))}
+                      className="w-full bg-black/50 border border-white/15 rounded-xl px-3 py-2 text-xs text-white font-mono focus:border-emerald-400 focus:outline-none cursor-pointer"
+                    >
+                      <option value={0} className="bg-slate-900 text-white">
+                        Omni — Responder a todos os canais (1 a 16)
+                      </option>
+                      {Array.from({ length: 16 }, (_, i) => i + 1).map((ch) => (
+                        <option key={ch} value={ch} className="bg-slate-900 text-white">
+                          Canal MIDI {ch} {ch === 1 ? '(Padrão Teclado Principal)' : ''}
+                        </option>
+                      ))}
+                    </select>
+
+                    <p className="text-[11px] text-slate-400">
+                      Mapeamento automático de canais: selecione o canal do seu teclado controlador ou deixe em Omni para responder em qualquer canal.
+                    </p>
                   </div>
 
                   {/* Monitor de Notas MIDI Tocadas em Tempo Real */}

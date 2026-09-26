@@ -182,4 +182,39 @@ describe('Redesenho Responsivo & Pixel Budget (PRD HARMONIA)', () => {
       expect(theoryTrail.every((m) => m.lessonsCount >= 1)).toBe(true);
     });
   });
+
+  describe('Padrão de Oitavas Responsivo do Teclado Virtual (REQ-PIANO-OCTAVES-01)', () => {
+    it('deve definir 4 oitavas por padrão em telas grandes (>= 1024px ou container >= 900px)', async () => {
+      const { getResponsiveDefaultOctaveCount } = await import('../../src/components/piano/PianoKeyboard');
+
+      // Tela grande / Desktop container >= 900px
+      expect(getResponsiveDefaultOctaveCount(undefined, 1200)).toBe(4);
+      expect(getResponsiveDefaultOctaveCount(undefined, 1024)).toBe(4);
+      expect(getResponsiveDefaultOctaveCount(undefined, 900)).toBe(4);
+    });
+
+    it('deve definir 3 oitavas em telas intermediárias e tablets (520px a 899px)', async () => {
+      const { getResponsiveDefaultOctaveCount } = await import('../../src/components/piano/PianoKeyboard');
+
+      expect(getResponsiveDefaultOctaveCount(undefined, 768)).toBe(3);
+      expect(getResponsiveDefaultOctaveCount(undefined, 600)).toBe(3);
+      expect(getResponsiveDefaultOctaveCount(undefined, 520)).toBe(3);
+    });
+
+    it('deve definir 2 oitavas em celulares compactos (< 520px) para ergonomia de toque', async () => {
+      const { getResponsiveDefaultOctaveCount } = await import('../../src/components/piano/PianoKeyboard');
+
+      expect(getResponsiveDefaultOctaveCount(undefined, 480)).toBe(2);
+      expect(getResponsiveDefaultOctaveCount(undefined, 360)).toBe(2);
+    });
+
+    it('deve respeitar a quantidade explícita quando passada pelo usuário ou caller', async () => {
+      const { getResponsiveDefaultOctaveCount } = await import('../../src/components/piano/PianoKeyboard');
+
+      expect(getResponsiveDefaultOctaveCount(5, 1200)).toBe(5);
+      expect(getResponsiveDefaultOctaveCount(1, 360)).toBe(1);
+      expect(getResponsiveDefaultOctaveCount(3, 1920)).toBe(3);
+    });
+  });
 });
+

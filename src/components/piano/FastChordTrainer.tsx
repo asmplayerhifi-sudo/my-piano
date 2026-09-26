@@ -271,7 +271,6 @@ export const FastChordTrainer: React.FC = () => {
       <div className="pt-2">
         <PianoKeyboard
           startOctave={2}
-          octaveCount={3}
           allowOctaveControls={true}
           highlightedKeys={highlightedKeys}
           activeExternalNotes={activeExternalNotes}

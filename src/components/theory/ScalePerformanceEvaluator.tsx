@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import type { ScaleDefinition, ComputedScaleNote } from '../../core/scaleData';
+import { ROOT_KEYS } from '../../core/scaleData';
 import { micPitchDetector, type DetectedPitch } from '../../core/pitchDetector';
 import { NoteConfirmationValidator } from '../../core/noteConfirmationValidator';
 import { soundEngine } from '../../core/soundEngine';
+import { midiManager } from '../../core/midiManager';
+import { useAudioInputConfig } from '../../core/audioInputConfigStore';
+import { QuickInputSelector } from '../audio/QuickInputSelector';
 import {
   Mic,
   MicOff,
@@ -15,6 +19,7 @@ import {
   Sliders,
   Target,
   Flame,
+  Music,
 } from 'lucide-react';
 
 interface Props {
@@ -43,6 +48,8 @@ export const ScalePerformanceEvaluator: React.FC<Props> = ({
   onPlayNote,
   className = '',
 }) => {
+  const audioConfig = useAudioInputConfig();
+
   // Estado do Microfone
   const [isMicActive, setIsMicActive] = useState<boolean>(false);
   const [micError, setMicError] = useState<string | null>(null);
@@ -354,6 +361,16 @@ export const ScalePerformanceEvaluator: React.FC<Props> = ({
     handleReset();
   }, [scale.id, rootKey]);
 
+  // Escuta notas de Teclado MIDI Físico (USB / OTG / Bluetooth)
+  useEffect(() => {
+    const unsub = midiManager.subscribe((event) => {
+      if (event.isDown) {
+        handleNoteAttack(event.midi, event.noteName);
+      }
+    });
+    return () => unsub();
+  }, [handleNoteAttack]);
+
   // Limpeza ao desmontar
   useEffect(() => {
     return () => {
@@ -369,6 +386,50 @@ export const ScalePerformanceEvaluator: React.FC<Props> = ({
       });
       if (onPlayNote) onPlayNote(currentTargetNote.midi);
     }
+  };
+
+  // Mini visualizador de 1 oitava cromática integrado no avaliador
+  const chromaticKeys = useMemo(() => {
+    const rootIdx = ROOT_KEYS.findIndex((r) => r.key === rootKey);
+    const safeRootIdx = rootIdx >= 0 ? rootIdx : 0;
+    const baseMidi = 60 + safeRootIdx;
+
+    const scaleMidisMod = new Set(notes.map((n) => ((n.midi % 12) + 12) % 12));
+    const rootMod = ((baseMidi % 12) + 12) % 12;
+
+    const keys = [
+      { name: 'C', isBlack: false, semitone: 0 },
+      { name: 'C#', isBlack: true, semitone: 1 },
+      { name: 'D', isBlack: false, semitone: 2 },
+      { name: 'D#', isBlack: true, semitone: 3 },
+      { name: 'E', isBlack: false, semitone: 4 },
+      { name: 'F', isBlack: false, semitone: 5 },
+      { name: 'F#', isBlack: true, semitone: 6 },
+      { name: 'G', isBlack: false, semitone: 7 },
+      { name: 'G#', isBlack: true, semitone: 8 },
+      { name: 'A', isBlack: false, semitone: 9 },
+      { name: 'A#', isBlack: true, semitone: 10 },
+      { name: 'B', isBlack: false, semitone: 11 },
+    ];
+
+    return keys.map((k) => {
+      const inScale = scaleMidisMod.has(k.semitone);
+      const isTonic = k.semitone === rootMod;
+      const isCurrentTarget = currentTargetNote && (((currentTargetNote.midi % 12) + 12) % 12 === k.semitone);
+      return {
+        ...k,
+        inScale,
+        isTonic,
+        isCurrentTarget,
+        midi: 60 + k.semitone,
+      };
+    });
+  }, [rootKey, notes, currentTargetNote]);
+
+  const handleVirtualKeyClick = (midi: number, noteName: string) => {
+    soundEngine.playPianoNote(midi, 0.8);
+    if (onPlayNote) onPlayNote(midi);
+    handleNoteAttack(midi, noteName);
   };
 
   // Porcentagem de conclusão da sequência
@@ -399,11 +460,13 @@ export const ScalePerformanceEvaluator: React.FC<Props> = ({
           </p>
         </div>
 
-        {/* Botão de Ativação do Microfone & Sensibilidade */}
+        {/* Seletor Rápido de Entrada [ 🎹 MIDI USB ] [ 🎙️ Microfone ] [ 🔌 Cabo Line-In ] [ 🎧 Fones ] + Ações */}
         <div className="flex flex-wrap items-center gap-2.5 self-start md:self-auto">
+          <QuickInputSelector compact />
+
           <button
             onClick={toggleMicrophone}
-            className={`px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-2.5 transition-all cursor-pointer shadow-lg active:scale-95 ${
+            className={`px-4 py-2.5 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer shadow-lg active:scale-95 ${
               isMicActive
                 ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/30 ring-2 ring-rose-400/50'
                 : 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black shadow-emerald-500/25 ring-1 ring-emerald-400'
@@ -417,14 +480,14 @@ export const ScalePerformanceEvaluator: React.FC<Props> = ({
             ) : (
               <>
                 <Mic className="w-4 h-4 shrink-0" />
-                <span>Ouvir Meu Instrumento</span>
+                <span>Ouvir Instrumento</span>
               </>
             )}
           </button>
 
           <button
             onClick={handleReset}
-            className="p-3 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/5 transition-all cursor-pointer"
+            className="p-2.5 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/5 transition-all cursor-pointer"
             title="Reiniciar Avaliação da Escala"
           >
             <RotateCcw className="w-4 h-4" />
@@ -445,13 +508,37 @@ export const ScalePerformanceEvaluator: React.FC<Props> = ({
         <div className="flex items-center gap-3">
           <div
             className={`w-3.5 h-3.5 rounded-full shrink-0 ${
-              isMicActive ? (volumeLevel > 10 ? 'bg-emerald-400 shadow-md shadow-emerald-400/50' : 'bg-emerald-600') : 'bg-slate-700'
+              audioConfig.inputMode === 'midi'
+                ? 'bg-indigo-400 shadow-md shadow-indigo-400/50 animate-pulse'
+                : isMicActive
+                ? volumeLevel > 10
+                  ? 'bg-emerald-400 shadow-md shadow-emerald-400/50'
+                  : 'bg-emerald-600'
+                : 'bg-slate-700'
             }`}
           />
           <div className="text-xs font-mono">
-            <span className="text-slate-400">Microfone: </span>
-            <span className={`font-bold ${isMicActive ? 'text-emerald-400' : 'text-slate-500'}`}>
-              {isMicActive ? 'Captação Ativa (Aguardando ataque)' : 'Desconectado (Clique em Ouvir Meu Instrumento)'}
+            <span className="text-slate-400">Entrada Ativa: </span>
+            <span className={`font-bold ${
+              audioConfig.inputMode === 'midi'
+                ? 'text-indigo-400'
+                : isMicActive
+                ? 'text-emerald-400'
+                : 'text-slate-400'
+            }`}>
+              {audioConfig.inputMode === 'midi'
+                ? '🎹 Teclado MIDI USB: Toque as teclas no seu instrumento físico (Latência Zero)'
+                : audioConfig.inputMode === 'line-in'
+                ? isMicActive
+                  ? '🔌 Cabo Line-In: Captação direta via interface'
+                  : '🔌 Cabo Line-In: Clique em "Ouvir Instrumento"'
+                : audioConfig.inputMode === 'headset'
+                ? isMicActive
+                  ? '🎧 Fones / Headset: Captação acústica auricular'
+                  : '🎧 Fones / Headset: Clique em "Ouvir Instrumento"'
+                : isMicActive
+                ? '🎙️ Microfone Acústico: Aguardando ataque'
+                : '🎙️ Microfone Desconectado (Clique em Ouvir Instrumento)'}
             </span>
           </div>
         </div>
@@ -743,6 +830,44 @@ export const ScalePerformanceEvaluator: React.FC<Props> = ({
                       <div className="text-slate-500">{currentPitch.clarity}% clareza</div>
                     </div>
                   )}
+                </div>
+
+                {/* ── Mini Teclado de Piano Integrado ao Bloco de Avaliação ── */}
+                <div className="p-3 rounded-2xl bg-black/40 border border-white/5 space-y-1.5">
+                  <div className="flex items-center justify-between text-xs text-slate-400">
+                    <span className="font-mono uppercase font-bold text-slate-300 flex items-center gap-1.5 text-[10px]">
+                      <Music className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>Teclado Integrado (Clique ou toque no instrumento)</span>
+                    </span>
+                    <span className="text-[10px] text-pink-300 font-mono font-bold">
+                      {currentTargetNote ? `Alvo: ${currentTargetNote.note}` : 'Teclas da Escala'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-end justify-center gap-1 h-20 max-w-md mx-auto py-1">
+                    {chromaticKeys.map((k) => (
+                      <button
+                        key={k.semitone}
+                        onClick={() => handleVirtualKeyClick(k.midi, k.name)}
+                        className={`flex-1 rounded-b-lg font-mono text-[9px] font-bold flex flex-col justify-end items-center pb-1 transition-all cursor-pointer select-none active:scale-95 ${
+                          k.isBlack ? 'h-13 -mx-1 z-10' : 'h-20 z-0'
+                        } ${
+                          k.isCurrentTarget
+                            ? 'bg-gradient-to-t from-pink-600 via-rose-500 to-indigo-600 text-white shadow-lg shadow-pink-500/50 scale-105 ring-2 ring-pink-400 z-20 animate-pulse'
+                            : k.inScale
+                            ? k.isTonic
+                              ? 'bg-rose-500 text-white shadow-md shadow-rose-500/30'
+                              : 'bg-indigo-600 text-white shadow'
+                            : k.isBlack
+                            ? 'bg-slate-900 border border-slate-800 text-slate-600 hover:bg-slate-800'
+                            : 'bg-slate-800/60 border border-slate-700/50 text-slate-500 hover:bg-slate-700/60'
+                        }`}
+                        title={`Tocar ${k.name} (MIDI ${k.midi})`}
+                      >
+                        <span>{k.name}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

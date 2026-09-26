@@ -732,7 +732,6 @@ export const RepertoireView: React.FC = () => {
         <div className="pt-1">
           <PianoKeyboard
             startOctave={2}
-            octaveCount={3}
             allowOctaveControls={true}
             highlightedKeys={highlightedSongKeys}
             activeFingerPrompt={activeFingerPrompt}

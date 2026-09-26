@@ -184,7 +184,6 @@ export const PianoModule: React.FC = () => {
 
           <PianoKeyboard
             startOctave={2}
-            octaveCount={3}
             allowOctaveControls={true}
             highlightedKeys={highlightedKeys}
             activeExternalNotes={activeExternalNotes}

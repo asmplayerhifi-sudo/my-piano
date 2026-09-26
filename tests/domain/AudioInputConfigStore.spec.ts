@@ -50,6 +50,39 @@ describe('AudioInputConfigStore', () => {
     expect(audioInputConfigStore.getSnapshot().sensitivityPercent).toBe(50);
   });
 
+  it('should support inputMode selection (midi, mic, line-in, headset)', () => {
+    expect(audioInputConfigStore.getSnapshot().inputMode).toBeDefined();
+
+    audioInputConfigStore.setInputMode('midi');
+    expect(audioInputConfigStore.getSnapshot().inputMode).toBe('midi');
+
+    audioInputConfigStore.setInputMode('line-in');
+    expect(audioInputConfigStore.getSnapshot().inputMode).toBe('line-in');
+
+    audioInputConfigStore.setInputMode('headset');
+    expect(audioInputConfigStore.getSnapshot().inputMode).toBe('headset');
+
+    audioInputConfigStore.setInputMode('mic');
+    expect(audioInputConfigStore.getSnapshot().inputMode).toBe('mic');
+  });
+
+  it('should support and clamp midiChannel (0 for omni, 1..16)', () => {
+    audioInputConfigStore.setMidiChannel(0);
+    expect(audioInputConfigStore.getSnapshot().midiChannel).toBe(0);
+
+    audioInputConfigStore.setMidiChannel(1);
+    expect(audioInputConfigStore.getSnapshot().midiChannel).toBe(1);
+
+    audioInputConfigStore.setMidiChannel(16);
+    expect(audioInputConfigStore.getSnapshot().midiChannel).toBe(16);
+
+    audioInputConfigStore.setMidiChannel(25); // clamp to 16
+    expect(audioInputConfigStore.getSnapshot().midiChannel).toBe(16);
+
+    audioInputConfigStore.setMidiChannel(-5); // clamp to 0
+    expect(audioInputConfigStore.getSnapshot().midiChannel).toBe(0);
+  });
+
   it('should maintain stable object reference when state does not change (useSyncExternalStore rule)', () => {
     const s1 = audioInputConfigStore.getSnapshot();
     const s2 = audioInputConfigStore.getSnapshot();
@@ -64,5 +97,16 @@ describe('AudioInputConfigStore', () => {
     audioInputConfigStore.setSensitivityPercent(s1.sensitivityPercent);
     const s4 = audioInputConfigStore.getSnapshot();
     expect(s4).toBe(s1);
+
+    // Setting the same input mode should not change reference
+    audioInputConfigStore.setInputMode(s1.inputMode);
+    const s5 = audioInputConfigStore.getSnapshot();
+    expect(s5).toBe(s1);
+
+    // Setting the same MIDI channel should not change reference
+    audioInputConfigStore.setMidiChannel(s1.midiChannel);
+    const s6 = audioInputConfigStore.getSnapshot();
+    expect(s6).toBe(s1);
   });
 });
+
