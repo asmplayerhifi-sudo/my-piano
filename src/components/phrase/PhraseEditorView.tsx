@@ -15,8 +15,10 @@ import {
 } from 'lucide-react';
 import { StudioFolderBar } from '../common/StudioFolderBar';
 import { StudioProjectModal } from '../common/StudioProjectModal';
+import { StudioImportExportBar } from '../common/StudioImportExportBar';
 import { useStudioStorage } from '../../core/studio/useStudioStorage';
 import type { StudioProjectEnvelope } from '../../core/studio/studioStorageTypes';
+import type { ExportFormat } from '../../core/studio/studioImportExportService';
 import { soundEngine } from '../../core/soundEngine';
 import { useOctaveStandard } from '../../core/octaveConfigStore';
 import { getNoteInfo } from '../../core/musicTheory';
@@ -192,6 +194,32 @@ export const PhraseEditorView: React.FC = () => {
       setTimeout(() => setStorageFeedback(null), 4000);
     }
   }, [studioStorage, currentProjectId, notes, bpm, selectedTonalityOffset]);
+
+  // ── Envelope atual do projeto para o StudioImportExportBar ──────────────────
+
+  const currentEnvelope = useMemo((): StudioProjectEnvelope<unknown> => ({
+    id: currentProjectId ?? `local_${Date.now()}`,
+    title: currentLickTitle,
+    module: 'phrase',
+    category: selectedGenre === 'all' ? 'Lick' : selectedGenre,
+    version: '1.0.0',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    metadata: { bpm, notesCount: notes.length, tonalityOffset: selectedTonalityOffset },
+    data: { notes, bpm, tonalityOffset: selectedTonalityOffset },
+  }), [currentProjectId, currentLickTitle, selectedGenre, bpm, notes, selectedTonalityOffset]);
+
+  /** Reconstrói a frase no editor a partir de um envelope importado. */
+  const handleImportPhrase = useCallback((envelope: StudioProjectEnvelope<unknown>, _format: ExportFormat) => {
+    const data = envelope.data as { notes?: PhrasingNote[]; bpm?: number; tonalityOffset?: number };
+    if (Array.isArray(data?.notes)) {
+      setNotes(data.notes);
+      if (data.bpm) setBpm(data.bpm);
+      if (data.tonalityOffset !== undefined) setSelectedTonalityOffset(data.tonalityOffset);
+      setCurrentLickTitle(envelope.title);
+      setCurrentProjectId(envelope.id);
+    }
+  }, []);
 
   // Timers de Playback
   const playbackTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -449,6 +477,15 @@ export const PhraseEditorView: React.FC = () => {
               <Save className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Salvar</span>
             </button>
+
+            {/* Importar / Exportar */}
+            <StudioImportExportBar
+              module="phrase"
+              projectTitle={currentLickTitle}
+              envelope={currentEnvelope}
+              existingManifestItems={studioStorage.manifest?.modules.phrases ?? []}
+              onImport={handleImportPhrase}
+            />
 
             {/* Seletor de Timbre */}
             <div className="hidden lg:block">

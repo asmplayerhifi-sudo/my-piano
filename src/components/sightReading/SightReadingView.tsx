@@ -57,6 +57,8 @@ import { soundEngine } from '../../core/soundEngine';
 import { sustainPedalStore } from '../../core/sustainPedalStore';
 import { useActiveNotes } from '../../hooks/useActiveNotes';
 import { midiManager, type MidiDevice } from '../../core/midiManager';
+import { ScorePracticeEngine } from '../../core/scorePracticeEngine';
+import type { ScorePracticeMode } from '../../core/scorePracticeEngine';
 import {
   Trophy,
   Flame,
@@ -72,6 +74,8 @@ import {
   BookOpen,
   Play,
   Pause,
+  Music,
+  Timer,
 } from 'lucide-react';
 
 export const SightReadingView: React.FC = () => {
@@ -97,16 +101,42 @@ export const SightReadingView: React.FC = () => {
   const [exercise, setExercise] = useState<SightReadingExercise>(() =>
     generateSingleNoteExercise('treble', 'natural')
   );
+  /**
+   * Ref estável que espelha o exercício atual.
+   * Permite que callbacks leiam exercise.notes sem declará-lo como dependência reativa,
+   * evitando o ciclo infinito: setExercise → exercise.notes muda → callback recriado
+   * → useEffect dispara → nextExercise → setExercise → ∞
+   */
+  const exerciseRef = useRef<SightReadingExercise>(exercise);
+  useEffect(() => { exerciseRef.current = exercise; }, [exercise]);
+
   const [activeNoteIndex, setActiveNoteIndex] = useState<number>(0);
   const [feedbackState, setFeedbackState] = useState<'idle' | 'correct' | 'wrong'>('idle');
   const [feedbackMessage, setFeedbackMessage] = useState<string>('Toque a nota indicada na pauta...');
   const [lastWrongMidi, setLastWrongMidi] = useState<number | null>(null);
 
-  // ── Modo Rítmico / Cursor Temporal ─────────────────────────────────────────
+  // ── Modos Formais de Prática: Leitura e Tempo ──────────────────────────────
+  // A prática SEMPRE inicia desligada (Critério 1). O usuário deve iniciar
+  // explicitamente o modo desejado. Nenhum metrônomo ou reprodução automática.
+  const [practiceModeActive, setPracticeModeActive] = useState<ScorePracticeMode | null>(null);
+  const [practiceIsRunning, setPracticeIsRunning] = useState<boolean>(false);
+  const practiceEngineRef = useRef<ScorePracticeEngine | null>(null);
+
+  /**
+   * Guarda se a sessão de treino está ativa.
+   * Inicia como `false` — a tela é completamente passiva até o usuário pressionar
+   * um botão de início (Modo Livre, Modo Leitura ou Modo Tempo).
+   * Isso impede que notas do MIDI/microfone avancem exercícios sem ação do usuário.
+   */
+  const [sessionActive, setSessionActive] = useState<boolean>(false);
+
+  // ── Modo Rítmico / Cursor Temporal (Modo Tempo) ────────────────────────────
   const [isTemporalPlaying, setIsTemporalPlaying] = useState<boolean>(false);
   const [bpm, setBpm] = useState<number>(60);
+  const [practiceCurrentBpm, setPracticeCurrentBpm] = useState<number>(60);
   const [cursorProgress, setCursorProgress] = useState<number>(0);
   const [timingResult, setTimingResult] = useState<RhythmicTimingResult | null>(null);
+  const metronomeBeatRef = useRef<number>(0); // timestamp do ultimo beat do metronomo
 
   // Buffer e estado de Acordes Polifônicos
   const chordBufferRef = useRef<number[]>([]);
@@ -152,7 +182,8 @@ export const SightReadingView: React.FC = () => {
   const nextExercise = useCallback(
     (customPool?: SightReadingNote[]) => {
       let nextEx: SightReadingExercise;
-      const lastMidi = exercise.notes[0]?.midi;
+      // Lê via ref para não criar dependência reativa em exercise.notes
+      const lastMidi = exerciseRef.current.notes[0]?.midi;
 
       switch (exerciseType) {
         case 'single':
@@ -193,8 +224,198 @@ export const SightReadingView: React.FC = () => {
       );
       noteStartTimeRef.current = Date.now();
       targetBeatTimeRef.current = Date.now();
+
+      // Ao gerar novo exercício, para a prática formal e aguarda o usuário reiniciar.
+      // A sessão também é encerrada para garantir que a tela não avance sozinha.
+      setPracticeIsRunning(false);
+      setIsTemporalPlaying(false);
+      setSessionActive(false);
+      practiceEngineRef.current = null;
     },
-    [clef, exerciseType, accidentalMode, selectedKeySigId, selectedTimeSig, exercise.notes]
+    // exerciseRef é estável — não entra nas deps. exercise.notes foi removido
+    // para quebrar o ciclo infinito: setExercise → deps mudam → callback recriado
+    // → useEffect (linha 413) dispara → nextExercise → setExercise → ∞
+    [clef, exerciseType, accidentalMode, selectedKeySigId, selectedTimeSig]
+  );
+
+  // ── Inicialização e Controle dos Modos Formais de Prática ──────────────────
+
+  /**
+   * Inicia o Modo Livre (treino sem metrônomo).
+   * Ativa a sessão para começar a processar entradas.
+   */
+  const startFreeMode = useCallback(() => {
+    setPracticeModeActive(null);
+    setPracticeIsRunning(false);
+    practiceEngineRef.current = null;
+    setSessionActive(true);
+    setActiveNoteIndex(0);
+    setFeedbackState('idle');
+    setLastWrongMidi(null);
+    setFeedbackMessage('Toque a nota indicada na pauta...');
+    noteStartTimeRef.current = Date.now();
+    targetBeatTimeRef.current = Date.now();
+  }, []);
+
+  /**
+   * Inicia o Modo Leitura (Wait Mode).
+   * Nunca inicia automaticamente — requer ação explícita do usuário (Critério 1).
+   */
+  const startReadMode = useCallback(() => {
+    const midis = exerciseRef.current.notes.map((n) => n.midi);
+    if (midis.length === 0) return;
+    const engine = new ScorePracticeEngine(midis, 'read');
+    engine.start();
+    practiceEngineRef.current = engine;
+    setPracticeModeActive('read');
+    setPracticeIsRunning(true);
+    setSessionActive(true);
+    setActiveNoteIndex(0);
+    setFeedbackState('idle');
+    setLastWrongMidi(null);
+    setFeedbackMessage('Modo Leitura ativo — toque a nota indicada na pauta...');
+  }, []); // exerciseRef é estável — sem deps reativas
+
+  /**
+   * Inicia o Modo Tempo (metrônomo + BPM).
+   * Nunca inicia automaticamente — requer ação explícita do usuário (Critério 1).
+   */
+  const startTempoMode = useCallback(() => {
+    const midis = exerciseRef.current.notes.map((n) => n.midi);
+    if (midis.length === 0) return;
+    const engine = new ScorePracticeEngine(midis, 'tempo', {
+      startBpm: bpm,
+      maxBpm: Math.min(220, bpm + 60),
+      hitsPerStep: 4,
+      bpmIncrement: 5,
+      toleranceMs: 150,
+    });
+    engine.start();
+    practiceEngineRef.current = engine;
+    setPracticeModeActive('tempo');
+    setPracticeIsRunning(true);
+    setSessionActive(true);
+    setPracticeCurrentBpm(bpm);
+    setActiveNoteIndex(0);
+    setFeedbackState('idle');
+    setLastWrongMidi(null);
+    setIsTemporalPlaying(true);
+    metronomeBeatRef.current = performance.now();
+    setFeedbackMessage(`Modo Tempo ativo — ${bpm} BPM. Toque no ritmo!`);
+  }, [bpm]); // exerciseRef é estável — exercise.notes removido das deps
+
+  /** Para qualquer modo de prática ativo sem resetar o exercício. */
+  const stopPractice = useCallback(() => {
+    practiceEngineRef.current?.stop();
+    setPracticeIsRunning(false);
+    setIsTemporalPlaying(false);
+    setSessionActive(false);
+    setFeedbackState('idle');
+    setFeedbackMessage('Prática pausada. Clique em Iniciar para retomar.');
+    setCursorProgress(0);
+  }, []);
+
+  /**
+   * Avalia nota tocada usando a ScorePracticeEngine no modo ativo.
+   * Chamado para qualquer fonte de entrada: MIDI, teclado virtual ou microfone.
+   */
+  const evaluateWithPracticeEngine = useCallback(
+    (playedMidi: number) => {
+      const engine = practiceEngineRef.current;
+      if (!engine || !practiceIsRunning) return false;
+
+      const state = engine.getState();
+
+      if (state.mode === 'read') {
+        const result = engine.evaluateNoteRead(playedMidi);
+
+        if (result.outcome === 'correct') {
+          setFeedbackState('correct');
+          setLastWrongMidi(null);
+          const advancedTo = result.advancedToIndex;
+          setFeedbackMessage(
+            result.isComplete
+              ? '✨ Sequência concluída! Parabéns!'
+              : `✓ Correto! Próxima nota: ${advancedTo + 1}/${state.totalNotes}`
+          );
+          // Avança o índice visual na pauta (Critério 3)
+          const totalNotes = exerciseRef.current.notes.length;
+          setActiveNoteIndex(advancedTo < totalNotes ? advancedTo : totalNotes - 1);
+          if (result.isComplete) {
+            setPracticeIsRunning(false);
+          }
+          setTimeout(() => setFeedbackState('idle'), 500);
+          return true;
+        }
+
+        if (result.outcome === 'wrong') {
+          // Nota errada: registra visualmente em vermelho, NÃO avança (Critério 2, 4)
+          setFeedbackState('wrong');
+          setLastWrongMidi(result.playedMidi);
+          const playedInfo = getFormattedNoteName(result.playedMidi);
+          const expectedInfo = getFormattedNoteName(result.expectedMidi);
+          setFeedbackMessage(
+            `❌ Nota errada: ${playedInfo.portuguese} (esperada: ${expectedInfo.portuguese})`
+          );
+          setTimeout(() => {
+            setFeedbackState('idle');
+            setLastWrongMidi(null);
+            engine.clearError();
+          }, 1200);
+        }
+        return false;
+      }
+
+      if (state.mode === 'tempo') {
+        const now = performance.now();
+        const expectedMs = metronomeBeatRef.current;
+        const result = engine.evaluateNoteTempo(playedMidi, now, expectedMs);
+
+        if (result.outcome === 'on_time' || result.outcome === 'off_time') {
+          const diffMs = result.diffMs;
+          const timing = evaluateRhythmicTiming(now, expectedMs, state.currentBpm, 150);
+          setTimingResult(timing);
+          setFeedbackState('correct');
+          setLastWrongMidi(null);
+          const advancedTo = result.advancedToIndex;
+          const totalNotesTempo = exerciseRef.current.notes.length;
+          setActiveNoteIndex(advancedTo < totalNotesTempo ? advancedTo : totalNotesTempo - 1);
+          metronomeBeatRef.current = now + ((60 / state.currentBpm) * 1000);
+          const newBpm = engine.getState().currentBpm;
+          setPracticeCurrentBpm(newBpm);
+          if (result.isComplete) {
+            setFeedbackMessage(`🏆 Sequência concluída! BPM final: ${newBpm}`);
+            setPracticeIsRunning(false);
+            setIsTemporalPlaying(false);
+          } else {
+            const grade = result.outcome === 'on_time' ? 'ON TIME' : `${Math.round(Math.abs(diffMs))}ms`;
+            setFeedbackMessage(`${grade} • BPM: ${newBpm}`);
+          }
+          setTimeout(() => setFeedbackState('idle'), 400);
+          return true;
+        }
+
+        if (result.outcome === 'wrong') {
+          setFeedbackState('wrong');
+          setLastWrongMidi(result.playedMidi);
+          const playedInfo = getFormattedNoteName(result.playedMidi);
+          const expectedInfo = getFormattedNoteName(result.expectedMidi);
+          setFeedbackMessage(
+            `❌ Nota errada: ${playedInfo.portuguese} (esperada: ${expectedInfo.portuguese})`
+          );
+          setTimeout(() => {
+            setFeedbackState('idle');
+            setLastWrongMidi(null);
+            engine.clearError();
+          }, 900);
+        }
+        return false;
+      }
+
+      return false;
+    },
+    // exerciseRef.current.notes é lido inline — exercise.notes removido das deps
+    [practiceIsRunning]
   );
 
   // Atualiza exercício ao alterar filtros estruturais (ignora montagem inicial já gerada)
@@ -232,40 +453,61 @@ export const SightReadingView: React.FC = () => {
     setChallengeTimeLeft(60);
     setIsChallengeActive(true);
     setChallengeFinished(false);
+    setSessionActive(true);
     nextExercise();
   };
 
-  // ── Cursor Temporal e Loop de Leitura (Requisito 3 & 4) ────────────────────
+  // ── Cursor Temporal — Modo Tempo Formal (metrônomo sincronizado ao BPM) ─────
+  // Usado apenas quando o Modo Tempo está ativo (practiceIsRunning + mode='tempo').
+  // O cursor avança pelo exercício respeitando o BPM atual da engine.
   useEffect(() => {
-    if (!isTemporalPlaying) return;
+    if (!isTemporalPlaying || !practiceIsRunning) return;
 
     const totalNotes = Math.max(1, exercise.notes.length);
-    // Duração total do ciclo em ms: cada nota = 1 beat a 60/bpm segundos
-    const beatDurationMs = (60 / bpm) * 1000;
+    const activeBpm = practiceEngineRef.current?.getState().currentBpm ?? bpm;
+    const beatDurationMs = (60 / activeBpm) * 1000;
     const cycleDurationMs = totalNotes * beatDurationMs;
     const startTime = performance.now();
-
     let animationFrameId: number;
+    let lastBeatIndex = -1;
 
     const step = (now: number) => {
       const elapsed = now - startTime;
       const progress = (elapsed % cycleDurationMs) / cycleDurationMs;
       setCursorProgress(progress);
 
-      // Determina a nota atual correspondente ao progresso
+      // Identifica qual nota o cursor está apontando
       const currentNoteIdx = Math.min(totalNotes - 1, Math.floor(progress * totalNotes));
-      setActiveNoteIndex(currentNoteIdx);
 
-      // Marca o tempo esperado do beat para a nota ativa
-      targetBeatTimeRef.current = Date.now();
+      // A cada mudança de nota pelo cursor, atualiza o beat esperado para validação
+      if (currentNoteIdx !== lastBeatIndex) {
+        lastBeatIndex = currentNoteIdx;
+        metronomeBeatRef.current = now;
+        targetBeatTimeRef.current = Date.now();
+
+        // No Modo Tempo, se o índice do cursor avançou mas a engine ainda está na nota anterior,
+        // registra nota perdida (o usuário não tocou no tempo)
+        const engine = practiceEngineRef.current;
+        if (engine && practiceIsRunning) {
+          const engineIndex = engine.getState().currentIndex;
+          if (currentNoteIdx > engineIndex) {
+            const missed = engine.noteMissed();
+            if (missed.outcome === 'missed') {
+              setFeedbackState('wrong');
+              const info = getFormattedNoteName(missed.expectedMidi);
+              setFeedbackMessage(`⏱ Perdeu o tempo: ${info.portuguese}`);
+              setTimeout(() => setFeedbackState('idle'), 600);
+            }
+          }
+        }
+      }
 
       animationFrameId = requestAnimationFrame(step);
     };
 
     animationFrameId = requestAnimationFrame(step);
-
     return () => cancelAnimationFrame(animationFrameId);
-  }, [isTemporalPlaying, bpm, exercise.notes.length]);
+  }, [isTemporalPlaying, practiceIsRunning, bpm, exercise.notes.length, practiceCurrentBpm]);
 
   // ── Validação Polifônica de Acordes (Requisito 5) ───────────────────────────
   const processPolyphonicChordStrike = useCallback(
@@ -328,15 +570,32 @@ export const SightReadingView: React.FC = () => {
   );
 
   // ── Validação e Processamento de Toques (MIDI, Virtual, Mic) ───────────────
+  // Critério 5: todas as entradas (MIDI, teclado virtual, microfone) respeitam
+  // exatamente as mesmas regras de validação da engine de prática.
   const handleNoteTriggered = useCallback(
     (playedMidi: number) => {
+      // Sessão não iniciada: a tela está em modo passivo. Ignora todas as entradas.
+      // O usuário deve pressionar um dos botões de início para ativar o processamento.
+      if (!sessionActive) return;
+
       if (feedbackState === 'correct') return; // Evita double-trigger durante transição
 
-      // Toca o áudio Hi-Fi imediatamente
+      // Toca o áudio Hi-Fi imediatamente (independente do modo)
       soundEngine.startPianoNote(playedMidi, 0.85);
       setTimeout(() => soundEngine.stopPianoNote(playedMidi), 400);
 
-      // Se for exercício de acorde, direciona para o avaliador polifônico
+      // Se algum modo formal de prática estiver ativo, delega à engine.
+      if (practiceIsRunning && practiceEngineRef.current) {
+        // Acordes no Modo Prática ainda usam o avaliador polifônico dedicado
+        if (exercise.type === 'chords') {
+          processPolyphonicChordStrike(playedMidi);
+          return;
+        }
+        evaluateWithPracticeEngine(playedMidi);
+        return;
+      }
+
+      // ── Modo Livre (sem prática formal ativa) ──────────────────────────────
       if (exercise.type === 'chords') {
         processPolyphonicChordStrike(playedMidi);
         return;
@@ -348,19 +607,16 @@ export const SightReadingView: React.FC = () => {
       const reactionTime = Math.max(100, Date.now() - noteStartTimeRef.current);
       const isExactMatch = playedMidi === targetNote.midi;
 
-      // Classificação rítmica quando o cursor temporal estiver ativo (Requisito 6)
       if (isTemporalPlaying) {
         const timing = evaluateRhythmicTiming(Date.now(), targetBeatTimeRef.current, bpm, 140);
         setTimingResult(timing);
       }
 
-      // Verifica se acertou a classe de tom mas errou a oitava (Dica Pedagógica Avançada)
       const pitchClassTarget = targetNote.midi % 12;
       const pitchClassPlayed = playedMidi % 12;
       const isOctaveError = pitchClassTarget === pitchClassPlayed && !isExactMatch;
 
       if (isExactMatch) {
-        // Acerto Confirmado!
         tracker.recordAttempt(targetNote, true, reactionTime);
         setMetrics(tracker.getMetrics());
         setFeedbackState('correct');
@@ -369,7 +625,6 @@ export const SightReadingView: React.FC = () => {
         const { portuguese } = getFormattedNoteName(targetNote.midi, targetNote.accidental);
         setFeedbackMessage(`✨ Perfeito! ${portuguese} em ${reactionTime}ms`);
 
-        // Avança para a próxima nota (se sequência) ou próximo exercício
         const isSequence = exercise.type === 'sequences';
         const hasMoreNotes = isSequence && activeNoteIndex + 1 < exercise.notes.length;
 
@@ -384,7 +639,6 @@ export const SightReadingView: React.FC = () => {
           }
         }, 180);
       } else {
-        // Erro Registrado
         tracker.recordAttempt(targetNote, false, reactionTime);
         setMetrics(tracker.getMetrics());
         setFeedbackState('wrong');
@@ -404,13 +658,11 @@ export const SightReadingView: React.FC = () => {
           setFeedbackMessage(`❌ Você tocou ${playedInfo.portuguese}. O correto é ${expectedInfo.portuguese}!`);
         }
 
-        // Remove feedback de erro após breve momento
-        setTimeout(() => {
-          setFeedbackState('idle');
-        }, 800);
+        setTimeout(() => setFeedbackState('idle'), 800);
       }
     },
     [
+      sessionActive,
       exercise,
       activeNoteIndex,
       feedbackState,
@@ -419,6 +671,8 @@ export const SightReadingView: React.FC = () => {
       nextExercise,
       processPolyphonicChordStrike,
       tracker,
+      practiceIsRunning,
+      evaluateWithPracticeEngine,
     ]
   );
 
@@ -790,41 +1044,110 @@ export const SightReadingView: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Controle do Cursor Temporal Determinístico / Modo Rítmico (Requisito 3 & 6) */}
-            <div className="flex items-center gap-2 bg-black/40 px-2.5 py-1 rounded-xl border border-white/10 text-xs">
+            {/* ── Controles dos Modos Formais de Prática ── */}
+            <div className="flex items-center gap-1.5 bg-black/40 px-2 py-1 rounded-xl border border-white/10 text-xs">
+
+              {/* Modo Livre */}
               <button
                 type="button"
-                onClick={() => setIsTemporalPlaying(!isTemporalPlaying)}
+                onClick={() => {
+                  if (sessionActive && !practiceIsRunning) {
+                    stopPractice(); // desativa a sessão livre
+                  } else if (!practiceIsRunning) {
+                    startFreeMode();
+                  }
+                }}
                 className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  isTemporalPlaying
-                    ? 'bg-rose-600 text-white shadow-sm'
-                    : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm'
+                  sessionActive && !practiceIsRunning
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'bg-black/40 hover:bg-indigo-600/30 text-slate-300 hover:text-white border border-indigo-500/30'
                 }`}
-                title="Ativar Cursor Temporal Determinístico para treino de fluência e timing"
+                title="Modo Livre: treino sem metrônomo, avança ao acertar cada nota"
               >
-                {isTemporalPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-                <span>{isTemporalPlaying ? 'Pausar' : 'Cursor Rítmico'}</span>
+                {sessionActive && !practiceIsRunning
+                  ? <Pause className="w-3.5 h-3.5" />
+                  : <Play className="w-3.5 h-3.5" />}
+                <span>Modo Livre</span>
               </button>
 
-              <div className="flex items-center gap-1 font-mono text-[11px] text-slate-300">
+              <span className="text-slate-600">|</span>
+
+              {/* Modo Leitura */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (practiceModeActive === 'read' && practiceIsRunning) {
+                    stopPractice();
+                  } else {
+                    startReadMode();
+                  }
+                }}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  practiceModeActive === 'read' && practiceIsRunning
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'bg-black/40 hover:bg-emerald-600/30 text-slate-300 hover:text-white border border-emerald-500/30'
+                }`}
+                title="Modo Leitura: avança somente ao acertar a nota (Wait Mode)"
+              >
+                {practiceModeActive === 'read' && practiceIsRunning
+                  ? <Pause className="w-3.5 h-3.5" />
+                  : <Music className="w-3.5 h-3.5" />}
+                <span>Modo Leitura</span>
+              </button>
+
+              <span className="text-slate-600">|</span>
+
+              {/* Modo Tempo */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (practiceModeActive === 'tempo' && practiceIsRunning) {
+                    stopPractice();
+                  } else {
+                    startTempoMode();
+                  }
+                }}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  practiceModeActive === 'tempo' && practiceIsRunning
+                    ? 'bg-rose-600 text-white shadow-sm'
+                    : 'bg-black/40 hover:bg-rose-600/30 text-slate-300 hover:text-white border border-rose-500/30'
+                }`}
+                title="Modo Tempo: metrônomo sincronizado ao BPM com dificuldade progressiva"
+              >
+                {practiceModeActive === 'tempo' && practiceIsRunning
+                  ? <Pause className="w-3.5 h-3.5" />
+                  : <Timer className="w-3.5 h-3.5" />}
+                <span>Modo Tempo</span>
+              </button>
+
+              {/* BPM */}
+              <div className="flex items-center gap-1 font-mono text-[11px] text-slate-300 ml-1">
                 <span className="opacity-60">BPM:</span>
                 <input
                   type="number"
                   min="40"
-                  max="180"
-                  value={bpm}
-                  onChange={(e) => setBpm(Math.max(40, Math.min(180, Number(e.target.value) || 60)))}
-                  className="w-12 bg-black/50 border border-white/10 rounded px-1 text-center text-amber-300 font-bold focus:outline-hidden"
+                  max="220"
+                  value={practiceModeActive === 'tempo' && practiceIsRunning ? practiceCurrentBpm : bpm}
+                  onChange={(e) => {
+                    const val = Math.max(40, Math.min(220, Number(e.target.value) || 60));
+                    setBpm(val);
+                    setPracticeCurrentBpm(val);
+                  }}
+                  disabled={practiceModeActive === 'tempo' && practiceIsRunning}
+                  className="w-12 bg-black/50 border border-white/10 rounded px-1 text-center text-amber-300 font-bold focus:outline-hidden disabled:opacity-60"
                 />
+                {practiceModeActive === 'tempo' && practiceIsRunning && practiceCurrentBpm !== bpm && (
+                  <span className="text-[10px] text-emerald-400 font-bold">↑ {practiceCurrentBpm}</span>
+                )}
               </div>
 
-              {/* Feedback de Timing Rítmico (ON TIME, EARLY, LATE) */}
-              {timingResult && isTemporalPlaying && (
+              {/* Feedback de Timing Rítmico */}
+              {timingResult && practiceModeActive === 'tempo' && practiceIsRunning && (
                 <span
                   style={{ color: timingResult.color }}
-                  className="font-mono text-[11px] font-black px-2 py-0.5 rounded bg-black/60 border border-white/10 shadow-xs animate-in zoom-in-95"
+                  className="font-mono text-[11px] font-black px-2 py-0.5 rounded bg-black/60 border border-white/10 shadow-xs"
                 >
-                  {timingResult.label} ({timingResult.deltaMs > 0 ? `+${timingResult.deltaMs}ms` : `${timingResult.deltaMs}ms`})
+                  {timingResult.label}
                 </span>
               )}
             </div>
@@ -843,16 +1166,53 @@ export const SightReadingView: React.FC = () => {
         </div>
 
         {/* Palco do Canvas Retina com Pauta, Armadura, Compasso e Cursor Determinístico */}
-        <SightReadingStaffCanvas
-          exercise={exercise}
-          activeNoteIndex={activeNoteIndex}
-          feedbackState={feedbackState}
-          showNoteHints={showNoteHints}
-          showStaffPositionHints={showStaffPositionHints}
-          showBeatCount={showBeatCount}
-          cursorProgress={cursorProgress}
-          isTemporalActive={isTemporalPlaying}
-        />
+        <div className="relative">
+          <SightReadingStaffCanvas
+            exercise={exercise}
+            activeNoteIndex={activeNoteIndex}
+            feedbackState={feedbackState}
+            showNoteHints={showNoteHints}
+            showStaffPositionHints={showStaffPositionHints}
+            showBeatCount={showBeatCount}
+            cursorProgress={cursorProgress}
+            isTemporalActive={isTemporalPlaying}
+          />
+
+          {/* Overlay de Sessão Inativa — exibido até o usuário iniciar explicitamente */}
+          {!sessionActive && !practiceIsRunning && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-2xl bg-black/72 backdrop-blur-sm z-10">
+              <p className="text-slate-300 text-sm font-semibold text-center px-4">
+                A sessão está inativa. Escolha um modo para começar.
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={startFreeMode}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold shadow-lg transition-all cursor-pointer active:scale-95"
+                >
+                  <Play className="w-4 h-4" />
+                  Iniciar Modo Livre
+                </button>
+                <button
+                  type="button"
+                  onClick={startReadMode}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-sm font-bold shadow-lg transition-all cursor-pointer active:scale-95"
+                >
+                  <Music className="w-4 h-4" />
+                  Modo Leitura
+                </button>
+                <button
+                  type="button"
+                  onClick={startTempoMode}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-700 hover:bg-rose-600 text-white text-sm font-bold shadow-lg transition-all cursor-pointer active:scale-95"
+                >
+                  <Timer className="w-4 h-4" />
+                  Modo Tempo ({bpm} BPM)
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Faixa de Feedback Imediato */}
         <div

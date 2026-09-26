@@ -16,8 +16,10 @@ import {
 } from 'lucide-react';
 import { StudioFolderBar } from '../common/StudioFolderBar';
 import { StudioProjectModal } from '../common/StudioProjectModal';
+import { StudioImportExportBar } from '../common/StudioImportExportBar';
 import { useStudioStorage } from '../../core/studio/useStudioStorage';
 import type { StudioProjectEnvelope } from '../../core/studio/studioStorageTypes';
+import type { ExportFormat } from '../../core/studio/studioImportExportService';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Tipos & Configurações da UI
@@ -545,6 +547,31 @@ export const RhythmArranger: React.FC = () => {
     }
   }, []);
 
+  // ── Envelope atual do projeto para o StudioImportExportBar ──────────────────
+
+  const currentEnvelopeArranger = useMemo((): StudioProjectEnvelope<unknown> => ({
+    id: currentProjectId ?? `local_${Date.now()}`,
+    title: currentStyle.name,
+    module: 'arranger',
+    category: currentStyle.genre,
+    version: '1.0.0',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    metadata: { bpm, genre: currentStyle.genre, kit: activeKit, timeSignature: currentStyle.timeSignature },
+    data: { style: currentStyle, bpm, kit: activeKit },
+  }), [currentProjectId, currentStyle, bpm, activeKit]);
+
+  /** Reconstrói o estado do Arranjador a partir de um envelope importado. */
+  const handleImportRhythm = useCallback((envelope: StudioProjectEnvelope<unknown>, _format: ExportFormat) => {
+    const data = envelope.data as { style?: RhythmStyle; bpm?: number; kit?: DrumKitId };
+    if (data?.style) {
+      setActiveStyle(data.style);
+      if (data.bpm) setBpm(data.bpm);
+      if (data.kit) setActiveKit(data.kit);
+      setCurrentProjectId(envelope.id);
+    }
+  }, []);
+
   const handleCreateNewRhythm = useCallback(async (title: string) => {
     const newStyle: RhythmStyle = {
       ...RHYTHM_STYLES[0],
@@ -1049,6 +1076,15 @@ export const RhythmArranger: React.FC = () => {
             <Save className="w-3.5 h-3.5" />
             <span>Salvar</span>
           </button>
+
+          {/* Importar / Exportar */}
+          <StudioImportExportBar
+            module="arranger"
+            projectTitle={currentStyle.name}
+            envelope={currentEnvelopeArranger}
+            existingManifestItems={studioStorage.manifest?.modules.styles ?? []}
+            onImport={handleImportRhythm}
+          />
 
           {/* Alternador do Mixer */}
           <button

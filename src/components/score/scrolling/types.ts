@@ -1,10 +1,12 @@
 /**
  * scrolling/types.ts
  * Contratos, tipos e interfaces para o módulo de partitura deslizante.
- * Regra: Tipos puros (< 60 linhas).
+ * Regra: Tipos puros.
  */
 
 import type { ScoreNote } from '../../../core/coursesData';
+import type { LyricLine } from '../../../core/repertoireTypes';
+import type { EnrichedLyricLine } from '../../../core/lyricSyllableTypes';
 
 export interface DetailedMidiInput {
   midi?: number;
@@ -85,6 +87,12 @@ export interface ScrollingScoreProps {
   mode?: 'wait' | 'flow';
   /** Notifica mudanças nas notas do passo ativo e notas já satisfeitas */
   onStepChange?: (stepIndices: number[], satisfiedIndices: Set<number>) => void;
+  /**
+   * Linhas de letra para exibição integrada imediatamente acima da pauta.
+   * Aceita:
+   * - LyricLine[]: formato legado (texto por linha, opcionalmente por palavra)
+   * - EnrichedLyricLine[]: formato estruturado com sílabas associadas a notas (MusicXML-style)
+   * Ausência do campo suprime completamente a faixa.
+   */
+  lyrics?: LyricLine[] | EnrichedLyricLine[];
 }
-
-

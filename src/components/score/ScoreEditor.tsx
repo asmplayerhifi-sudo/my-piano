@@ -17,15 +17,17 @@ import {
   calculateTotalMeasures,
 } from '../../core/scoreMidiWriter';
 import {
-  Play, Pause, Square, Plus, Trash2, Download,
-  Music, ChevronLeft, ChevronRight, Save, FileMusic,
+  Play, Pause, Square, Plus, Trash2,
+  ChevronLeft, ChevronRight, Save, FileMusic,
   Undo2, Redo2, SkipBack, Radio, FolderOpen, FilePlus2, Copy,
 } from 'lucide-react';
 import { FormalScoreSheet } from './editor/FormalScoreSheet';
 import { StudioFolderBar } from '../common/StudioFolderBar';
 import { StudioProjectModal } from '../common/StudioProjectModal';
+import { StudioImportExportBar } from '../common/StudioImportExportBar';
 import { useStudioStorage } from '../../core/studio/useStudioStorage';
 import type { StudioProjectEnvelope } from '../../core/studio/studioStorageTypes';
+import type { ExportFormat } from '../../core/studio/studioImportExportService';
 
 // ────────────────────────────────────────────────────────────────────────────
 // Tipos do Editor
@@ -858,6 +860,7 @@ export const ScoreEditor: React.FC = () => {
   }, []);
 
   const exportJson = useCallback(() => {
+    // Mantido para atalhos de teclado legados se necessário; o StudioImportExportBar é o caminho preferido.
     const json = JSON.stringify(projectRef.current, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -867,6 +870,41 @@ export const ScoreEditor: React.FC = () => {
     a.click();
     URL.revokeObjectURL(url);
   }, []);
+
+  // ── Envelope atual do projeto para o StudioImportExportBar ──────────────────
+
+  const currentEnvelope = useMemo((): StudioProjectEnvelope<ScoreProject> => ({
+    id: currentProjectId ?? `local_${Date.now()}`,
+    title: project.title,
+    module: 'score',
+    category: 'Partitura',
+    version: '1.0.0',
+    createdAt: project.createdAt,
+    updatedAt: project.updatedAt,
+    metadata: {
+      bpm: project.bpm,
+      timeSignature: project.timeSignature,
+      notesCount: project.notes.length,
+    },
+    data: project,
+  }), [currentProjectId, project]);
+
+  /** Reconstrói o projeto no editor a partir de um envelope importado. */
+  const handleImport = useCallback((envelope: StudioProjectEnvelope<unknown>, _format: ExportFormat) => {
+    const data = envelope.data as Partial<ScoreProject>;
+    const rebuilt: ScoreProject = {
+      title: envelope.title || data.title || 'Projeto Importado',
+      bpm: data.bpm ?? 120,
+      timeSignature: data.timeSignature ?? [4, 4],
+      notes: Array.isArray(data.notes) ? data.notes : [],
+      createdAt: envelope.createdAt,
+      updatedAt: new Date().toISOString(),
+    };
+    setProject(rebuilt);
+    setCurrentProjectId(envelope.id);
+    pushHistory(rebuilt.notes);
+    setIsSaved(false);
+  }, [pushHistory]);
 
   // Atalhos de teclado
   useEffect(() => {
@@ -1079,29 +1117,14 @@ export const ScoreEditor: React.FC = () => {
           Salvar Como
         </button>
 
-        {/* Exportar */}
-        <div className="relative group">
-          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-violet-500/20 border border-violet-500/40 text-violet-300 hover:bg-violet-500/30 transition-colors cursor-pointer">
-            <Download className="w-3.5 h-3.5" />
-            Exportar
-          </button>
-          <div className="absolute right-0 top-full mt-1 hidden group-hover:flex flex-col bg-[#0e0d24] border border-white/15 rounded-xl overflow-hidden shadow-xl z-50 min-w-[130px]">
-            <button
-              onClick={exportMidi}
-              className="flex items-center gap-2 px-3 py-2.5 text-xs font-bold text-violet-300 hover:bg-violet-500/20 transition-colors cursor-pointer whitespace-nowrap"
-            >
-              <Music className="w-3.5 h-3.5" />
-              Exportar MIDI
-            </button>
-            <button
-              onClick={exportJson}
-              className="flex items-center gap-2 px-3 py-2.5 text-xs font-bold text-slate-300 hover:bg-white/10 transition-colors cursor-pointer whitespace-nowrap"
-            >
-              <FileMusic className="w-3.5 h-3.5" />
-              Exportar JSON
-            </button>
-          </div>
-        </div>
+        {/* Importar / Exportar — componente reutilizável do Estúdio */}
+        <StudioImportExportBar
+          module="score"
+          projectTitle={project.title}
+          envelope={currentEnvelope}
+          existingManifestItems={studioStorage.manifest?.modules.scores ?? []}
+          onImport={handleImport}
+        />
       </div>
 
       {/* ── Paleta de Duração + Clave ── */}

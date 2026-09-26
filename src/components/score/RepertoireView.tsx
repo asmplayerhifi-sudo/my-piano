@@ -40,7 +40,7 @@ import {
   Trophy,
   Mic2,
 } from 'lucide-react';
-import { SynchronizedLyricsCard } from './SynchronizedLyricsCard';
+
 import {
   generateGuitarArrangementForKeyboard,
   getGuitarArrangementInfo,
@@ -1317,24 +1317,8 @@ export const RepertoireView: React.FC = () => {
           }}
           onTempoChange={(newBpm) => handleTempoChange(newBpm)}
           currentMidiPressed={viewMode === 'practice' && isPracticing ? lastMidiEvent : null}
+          lyrics={showLyrics ? activeSong.extension?.lyrics : undefined}
         />
-
-        {/* Card de Letras Sincronizadas (Karaokê / Teleprompter Pedagógico) */}
-        {showLyrics && (
-          <div className="pt-0.5 transition-all duration-300">
-            <SynchronizedLyricsCard
-              lyrics={activeSong.extension?.lyrics}
-              sections={activeSong.extension?.sections}
-              currentBeat={currentAbsoluteBeat}
-              currentMeasure={effectiveMeasure}
-              isPlaying={viewMode === 'playback' ? isPlaying : isPracticing}
-              isWaitMode={viewMode === 'practice' && practiceType === 'wait'}
-              songTitle={activeSong.title}
-              artist={activeSong.composerOrArtist}
-              onClose={toggleShowLyrics}
-            />
-          </div>
-        )}
 
         {/* Teclado Virtual com Rastro Synthesia (100% da Largura, Zero Scroll, Bordas Sutis) */}
         <div className="pt-1">

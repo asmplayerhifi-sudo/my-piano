@@ -19,6 +19,7 @@ import { drawScoreNotes } from './drawScoreNotes';
 import { drawScoreRests } from './drawScoreRests';
 import { drawScoreImpactLine } from './drawScoreImpactLine';
 import { ScoreCanvasControls } from './ScoreCanvasControls';
+import { ScoreLyricsStrip } from './ScoreLyricsStrip';
 
 export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
   notes,
@@ -47,6 +48,7 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
   onBeatTick,
   mode = 'wait',
   onStepChange,
+  lyrics,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -87,6 +89,13 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
   const pixelsPerBeat = 140;
   const attackLineX = SCORE_GEOMETRY.attackLineX;
   const { beatsPerMeasure, timeline, restsList } = useScoreTimeline(notes, timeSignature);
+
+  /**
+   * Beat absoluto atual (1-indexed) atualizado via musicalPlaybackEngine sem causar
+   * re-renders. A ScoreLyricsStrip lê esta ref diretamente a cada RAF.
+   * Em modo Espera (wait), reflete o offset da nota alvo (estático até o aluno tocar).
+   */
+  const currentBeatRef = useRef<number>(1);
 
   const playback = useScorePlayback({
     notes,
@@ -304,6 +313,15 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
         }
       }
 
+      // Em reprodução/Modo Fluido: mantém currentBeatRef sincronizado com o motor musical
+      if (isFlowing && playback.isPlaying) {
+        currentBeatRef.current = musicalPlaybackEngine.getCurrentBeat() + 1;
+      } else if (!isFlowing) {
+        // Modo Espera: beat fixo no offset da nota alvo
+        const targetOffset = timeline.noteOffsets[playback.currentIndex] ?? 0;
+        currentBeatRef.current = targetOffset + 1;
+      }
+
       const h = canvas.height;
       const targetNote = notes[playback.currentIndex];
       const activeMeasure = targetNote?.measure || (Math.floor((timeline.noteOffsets[playback.currentIndex] ?? 0) / beatsPerMeasure) + 1);
@@ -375,6 +393,19 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
         feedback={playback.feedback}
         hidePlaybackControls={hidePlaybackControls}
       />
+      {/* Faixa de letra integrada — visível apenas quando há letra disponível */}
+      {lyrics && lyrics.length > 0 && (
+        <ScoreLyricsStrip
+          lyrics={lyrics}
+          scrollOffsetRef={playback.scrollOffsetRef}
+          pixelsPerBeat={pixelsPerBeat}
+          beatsPerMeasure={beatsPerMeasure}
+          attackLineX={attackLineX}
+          currentBeatRef={currentBeatRef}
+          isActive={playback.isPlaying}
+          containerWidth={containerWidth}
+        />
+      )}
       <div className="relative w-full overflow-hidden">
         <canvas ref={canvasRef} width={containerWidth} height={410} className="w-full h-[410px] block" />
       </div>
