@@ -287,7 +287,7 @@ export const SightReadingView: React.FC = () => {
   const weakestNotes = useMemo(() => metricsTracker.current.getWeakestNotes(6), [metrics]);
 
   return (
-    <div className="flex-1 flex flex-col gap-3 max-w-[1600px] w-full mx-auto pb-6">
+    <div className="flex-1 flex flex-col gap-3 w-full max-w-none pb-6">
       {/* ── PAINEL SUPERIOR: FILTROS & CONFIGURAÇÃO DO EXERCÍCIO ────────────── */}
       <div className="glass-card rounded-2xl p-3 sm:p-4 border border-white/10 shadow-xl space-y-3">
         {/* Linha 1: Título da Tela e Alternador de Modo Livre vs Desafio */}

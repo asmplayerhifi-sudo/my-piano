@@ -98,8 +98,18 @@ class MidiManager {
     if (!event.data || event.data.length < 2) return;
 
     const [status, note, velocity = 0] = event.data;
+
+    // Filtra mensagens de Sistema Realtime e Comuns (>= 0xF0: Clock 0xF8, Active Sensing 0xFE, SysEx, etc.)
+    if (status >= 0xf0) return;
+
     const command = status >> 4;
     const channel = status & 0x0f;
+
+    // Canal 10 General MIDI (índice 9): reservado exclusivamente para percussão/bateria
+    // Não processa como notas de piano para evitar falsos disparos e notas presas
+    if (channel === 9) {
+      return;
+    }
 
     // 0x0B (11): Control Change (CC)
     // CC 64: Damper Pedal / Sustain (>= 64 pressionado, < 64 liberado)
@@ -128,7 +138,7 @@ class MidiManager {
       this.listeners.forEach(cb => cb(payload));
     } else if (command === 8 || (command === 9 && velocity === 0)) {
       const noteInfo = getNoteInfo(note);
-      soundEngine.stopPianoNote(note);
+      soundEngine.stopPianoNote(note, 0.05, true);
       activeMidiStore.noteOff(note);
 
       const payload: MidiEventPayload = {

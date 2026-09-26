@@ -61,11 +61,13 @@ export const RepertoireView: React.FC = () => {
 
   // Modo de Execução: 'playback' (Ouvir Demonstração Sonora) vs 'practice' (Modo Prática Interativo)
   const [viewMode, setViewMode] = useState<'playback' | 'practice'>('playback');
-  const [practiceType, setPracticeType] = useState<'wait' | 'flow'>('wait');
+  const [practiceType, setPracticeType] = useState<'wait' | 'flow'>('flow');
   const [isPracticing, setIsPracticing] = useState<boolean>(false);
   const [practiceHits, setPracticeHits] = useState<number>(0);
   const [practiceErrors, setPracticeErrors] = useState<number>(0);
   const [practiceScore, setPracticeScore] = useState<number>(0);
+  const [practiceLastErrorMidi, setPracticeLastErrorMidi] = useState<number | null>(null);
+  const [enableGuideAudio, setEnableGuideAudio] = useState<boolean>(true);
   const [activeMidiKeys, setActiveMidiKeys] = useState<Set<number>>(new Set());
   const [micAcousticNotes, setMicAcousticNotes] = useState<number[]>([]);
   const [_currentStepIndices, setCurrentStepIndices] = useState<number[]>([]);
@@ -192,6 +194,7 @@ export const RepertoireView: React.FC = () => {
     setPracticeHits(0);
     setPracticeErrors(0);
     setPracticeScore(0);
+    setPracticeLastErrorMidi(null);
     setViewMode(mode);
   };
 
@@ -199,35 +202,41 @@ export const RepertoireView: React.FC = () => {
     await soundEngine.ensureAudioReady();
     if (isPracticing) {
       setIsPracticing(false);
-      if (practiceType === 'flow') {
-        musicalPlaybackEngine.pause();
-      }
+      musicalPlaybackEngine.pause();
     } else {
       setIsPracticing(true);
       setShowPracticeCompletionModal(false);
-      if (practiceType === 'flow') {
-        musicalPlaybackEngine.loadScore(sortedScoreTrack, activeSong.timeSignature, tempo);
-        musicalPlaybackEngine.setSustainMode(sustainOption);
-        musicalPlaybackEngine.setMetronomeEnabled(metronome.isPlaying);
-        const startBeat = noteOffsets[currentNoteIdx] ?? 0;
-        musicalPlaybackEngine.play(startBeat);
-      }
+      musicalPlaybackEngine.loadScore(sortedScoreTrack, activeSong.timeSignature, tempo);
+      musicalPlaybackEngine.setSustainMode(sustainOption);
+      musicalPlaybackEngine.setMetronomeEnabled(metronome.isPlaying);
+      musicalPlaybackEngine.setAudioEnabled(enableGuideAudio);
+      musicalPlaybackEngine.setLoopMode(playbackEndMode);
+      const startIdx = currentNoteIdx >= sortedScoreTrack.length ? 0 : currentNoteIdx;
+      const startBeat = noteOffsets[startIdx] ?? 0;
+      musicalPlaybackEngine.play(startBeat);
     }
   };
 
   const handleResetPractice = () => {
     setShowPracticeCompletionModal(false);
     setIsPracticing(false);
-    if (practiceType === 'flow') {
-      musicalPlaybackEngine.stop();
-    }
+    musicalPlaybackEngine.stop();
     setCurrentNoteIdx(0);
     setSatisfiedStepIndices(new Set());
     setPracticeHits(0);
     setPracticeErrors(0);
     setPracticeScore(0);
+    setPracticeLastErrorMidi(null);
     setPracticeResetKey((k) => k + 1);
   };
+
+  useEffect(() => {
+    if (practiceLastErrorMidi === null) return;
+    const timer = setTimeout(() => {
+      setPracticeLastErrorMidi(null);
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, [practiceLastErrorMidi]);
 
   const handleNoteInput = useCallback((midi: number, midis?: number[], chordName?: string) => {
     setLastMidiEvent({
@@ -353,15 +362,15 @@ export const RepertoireView: React.FC = () => {
         const isBass = n.clef === 'bass' || n.midi < 60;
         const hand = isBass ? 'M.E.' : 'M.D.';
         const f = n.fingerRightHand || n.fingerLeftHand || (isBass ? 5 : (n.midi === 60 ? 1 : 2));
-        const noteName = octaveConfigStore.midiToNoteName(n.midi, octaveStandard);
-        return `${hand}: D${f} (${noteName})`;
+        const ptName = octaveConfigStore.midiToPtName(n.midi, octaveStandard);
+        return `${hand}: Dedo ${f} (${ptName})`;
       });
 
       return {
         finger: 0,
         label: 'Acorde',
         fingerName: parts.join(' + '),
-        noteName: currentStepNotes.map((n) => octaveConfigStore.midiToNoteName(n.midi, octaveStandard)).join(' + '),
+        noteName: currentStepNotes.map((n) => octaveConfigStore.midiToPtName(n.midi, octaveStandard)).join(' + '),
         color: '#f59e0b',
       };
     }
@@ -389,8 +398,8 @@ export const RepertoireView: React.FC = () => {
     return {
       finger: f,
       label: `${f}`,
-      fingerName: pimaLabel || names[f] || `D${f}`,
-      noteName: octaveConfigStore.midiToNoteName(singleNote.midi, octaveStandard),
+      fingerName: pimaLabel || (names[f] ? `Dedo ${f} (${names[f]})` : `Dedo ${f}`),
+      noteName: octaveConfigStore.midiToPtName(singleNote.midi, octaveStandard),
       color: arrangementMode === 'guitar' ? '#f59e0b' : (colors[f] || '#38bdf8'),
     };
   }, [currentStepNotes, currentSongTargetNote, octaveStandard, arrangementMode]);
@@ -407,6 +416,16 @@ export const RepertoireView: React.FC = () => {
       ])
     );
   }, [viewMode, isPlaying, activeDemoMidi, activeMidiKeys, micHearingMidi, micAcousticNotes]);
+
+  const correctKeyMidis = useMemo(() => {
+    return currentStepNotes
+      .filter((note) => satisfiedStepIndices.has(sortedScoreTrack.indexOf(note)))
+      .map((note) => note.midi);
+  }, [currentStepNotes, satisfiedStepIndices, sortedScoreTrack]);
+
+  const errorKeyMidis = useMemo(() => {
+    return practiceLastErrorMidi !== null ? [practiceLastErrorMidi] : [];
+  }, [practiceLastErrorMidi]);
 
   const totalEvaluated = practiceHits + practiceErrors;
   const practiceAccuracy = totalEvaluated > 0 ? Math.round((practiceHits / totalEvaluated) * 100) : 100;
@@ -712,6 +731,33 @@ export const RepertoireView: React.FC = () => {
                 title="Reiniciar prática do início (Compasso 1)"
               >
                 <RotateCcw className="w-4 h-4" />
+              </button>
+
+              {/* Alternador de Áudio Guia da Partitura na Prática */}
+              <button
+                onClick={() => {
+                  const next = !enableGuideAudio;
+                  setEnableGuideAudio(next);
+                  musicalPlaybackEngine.setAudioEnabled(next);
+                }}
+                className={`px-3 py-2 rounded-2xl border text-xs font-bold font-mono flex items-center gap-1.5 transition-all cursor-pointer ${
+                  enableGuideAudio
+                    ? 'bg-purple-600/30 border-purple-500/50 text-purple-200'
+                    : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
+                }`}
+                title={enableGuideAudio ? 'Áudio Guia Ativo: a partitura soa no andamento para você tocar junto' : 'Áudio Guia Silenciado: apenas o som do seu instrumento e metrônomo'}
+              >
+                {enableGuideAudio ? (
+                  <>
+                    <Volume2 className="w-3.5 h-3.5 text-purple-400" />
+                    <span className="hidden xl:inline">Áudio Guia</span>
+                  </>
+                ) : (
+                  <>
+                    <VolumeX className="w-3.5 h-3.5 text-slate-400" />
+                    <span className="hidden xl:inline">Mudo</span>
+                  </>
+                )}
               </button>
             </div>
           )}
@@ -1115,7 +1161,7 @@ export const RepertoireView: React.FC = () => {
                   const isBass = note.clef === 'bass' || note.midi < 60;
                   const hand = isBass ? 'M.E.' : 'M.D.';
                   const finger = note.fingerRightHand || note.fingerLeftHand || (isBass ? 5 : (note.midi === 60 ? 1 : 2));
-                  const noteName = octaveConfigStore.midiToNoteName(note.midi, octaveStandard);
+                  const ptName = octaveConfigStore.midiToPtName(note.midi, octaveStandard);
 
                   return (
                     <span
@@ -1130,7 +1176,7 @@ export const RepertoireView: React.FC = () => {
                     >
                       {isSatisfied ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : null}
                       <span>
-                        {hand} D{finger} ({noteName})
+                        {hand} Dedo {finger} ({ptName})
                       </span>
                     </span>
                   );
@@ -1142,7 +1188,7 @@ export const RepertoireView: React.FC = () => {
             {activeInputMidis.length > 0 && (
               <div className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-400 bg-emerald-950/40 px-2.5 py-1 rounded-xl border border-emerald-500/30">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                <span>Ouvindo: {activeInputMidis.map((m) => octaveConfigStore.midiToNoteName(m, octaveStandard)).join(', ')}</span>
+                <span>Ouvindo: {activeInputMidis.map((m) => octaveConfigStore.midiToPtName(m, octaveStandard)).join(', ')}</span>
               </div>
             )}
           </div>
@@ -1178,10 +1224,10 @@ export const RepertoireView: React.FC = () => {
           notes={sortedScoreTrack}
           timeSignature={activeSong.timeSignature}
           bpm={tempo}
-          isPlaying={viewMode === 'playback' ? isPlaying : (practiceType === 'flow' ? isPracticing : false)}
+          isPlaying={viewMode === 'playback' ? isPlaying : isPracticing}
           isDemoMode={viewMode === 'playback'}
           mode={practiceType}
-          autoPlayAudio={viewMode === 'playback'}
+          autoPlayAudio={viewMode === 'playback' ? true : enableGuideAudio}
           instrument={arrangementMode === 'guitar' ? 'guitar' : 'piano'}
           enableMetronomeSound={metronome.isPlaying}
           hidePlaybackControls={true}
@@ -1205,6 +1251,9 @@ export const RepertoireView: React.FC = () => {
           }}
           onNoteError={(_err) => {
             setPracticeErrors((e) => e + 1);
+            if (_err.playedMidi > 0) {
+              setPracticeLastErrorMidi(_err.playedMidi);
+            }
           }}
           onLessonComplete={() => {
             if (viewMode === 'practice') {
@@ -1232,6 +1281,8 @@ export const RepertoireView: React.FC = () => {
             startOctave={2}
             allowOctaveControls={true}
             highlightedKeys={highlightedSongKeys}
+            correctNotes={correctKeyMidis}
+            errorNotes={errorKeyMidis}
             activeFingerPrompt={activeFingerPrompt}
             activeExternalNotes={activeInputMidis}
             onKeyPlay={(midi) => {

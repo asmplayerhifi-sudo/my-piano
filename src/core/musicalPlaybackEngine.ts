@@ -57,6 +57,7 @@ export class MusicalPlaybackEngine {
   private instrument: 'piano' | 'guitar' = 'piano';
   private metronomeEnabled = false;
   private loopMode: 'end' | 'repeat' = 'end';
+  private audioEnabled = true;
 
   private positionListeners = new Set<PositionTickListener>();
   private beatTickListeners = new Set<BeatTickListener>();
@@ -130,6 +131,14 @@ export class MusicalPlaybackEngine {
 
   public setLoopMode(mode: 'end' | 'repeat') {
     this.loopMode = mode;
+  }
+
+  public setAudioEnabled(enabled: boolean) {
+    this.audioEnabled = enabled;
+  }
+
+  public isAudioEnabled(): boolean {
+    return this.audioEnabled;
   }
 
   public updateTimeSignature(ts: string) {
@@ -445,10 +454,12 @@ export class MusicalPlaybackEngine {
             noteSustained = false;
           }
 
-          if (this.instrument === 'guitar') {
-            soundEngine.playGuitarPluck(n.midi, soundDuration, undefined, 0.8, noteSustained);
-          } else {
-            soundEngine.playPianoNote(n.midi, soundDuration, undefined, 0.8, noteSustained);
+          if (this.audioEnabled) {
+            if (this.instrument === 'guitar') {
+              soundEngine.playGuitarPluck(n.midi, soundDuration, undefined, 0.8, noteSustained);
+            } else {
+              soundEngine.playPianoNote(n.midi, soundDuration, undefined, 0.8, noteSustained);
+            }
           }
           activeMidisInThisTick.push(n.midi);
         }

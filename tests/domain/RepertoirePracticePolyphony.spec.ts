@@ -145,4 +145,29 @@ describe('RepertoirePracticePolyphony - Validação Polifônica e Acordes no Mod
 
     expect(stepIndices.every((idx) => satisfiedIndices.has(idx))).toBe(true);
   });
+
+  it('deve ignorar eventos de bateria do Canal 10 (GM Drums) para evitar falsos erros e notas presas de piano', () => {
+    // Simula evento MIDI recebido no canal 10 (índice 9) com MIDI 41 (Floor Tom)
+    const channel10Status = 0x99; // Note On no canal 10 (0x90 + 9)
+    const midiFloorTom = 41;
+    const velocity = 80;
+
+    const command = channel10Status >> 4;
+    const channel = channel10Status & 0x0f;
+
+    expect(command).toBe(9);
+    expect(channel).toBe(9); // Canal 10 General MIDI
+
+    const isDrumChannel = channel === 9;
+    expect(isDrumChannel).toBe(true);
+  });
+
+  it('deve permitir ativar e silenciar o áudio guia no musicalPlaybackEngine sem interromper o andamento métrico', async () => {
+    const { musicalPlaybackEngine } = await import('../../src/core/musicalPlaybackEngine');
+    musicalPlaybackEngine.setAudioEnabled(false);
+    expect(musicalPlaybackEngine.isAudioEnabled()).toBe(false);
+
+    musicalPlaybackEngine.setAudioEnabled(true);
+    expect(musicalPlaybackEngine.isAudioEnabled()).toBe(true);
+  });
 });

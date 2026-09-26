@@ -163,8 +163,16 @@ const StudioDrumPad: React.FC<StudioDrumPadProps> = ({ pad, isActive, onTrigger 
   const [isPressed, setIsPressed] = useState(false);
   const [ripple, setRipple] = useState(false);
   const theme = PAD_COLOR_THEMES[pad.color] ?? PAD_COLOR_THEMES.red;
+  const lastTriggerTimeRef = useRef(0);
 
-  const handleTrigger = useCallback(() => {
+  const handleTrigger = useCallback((e?: React.SyntheticEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    const now = performance.now();
+    if (now - lastTriggerTimeRef.current < 50) return;
+    lastTriggerTimeRef.current = now;
+
     setIsPressed(true);
     setRipple(true);
     onTrigger(pad.key);
@@ -178,6 +186,7 @@ const StudioDrumPad: React.FC<StudioDrumPadProps> = ({ pad, isActive, onTrigger 
       id={`studio-drum-pad-${pad.key}`}
       type="button"
       onPointerDown={handleTrigger}
+      onClick={handleTrigger}
       className={`
         group relative flex flex-col justify-between p-2.5 rounded-2xl select-none cursor-pointer
         transition-all duration-75 text-left h-[84px] sm:h-[96px]
@@ -280,7 +289,14 @@ const StepSequencerRow: React.FC<StepSequencerRowProps> = ({
       {/* Botão lateral de disparo e label do instrumento */}
       <button
         type="button"
-        onPointerDown={onTriggerPad}
+        onPointerDown={(e) => {
+          e.stopPropagation();
+          onTriggerPad();
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onTriggerPad();
+        }}
         className={`w-24 sm:w-28 shrink-0 flex items-center justify-between px-2.5 py-2 rounded-xl border border-white/10 ${theme.idleBg} hover:border-white/30 text-left cursor-pointer transition-all active:scale-95`}
         title={`Disparar ${pad.label}`}
       >
@@ -447,22 +463,26 @@ export const RhythmArranger: React.FC = () => {
   const humanizeRef = useRef(humanizeEnabled);
   const styleRef = useRef(activeStyle);
 
+  // Estilo atual (com mesclagem de edições em tempo real)
+  const currentStyle = useMemo(() =>
+    editedStyles[activeStyle.id] ?? activeStyle,
+  [editedStyles, activeStyle]);
+
   bpmRef.current = bpm;
   sectionRef.current = activeSection;
   pendingSectionRef.current = pendingSection;
   autoFillRef.current = autoFillEnabled;
   humanizeRef.current = humanizeEnabled;
-  styleRef.current = activeStyle;
-
-  // Estilo atual (com mesclagem de edições)
-  const currentStyle = useMemo(() =>
-    editedStyles[activeStyle.id] ?? activeStyle,
-  [editedStyles, activeStyle]);
+  styleRef.current = currentStyle;
 
   const currentSection = currentStyle.sections[activeSection] ?? currentStyle.sections.mainA;
   const currentPattern = currentSection.pattern;
 
   // ── Atualização de Mixer e Soundkit ────────────────────────────────────────
+
+  useEffect(() => {
+    drumEngine.setKit(activeKit);
+  }, [activeKit]);
 
   const handleKitChange = useCallback((kitId: DrumKitId) => {
     setActiveKit(kitId);
@@ -636,21 +656,24 @@ export const RhythmArranger: React.FC = () => {
   // ── Pad ao Vivo com Feedback de LED e Som Imediato ─────────────────────────
 
   const triggerPad = useCallback((padKey: string) => {
-    drumEngine.ensureReady().then(() => {
-      drumEngine.playDrum(padKey);
+    // 1. Garante que o contexto Web Audio esteja ativo (gesto síncrono do usuário)
+    drumEngine.ensureReady().catch(() => {});
+    // 2. Dispara a síntese percussiva imediata sem latência e sem depender de microtasks
+    drumEngine.playDrum(padKey);
+
+    // 3. Feedback visual do pad / LED
+    setActivePads(prev => {
+      const n = new Set(prev);
+      n.add(padKey);
+      return n;
+    });
+    setTimeout(() => {
       setActivePads(prev => {
         const n = new Set(prev);
-        n.add(padKey);
+        n.delete(padKey);
         return n;
       });
-      setTimeout(() => {
-        setActivePads(prev => {
-          const n = new Set(prev);
-          n.delete(padKey);
-          return n;
-        });
-      }, 120);
-    });
+    }, 120);
   }, []);
 
   // ── Atalhos de Teclado (Hardware Controller Emulation) ─────────────────────
@@ -690,21 +713,26 @@ export const RhythmArranger: React.FC = () => {
       const newSteps = [...oldStep.steps];
       newSteps[stepIndex] = !newSteps[stepIndex];
 
-      return {
-        ...prev,
-        [activeStyle.id]: {
-          ...base,
-          sections: {
-            ...base.sections,
-            [activeSection]: {
-              ...section,
-              pattern: {
-                ...section.pattern,
-                [padKey]: { ...oldStep, steps: newSteps },
-              },
+      const updatedStyle: RhythmStyle = {
+        ...base,
+        sections: {
+          ...base.sections,
+          [activeSection]: {
+            ...section,
+            pattern: {
+              ...section.pattern,
+              [padKey]: { ...oldStep, steps: newSteps },
             },
           },
         },
+      };
+
+      // Atualiza imediatamente a referência síncrona do motor de áudio
+      styleRef.current = updatedStyle;
+
+      return {
+        ...prev,
+        [activeStyle.id]: updatedStyle,
       };
     });
   }, [activeStyle, activeSection]);
@@ -713,21 +741,25 @@ export const RhythmArranger: React.FC = () => {
     setEditedStyles(prev => {
       const base = prev[activeStyle.id] ?? activeStyle;
       const section = base.sections[activeSection];
-      return {
-        ...prev,
-        [activeStyle.id]: {
-          ...base,
-          sections: {
-            ...base.sections,
-            [activeSection]: {
-              ...section,
-              pattern: {
-                ...section.pattern,
-                [padKey]: { steps: Array(16).fill(false), velocity: Array(16).fill(80) },
-              },
+      const updatedStyle: RhythmStyle = {
+        ...base,
+        sections: {
+          ...base.sections,
+          [activeSection]: {
+            ...section,
+            pattern: {
+              ...section.pattern,
+              [padKey]: { steps: Array(16).fill(false), velocity: Array(16).fill(80) },
             },
           },
         },
+      };
+
+      styleRef.current = updatedStyle;
+
+      return {
+        ...prev,
+        [activeStyle.id]: updatedStyle,
       };
     });
   }, [activeStyle, activeSection]);
@@ -735,9 +767,10 @@ export const RhythmArranger: React.FC = () => {
   const resetSection = useCallback(() => {
     setEditedStyles(prev => {
       const { [activeStyle.id]: _, ...rest } = prev;
+      styleRef.current = activeStyle;
       return rest;
     });
-  }, [activeStyle.id]);
+  }, [activeStyle]);
 
   // ── Seleção de Ritmo no Catálogo ───────────────────────────────────────────
 

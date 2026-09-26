@@ -253,6 +253,30 @@ export function useScorePlayback({
     if (noteIndex + 1 >= notes.length) onLessonCompleteRef.current?.();
   }, [notes, isDemoMode, tempo, toleranceMs, evaluateStrikeUseCase]);
 
+  const handleStepMissed = useCallback((missedIndex: number) => {
+    if (isDemoMode) return;
+    const note = notes[missedIndex];
+    if (!note) return;
+
+    // Se o passo já foi satisfeito pelo instrumentista, ignora
+    if (satisfiedIndicesRef.current.has(missedIndex)) return;
+
+    const err: ScoreErrorEvent = {
+      playedMidi: 0,
+      expectedMidi: note.midi,
+      timestamp: performance.now(),
+    };
+    setLastError(err);
+    const noteInfo = getNoteInfo(note.midi);
+    setFeedback({
+      text: `✕ PERDEU O TEMPO: ${noteInfo.name}${noteInfo.octave}`,
+      color: 'text-amber-400',
+    });
+    onNoteErrorRef.current?.(err);
+    satisfiedIndicesRef.current.clear();
+    setSatisfiedIndices(new Set());
+  }, [notes, isDemoMode]);
+
   useEffect(() => {
     if (currentNoteIndex !== undefined) {
       setCurrentIndex(currentNoteIndex);
@@ -331,7 +355,6 @@ export function useScorePlayback({
       if (matchIdx !== undefined) {
         satisfiedIndicesRef.current.add(matchIdx);
         validatorRef.current.onNoteCompleted(notes[matchIdx].midi, now);
-        playSoundForNote(notes[matchIdx]);
         matchedAny = true;
         return;
       }
@@ -351,7 +374,6 @@ export function useScorePlayback({
             if (unfulfilledIdx !== undefined) {
               satisfiedIndicesRef.current.add(unfulfilledIdx);
               validatorRef.current.onNoteCompleted(notes[unfulfilledIdx].midi, now);
-              playSoundForNote(notes[unfulfilledIdx]);
               matchedAny = true;
               return;
             }
@@ -378,11 +400,17 @@ export function useScorePlayback({
       setSatisfiedIndices(new Set());
       setCurrentIndex(nextIdx);
 
-      if (nextIdx < notes.length) {
-        const nextOffset = timeline.noteOffsets[nextIdx] ?? 0;
-        scrollOffsetRef.current = nextOffset * pixelsPerBeat;
+      if (modeRef.current === 'wait') {
+        if (nextIdx < notes.length) {
+          const nextOffset = timeline.noteOffsets[nextIdx] ?? 0;
+          scrollOffsetRef.current = nextOffset * pixelsPerBeat;
+        } else {
+          onLessonCompleteRef.current?.();
+        }
       } else {
-        onLessonCompleteRef.current?.();
+        if (nextIdx >= notes.length) {
+          onLessonCompleteRef.current?.();
+        }
       }
       return;
     }
@@ -431,11 +459,12 @@ export function useScorePlayback({
         const nextMatch = nextStepIndices.find((idx: number) => notes[idx].midi === primaryPlayed);
         if (nextMatch !== undefined) {
           satisfiedIndicesRef.current.add(nextMatch);
-          playSoundForNote(notes[nextMatch]);
         }
         setSatisfiedIndices(new Set(satisfiedIndicesRef.current));
         setCurrentIndex(nextStepStartIdx);
-        scrollOffsetRef.current = nextOffset * pixelsPerBeat;
+        if (modeRef.current === 'wait') {
+          scrollOffsetRef.current = nextOffset * pixelsPerBeat;
+        }
         return;
       }
     }
@@ -499,5 +528,6 @@ export function useScorePlayback({
     handleTempoChange,
     handleRestart,
     processStrike,
+    handleStepMissed,
   };
 }

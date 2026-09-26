@@ -254,6 +254,9 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
         // Atualiza nota alvo atual na partitura
         const foundIdx = timeline.noteOffsets.findIndex(b => Math.abs(b - currentBeat) <= 0.15 || b > currentBeat);
         if (foundIdx !== -1 && foundIdx !== playback.currentIndex) {
+          if (!isDemoMode && foundIdx > playback.currentIndex) {
+            playback.handleStepMissed?.(playback.currentIndex);
+          }
           playback.setCurrentIndex(foundIdx);
         }
       }

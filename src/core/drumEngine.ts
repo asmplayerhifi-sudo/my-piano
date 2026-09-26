@@ -9,6 +9,8 @@
  * - Percussões étnicas: síntese específica por tipo
  */
 
+import { soundEngine } from './soundEngine';
+
 export type DrumKitId = 'acoustic' | 'piseiro' | 'tr808' | 'regional' | 'power_rock';
 
 export interface DrumKitInfo {
@@ -56,15 +58,34 @@ class DrumEngine {
   };
 
   private initContext() {
-    if (this.ctx) {
-      if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
+    if (this.ctx && this.masterGain && this.compressor) {
+      if (this.ctx.state === 'suspended') {
+        this.ctx.resume().catch(() => {});
+      }
       return;
     }
-    const AudioCtx = window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    this.ctx = new AudioCtx({ latencyHint: 'interactive', sampleRate: 44100 });
 
-    // Compressor master para coesão da mix
+    if (typeof window === 'undefined') return;
+
+    // Prioriza o AudioContext compartilhado de alta fidelidade do soundEngine
+    const sharedCtx = soundEngine.getAudioContext();
+    if (sharedCtx) {
+      this.ctx = sharedCtx;
+    } else {
+      const AudioCtx = window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (AudioCtx) {
+        this.ctx = new AudioCtx({ latencyHint: 'interactive', sampleRate: 44100 });
+      }
+    }
+
+    if (!this.ctx) return;
+
+    if (this.ctx.state === 'suspended') {
+      this.ctx.resume().catch(() => {});
+    }
+
+    // Compressor master para coesão e punch da mixagem percussiva
     this.compressor = this.ctx.createDynamicsCompressor();
     this.compressor.threshold.setValueAtTime(-18, this.ctx.currentTime);
     this.compressor.knee.setValueAtTime(8, this.ctx.currentTime);
@@ -76,7 +97,8 @@ class DrumEngine {
     this.masterGain.gain.setValueAtTime(0.9, this.ctx.currentTime);
 
     this.compressor.connect(this.masterGain);
-    this.masterGain.connect(this.ctx.destination);
+    const globalDest = soundEngine.getMasterGain() || this.ctx.destination;
+    this.masterGain.connect(globalDest);
 
     // Inicializa barramentos de Stems
     const stemIds: StemId[] = ['drums', 'cymbals', 'percussion', 'bass', 'harmony'];
@@ -85,6 +107,7 @@ class DrumEngine {
       const p = this.ctx.createStereoPanner ? this.ctx.createStereoPanner() : null;
 
       if (p) {
+        p.pan.setValueAtTime(this.stemStates[sid].pan, this.ctx.currentTime);
         g.connect(p);
         p.connect(this.compressor);
         this.stemPanners.set(sid, p);
@@ -99,7 +122,12 @@ class DrumEngine {
   public async ensureReady(): Promise<boolean> {
     this.initContext();
     if (this.ctx && this.ctx.state === 'suspended') {
-      try { await this.ctx.resume(); return true; } catch { return false; }
+      try {
+        await this.ctx.resume();
+        return true;
+      } catch {
+        return false;
+      }
     }
     return true;
   }
@@ -112,29 +140,34 @@ class DrumEngine {
   // ── Controle de Stems Mixer ──────────────────────────────────────────────
   public getStemNode(stemId: StemId): AudioNode {
     this.initContext();
-    return this.stemGains.get(stemId) || this.compressor!;
+    return this.stemGains.get(stemId) || this.compressor || (this.ctx?.destination as AudioNode);
   }
 
   public setStemVolume(stemId: StemId, volume: number) {
     this.stemStates[stemId].volume = Math.max(0, Math.min(1.5, volume));
+    this.initContext();
     this.updateStemRouting();
   }
 
   public setStemPan(stemId: StemId, pan: number) {
     this.stemStates[stemId].pan = Math.max(-1, Math.min(1, pan));
+    this.initContext();
     const p = this.stemPanners.get(stemId);
     if (p && this.ctx) {
+      p.pan.cancelScheduledValues(this.ctx.currentTime);
       p.pan.setValueAtTime(this.stemStates[stemId].pan, this.ctx.currentTime);
     }
   }
 
   public setStemMute(stemId: StemId, muted: boolean) {
     this.stemStates[stemId].muted = muted;
+    this.initContext();
     this.updateStemRouting();
   }
 
   public setStemSolo(stemId: StemId, solo: boolean) {
     this.stemStates[stemId].solo = solo;
+    this.initContext();
     this.updateStemRouting();
   }
 
@@ -173,16 +206,16 @@ class DrumEngine {
         effectiveGain = 0;
       }
 
+      g.gain.cancelScheduledValues(this.ctx.currentTime);
       g.gain.setValueAtTime(effectiveGain, this.ctx.currentTime);
     }
   }
-
 
   // ── Bumbo (Kick) ──────────────────────────────────────────────────────────
   public playKick(time?: number, velocity = 1.0) {
     this.initContext();
     if (!this.ctx) return;
-    const t = Math.max(this.ctx.currentTime, time ?? this.ctx.currentTime);
+    const t = Math.max(this.ctx.currentTime + 0.002, (time ?? this.ctx.currentTime) + 0.002);
     const v = Math.min(1, Math.max(0.1, velocity));
 
     const osc = this.ctx.createOscillator();
@@ -226,13 +259,13 @@ class DrumEngine {
 
     osc.type = 'sine';
     osc.frequency.setValueAtTime(startFreq * v, t);
-    osc.frequency.exponentialRampToValueAtTime(endFreq, t + sweepTime);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(10, endFreq), t + sweepTime);
 
     filter.type = 'lowpass';
     filter.frequency.setValueAtTime(260, t);
 
-    gainNode.gain.setValueAtTime(0.0001, t);
-    gainNode.gain.linearRampToValueAtTime(peakGain * v, t + 0.003);
+    // Ataque percussivo acústico instantâneo com decaimento exponencial
+    gainNode.gain.setValueAtTime(Math.max(0.001, peakGain * v), t);
     gainNode.gain.exponentialRampToValueAtTime(0.0001, t + decayTime);
 
     osc.connect(filter);
@@ -248,7 +281,7 @@ class DrumEngine {
       slapOsc.type = 'triangle';
       slapOsc.frequency.setValueAtTime(450, t);
       slapOsc.frequency.exponentialRampToValueAtTime(110, t + 0.02);
-      slapGain.gain.setValueAtTime(0.35 * v, t);
+      slapGain.gain.setValueAtTime(Math.max(0.001, 0.35 * v), t);
       slapGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.035);
       slapOsc.connect(slapGain);
       slapGain.connect(this.getStemNode('drums'));
@@ -261,7 +294,7 @@ class DrumEngine {
   public playSnare(time?: number, velocity = 1.0) {
     this.initContext();
     if (!this.ctx) return;
-    const t = Math.max(this.ctx.currentTime, time ?? this.ctx.currentTime);
+    const t = Math.max(this.ctx.currentTime + 0.002, (time ?? this.ctx.currentTime) + 0.002);
     const v = Math.min(1, Math.max(0.1, velocity));
 
     let toneFreq = 180;
@@ -291,8 +324,8 @@ class DrumEngine {
     const oscGain = this.ctx.createGain();
     osc.type = 'triangle';
     osc.frequency.setValueAtTime(toneFreq, t);
-    osc.frequency.exponentialRampToValueAtTime(toneFreq * 0.55, t + 0.08);
-    oscGain.gain.setValueAtTime(0.38 * v, t);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(20, toneFreq * 0.55), t + 0.08);
+    oscGain.gain.setValueAtTime(Math.max(0.001, 0.38 * v), t);
     oscGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
     osc.connect(oscGain);
     oscGain.connect(this.getStemNode('drums'));
@@ -308,8 +341,7 @@ class DrumEngine {
     noiseFilter.frequency.setValueAtTime(noiseFilterFreq, t);
     noiseFilter.Q.setValueAtTime(0.8, t);
     const noiseGain = this.ctx.createGain();
-    noiseGain.gain.setValueAtTime(0.0001, t);
-    noiseGain.gain.linearRampToValueAtTime(0.75 * v, t + 0.002);
+    noiseGain.gain.setValueAtTime(Math.max(0.001, 0.75 * v), t);
     noiseGain.gain.exponentialRampToValueAtTime(0.0001, t + noiseDecay);
     noise.connect(noiseFilter);
     noiseFilter.connect(noiseGain);
@@ -322,7 +354,7 @@ class DrumEngine {
   public playRimshot(time?: number, velocity = 1.0) {
     this.initContext();
     if (!this.ctx) return;
-    const t = Math.max(this.ctx.currentTime, time ?? this.ctx.currentTime);
+    const t = Math.max(this.ctx.currentTime + 0.002, (time ?? this.ctx.currentTime) + 0.002);
     const v = Math.min(1, Math.max(0.1, velocity));
 
     const osc = this.ctx.createOscillator();
@@ -330,7 +362,7 @@ class DrumEngine {
     osc.type = 'square';
     osc.frequency.setValueAtTime(450, t);
     osc.frequency.exponentialRampToValueAtTime(140, t + 0.035);
-    gainNode.gain.setValueAtTime(0.55 * v, t);
+    gainNode.gain.setValueAtTime(Math.max(0.001, 0.55 * v), t);
     gainNode.gain.exponentialRampToValueAtTime(0.0001, t + 0.055);
     osc.connect(gainNode);
     gainNode.connect(this.getStemNode('drums'));
@@ -342,7 +374,7 @@ class DrumEngine {
   public playHihatClosed(time?: number, velocity = 1.0) {
     this.initContext();
     if (!this.ctx) return;
-    const t = Math.max(this.ctx.currentTime, time ?? this.ctx.currentTime);
+    const t = Math.max(this.ctx.currentTime + 0.002, (time ?? this.ctx.currentTime) + 0.002);
     const v = Math.min(1, Math.max(0.1, velocity));
 
     const buf = this.createNoiseBuf(0.08);
@@ -352,8 +384,7 @@ class DrumEngine {
     filter.type = 'highpass';
     filter.frequency.setValueAtTime(this.currentKit === 'piseiro' ? 8500 : 7000, t);
     const gainNode = this.ctx.createGain();
-    gainNode.gain.setValueAtTime(0.0001, t);
-    gainNode.gain.linearRampToValueAtTime(0.42 * v, t + 0.001);
+    gainNode.gain.setValueAtTime(Math.max(0.001, 0.42 * v), t);
     gainNode.gain.exponentialRampToValueAtTime(0.0001, t + 0.055);
     noise.connect(filter);
     filter.connect(gainNode);
@@ -366,7 +397,7 @@ class DrumEngine {
   public playHihatOpen(time?: number, velocity = 1.0) {
     this.initContext();
     if (!this.ctx) return;
-    const t = Math.max(this.ctx.currentTime, time ?? this.ctx.currentTime);
+    const t = Math.max(this.ctx.currentTime + 0.002, (time ?? this.ctx.currentTime) + 0.002);
     const v = Math.min(1, Math.max(0.1, velocity));
 
     const buf = this.createNoiseBuf(0.4);
@@ -377,8 +408,7 @@ class DrumEngine {
     filter.frequency.setValueAtTime(8500, t);
     filter.Q.setValueAtTime(0.6, t);
     const gainNode = this.ctx.createGain();
-    gainNode.gain.setValueAtTime(0.0001, t);
-    gainNode.gain.linearRampToValueAtTime(0.48 * v, t + 0.002);
+    gainNode.gain.setValueAtTime(Math.max(0.001, 0.48 * v), t);
     gainNode.gain.exponentialRampToValueAtTime(0.0001, t + 0.32);
     noise.connect(filter);
     filter.connect(gainNode);
@@ -391,7 +421,7 @@ class DrumEngine {
   public playClap(time?: number, velocity = 1.0) {
     this.initContext();
     if (!this.ctx) return;
-    const t = Math.max(this.ctx.currentTime, time ?? this.ctx.currentTime);
+    const t = Math.max(this.ctx.currentTime + 0.002, (time ?? this.ctx.currentTime) + 0.002);
     const v = Math.min(1, Math.max(0.1, velocity));
 
     for (let i = 0; i < 3; i++) {
@@ -404,8 +434,7 @@ class DrumEngine {
       filter.frequency.setValueAtTime(this.currentKit === 'piseiro' ? 1400 : 1200, t + offset);
       filter.Q.setValueAtTime(1.6, t + offset);
       const gainNode = this.ctx.createGain();
-      gainNode.gain.setValueAtTime(0.0001, t + offset);
-      gainNode.gain.linearRampToValueAtTime(0.6 * v, t + offset + 0.002);
+      gainNode.gain.setValueAtTime(Math.max(0.001, 0.6 * v), t + offset);
       gainNode.gain.exponentialRampToValueAtTime(0.0001, t + offset + 0.05);
       noise.connect(filter);
       filter.connect(gainNode);
@@ -419,16 +448,15 @@ class DrumEngine {
   private playTom(freq: number, time?: number, velocity = 1.0) {
     this.initContext();
     if (!this.ctx) return;
-    const t = Math.max(this.ctx.currentTime, time ?? this.ctx.currentTime);
+    const t = Math.max(this.ctx.currentTime + 0.002, (time ?? this.ctx.currentTime) + 0.002);
     const v = Math.min(1, Math.max(0.1, velocity));
 
     const osc = this.ctx.createOscillator();
     const gainNode = this.ctx.createGain();
     osc.type = 'sine';
     osc.frequency.setValueAtTime(freq * 1.5, t);
-    osc.frequency.exponentialRampToValueAtTime(freq * 0.7, t + 0.08);
-    gainNode.gain.setValueAtTime(0.0001, t);
-    gainNode.gain.linearRampToValueAtTime(0.8 * v, t + 0.004);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(20, freq * 0.7), t + 0.08);
+    gainNode.gain.setValueAtTime(Math.max(0.001, 0.8 * v), t);
     gainNode.gain.exponentialRampToValueAtTime(0.0001, t + 0.38);
     osc.connect(gainNode);
     gainNode.connect(this.getStemNode('drums'));
@@ -444,7 +472,7 @@ class DrumEngine {
   public playCowbell(time?: number, velocity = 1.0) {
     this.initContext();
     if (!this.ctx) return;
-    const t = Math.max(this.ctx.currentTime, time ?? this.ctx.currentTime);
+    const t = Math.max(this.ctx.currentTime + 0.002, (time ?? this.ctx.currentTime) + 0.002);
     const v = Math.min(1, Math.max(0.1, velocity));
 
     const freqs = [562, 845];
@@ -453,7 +481,7 @@ class DrumEngine {
       const gainNode = this.ctx.createGain();
       osc.type = 'square';
       osc.frequency.setValueAtTime(freq, t);
-      gainNode.gain.setValueAtTime(0.28 * v, t);
+      gainNode.gain.setValueAtTime(Math.max(0.001, 0.28 * v), t);
       gainNode.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
       osc.connect(gainNode);
       gainNode.connect(this.getStemNode('cymbals'));
@@ -466,7 +494,7 @@ class DrumEngine {
   public playTriangle(time?: number, velocity = 1.0) {
     this.initContext();
     if (!this.ctx) return;
-    const t = Math.max(this.ctx.currentTime, time ?? this.ctx.currentTime);
+    const t = Math.max(this.ctx.currentTime + 0.002, (time ?? this.ctx.currentTime) + 0.002);
     const v = Math.min(1, Math.max(0.1, velocity));
 
     const freqs = [2800, 5600, 8400];
@@ -475,7 +503,7 @@ class DrumEngine {
       const gainNode = this.ctx.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(freq, t);
-      gainNode.gain.setValueAtTime(0.19 * v, t);
+      gainNode.gain.setValueAtTime(Math.max(0.001, 0.19 * v), t);
       gainNode.gain.exponentialRampToValueAtTime(0.0001, t + 1.1);
       osc.connect(gainNode);
       gainNode.connect(this.getStemNode('percussion'));
@@ -488,7 +516,7 @@ class DrumEngine {
   public playAgogo(time?: number, velocity = 1.0, high = false) {
     this.initContext();
     if (!this.ctx) return;
-    const t = Math.max(this.ctx.currentTime, time ?? this.ctx.currentTime);
+    const t = Math.max(this.ctx.currentTime + 0.002, (time ?? this.ctx.currentTime) + 0.002);
     const v = Math.min(1, Math.max(0.1, velocity));
     const freq = high ? 920 : 690;
 
@@ -496,7 +524,7 @@ class DrumEngine {
     const gainNode = this.ctx.createGain();
     osc.type = 'sine';
     osc.frequency.setValueAtTime(freq, t);
-    gainNode.gain.setValueAtTime(0.32 * v, t);
+    gainNode.gain.setValueAtTime(Math.max(0.001, 0.32 * v), t);
     gainNode.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
     osc.connect(gainNode);
     gainNode.connect(this.getStemNode('percussion'));
@@ -508,7 +536,7 @@ class DrumEngine {
   public playTambourine(time?: number, velocity = 1.0) {
     this.initContext();
     if (!this.ctx) return;
-    const t = Math.max(this.ctx.currentTime, time ?? this.ctx.currentTime);
+    const t = Math.max(this.ctx.currentTime + 0.002, (time ?? this.ctx.currentTime) + 0.002);
     const v = Math.min(1, Math.max(0.1, velocity));
 
     // Golpe de polegar no couro
@@ -519,8 +547,7 @@ class DrumEngine {
     filter.type = 'highpass';
     filter.frequency.setValueAtTime(3800, t);
     const gainNode = this.ctx.createGain();
-    gainNode.gain.setValueAtTime(0.0001, t);
-    gainNode.gain.linearRampToValueAtTime(0.42 * v, t + 0.001);
+    gainNode.gain.setValueAtTime(Math.max(0.001, 0.42 * v), t);
     gainNode.gain.exponentialRampToValueAtTime(0.0001, t + 0.08);
     noise.connect(filter);
     filter.connect(gainNode);
@@ -534,7 +561,7 @@ class DrumEngine {
       const og = this.ctx.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(3200 + i * 850, t + i * 0.007);
-      og.gain.setValueAtTime(0.09 * v, t + i * 0.007);
+      og.gain.setValueAtTime(Math.max(0.001, 0.09 * v), t + i * 0.007);
       og.gain.exponentialRampToValueAtTime(0.0001, t + 0.11 + i * 0.007);
       osc.connect(og);
       og.connect(this.getStemNode('percussion'));
@@ -547,7 +574,7 @@ class DrumEngine {
   public playShaker(time?: number, velocity = 1.0) {
     this.initContext();
     if (!this.ctx) return;
-    const t = Math.max(this.ctx.currentTime, time ?? this.ctx.currentTime);
+    const t = Math.max(this.ctx.currentTime + 0.002, (time ?? this.ctx.currentTime) + 0.002);
     const v = Math.min(1, Math.max(0.1, velocity));
 
     const buf = this.createNoiseBuf(0.12);
@@ -558,8 +585,7 @@ class DrumEngine {
     filter.frequency.setValueAtTime(5400, t);
     filter.Q.setValueAtTime(2.2, t);
     const gainNode = this.ctx.createGain();
-    gainNode.gain.setValueAtTime(0.0001, t);
-    gainNode.gain.linearRampToValueAtTime(0.28 * v, t + 0.004);
+    gainNode.gain.setValueAtTime(Math.max(0.001, 0.28 * v), t);
     gainNode.gain.exponentialRampToValueAtTime(0.0001, t + 0.095);
     noise.connect(filter);
     filter.connect(gainNode);
@@ -572,7 +598,7 @@ class DrumEngine {
   public playBass(midiNote: number, time?: number, duration = 0.35, velocity = 0.8) {
     this.initContext();
     if (!this.ctx) return;
-    const t = Math.max(this.ctx.currentTime, time ?? this.ctx.currentTime);
+    const t = Math.max(this.ctx.currentTime + 0.002, (time ?? this.ctx.currentTime) + 0.002);
     const v = Math.min(1, Math.max(0.1, velocity));
     const freq = 440 * Math.pow(2, (midiNote - 69) / 12);
 
@@ -591,8 +617,7 @@ class DrumEngine {
     filter.frequency.setValueAtTime(this.currentKit === 'piseiro' ? 950 : 550, t);
     filter.frequency.exponentialRampToValueAtTime(160, t + Math.min(0.2, duration * 0.7));
 
-    gainNode.gain.setValueAtTime(0.001, t);
-    gainNode.gain.linearRampToValueAtTime(0.65 * v, t + 0.008);
+    gainNode.gain.setValueAtTime(Math.max(0.001, 0.65 * v), t);
     gainNode.gain.exponentialRampToValueAtTime(0.0001, t + duration);
 
     osc.connect(filter);
@@ -610,7 +635,7 @@ class DrumEngine {
   public playChord(midiNotes: number[], time?: number, duration = 0.8, velocity = 0.7) {
     this.initContext();
     if (!this.ctx || midiNotes.length === 0) return;
-    const t = Math.max(this.ctx.currentTime, time ?? this.ctx.currentTime);
+    const t = Math.max(this.ctx.currentTime + 0.002, (time ?? this.ctx.currentTime) + 0.002);
     const v = Math.min(1, Math.max(0.1, velocity));
 
     midiNotes.forEach((midi, idx) => {
@@ -622,8 +647,7 @@ class DrumEngine {
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(freq, noteTime);
 
-      gain.gain.setValueAtTime(0.001, noteTime);
-      gain.gain.linearRampToValueAtTime((0.36 / Math.sqrt(midiNotes.length)) * v, noteTime + 0.012);
+      gain.gain.setValueAtTime(Math.max(0.001, (0.36 / Math.sqrt(midiNotes.length)) * v), noteTime);
       gain.gain.exponentialRampToValueAtTime(0.0001, noteTime + duration);
 
       osc.connect(gain);

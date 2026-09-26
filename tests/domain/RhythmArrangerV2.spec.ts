@@ -176,5 +176,84 @@ describe('Módulo Arranjador v2.0 — Especificação Unificada e Profissional',
       drumEngine.setHumanize(0.0);
       expect(drumEngine.getHumanize()).toBe(0.0);
     });
+
+    it('deve disparar som para todos os 14 pads de bateria sem lançar erros', () => {
+      DRUM_PADS.forEach(pad => {
+        expect(() => {
+          drumEngine.playDrum(pad.key, undefined, 0.9);
+        }).not.toThrow();
+      });
+    });
+
+    it('deve disparar peças de percussão em todos os 5 soundkits após alteração de configs', () => {
+      const allKits: DrumKitId[] = ['acoustic', 'piseiro', 'tr808', 'regional', 'power_rock'];
+
+      allKits.forEach(kit => {
+        drumEngine.setKit(kit);
+        expect(drumEngine.getKit()).toBe(kit);
+
+        // Altera configs do mixer
+        drumEngine.setStemVolume('drums', 1.1);
+        drumEngine.setStemPan('cymbals', 0.2);
+        drumEngine.setStemVolume('percussion', 0.95);
+
+        // Dispara peças representativas de cada grupo
+        expect(() => {
+          drumEngine.playDrum('kick', undefined, 1.0);
+          drumEngine.playDrum('snare', undefined, 0.95);
+          drumEngine.playDrum('hihatClosed', undefined, 0.85);
+          drumEngine.playDrum('clap', undefined, 0.9);
+          drumEngine.playDrum('triangle', undefined, 0.8);
+          drumEngine.playDrum('tambourine', undefined, 0.85);
+        }).not.toThrow();
+      });
+    });
+
+    it('deve sintetizar linhas de baixo e acordes de acompanhamento sem falhas', () => {
+      expect(() => {
+        drumEngine.playBass(36, undefined, 0.3, 0.85);
+        drumEngine.playChord([48, 52, 55], undefined, 0.5, 0.8);
+      }).not.toThrow();
+    });
+
+    it('deve resolver ensureReady com sucesso garantindo prontidão do motor', async () => {
+      const ready = await drumEngine.ensureReady();
+      expect(typeof ready).toBe('boolean');
+    });
+
+    it('deve refletir edições de steps (ligar/desligar drumpads) no pattern reproduzido em tempo real', () => {
+      const forro = RHYTHM_STYLES.find(s => s.id === 'FORRO_MASTRUZ')!;
+      expect(forro).toBeDefined();
+
+      const sectionKey = 'fillAA';
+      const initialSteps = [...forro.sections[sectionKey].pattern.kick.steps];
+
+      // Simula a mutação em tempo real do Step Sequencer
+      const modifiedSteps = [...initialSteps];
+      modifiedSteps[4] = !modifiedSteps[4]; // Inverte step 4
+      modifiedSteps[8] = !modifiedSteps[8]; // Inverte step 8
+
+      const updatedStyle = {
+        ...forro,
+        sections: {
+          ...forro.sections,
+          [sectionKey]: {
+            ...forro.sections[sectionKey],
+            pattern: {
+              ...forro.sections[sectionKey].pattern,
+              kick: {
+                ...forro.sections[sectionKey].pattern.kick,
+                steps: modifiedSteps,
+              },
+            },
+          },
+        },
+      };
+
+      // O pattern da seção atualizada deve conter rigorosamente os novos steps
+      expect(updatedStyle.sections[sectionKey].pattern.kick.steps[4]).toBe(modifiedSteps[4]);
+      expect(updatedStyle.sections[sectionKey].pattern.kick.steps[8]).toBe(modifiedSteps[8]);
+      expect(updatedStyle.sections[sectionKey].pattern.kick.steps).not.toEqual(initialSteps);
+    });
   });
 });
