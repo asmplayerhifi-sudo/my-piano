@@ -13,6 +13,7 @@ import {
   PenLine,
   Drum,
   Sparkles,
+  Wand2,
 } from 'lucide-react';
 
 export type TabId =
@@ -24,7 +25,8 @@ export type TabId =
   | 'piano'
   | 'guitar'
   | 'score-editor'
-  | 'arranger';
+  | 'arranger'
+  | 'phrase-editor';
 
 interface Props {
   activeTab: TabId;
@@ -207,6 +209,23 @@ export const TABS: NavTabItem[] = [
     activeBorder: 'border-amber-500/60',
     activeText: 'text-amber-200 font-bold',
     iconActiveBg: 'bg-amber-600 text-white shadow-md shadow-amber-500/40',
+  },
+  {
+    id: 'phrase-editor',
+    label: 'Fraseados',
+    mediumLabel: 'Fraseador',
+    shortLabel: 'Frases',
+    fullName: 'Editor de Fraseados & Text-to-Melody',
+    desc: 'Transforme texto em notas, crie licks por gênero e treine com transposição',
+    badge: 'Novo',
+    category: 'studio',
+    categoryLabel: 'Estúdio',
+    icon: Wand2,
+    accentColor: 'purple',
+    activeBg: 'bg-purple-500/20 shadow-[0_0_15px_rgba(168,85,247,0.25)]',
+    activeBorder: 'border-purple-500/60',
+    activeText: 'text-purple-200 font-bold',
+    iconActiveBg: 'bg-purple-600 text-white shadow-md shadow-purple-500/40',
   },
 ];
 

@@ -1,0 +1,227 @@
+/**
+ * phrasingLicksData.ts
+ *
+ * Biblioteca Curada de Licks, Frases Melódicas e Padrões por Gênero:
+ * - Blues & Rock (Pentatônica, Blue Note, Turnaround)
+ * - Jazz & Bebop (II-V-I, Enclosures, Aproximações)
+ * - Bossa Nova & MPB (Síncopes, Acordes de 7M/9, Clichês de Tom Jobim)
+ * - Pop & R&B (Hooks Pentatônicos, R&B Runs)
+ * - Clássico & Barroco (Motivos de Bach, Sonatas de Mozart)
+ */
+
+import type { PhrasingLick } from './phrasingTypes';
+
+export const PHRASING_LICKS: PhrasingLick[] = [
+  // ── 1. BLUES & ROCK ────────────────────────────────────────────────────────
+  {
+    id: 'lick-blues-1',
+    title: 'Clássico BB King Box',
+    genre: 'blues',
+    genreLabel: 'Blues',
+    description: 'A famosa caixa de BB King com repetição da tônica e apoio na Blue Note (Eb) com legato expressivo.',
+    key: 'C',
+    bpm: 85,
+    timeSignature: [4, 4],
+    difficulty: 'iniciante',
+    pedagogicalTip: 'Use o dedo 3 para o Mi bemol (Blue note) deslizando suavemente para o Mi natural (terça maior).',
+    notes: [
+      { id: 'b1-1', midi: 60, noteName: 'C4', duration: 0.5, beat: 0, syllable: 'Dó', fingering: 1, articulation: 'normal' },
+      { id: 'b1-2', midi: 63, noteName: 'Eb4', duration: 0.5, beat: 0.5, syllable: 'Mib', fingering: 3, articulation: 'legato' },
+      { id: 'b1-3', midi: 64, noteName: 'E4', duration: 0.5, beat: 1.0, syllable: 'Mi', fingering: 3, articulation: 'normal' },
+      { id: 'b1-4', midi: 67, noteName: 'G4', duration: 1.0, beat: 1.5, syllable: 'Sol', fingering: 5, articulation: 'tenuto' },
+      { id: 'b1-5', midi: 65, noteName: 'F4', duration: 0.5, beat: 2.5, syllable: 'Fá', fingering: 4, articulation: 'normal' },
+      { id: 'b1-6', midi: 63, noteName: 'Eb4', duration: 0.5, beat: 3.0, syllable: 'Mib', fingering: 3, articulation: 'legato' },
+      { id: 'b1-7', midi: 60, noteName: 'C4', duration: 1.0, beat: 3.5, syllable: 'Dó', fingering: 1, articulation: 'accent' },
+    ],
+  },
+  {
+    id: 'lick-blues-2',
+    title: 'Turnaround de Chicago em Dó',
+    genre: 'blues',
+    genreLabel: 'Blues',
+    description: 'Linha cromática descendente marcante de finalização de 12 compassos no blues elétrico.',
+    key: 'C',
+    bpm: 92,
+    timeSignature: [4, 4],
+    difficulty: 'intermediario',
+    pedagogicalTip: 'Execute com swing e staccato leve nas notas de passagem cromáticas.',
+    notes: [
+      { id: 'b2-1', midi: 67, noteName: 'G4', duration: 0.5, beat: 0, syllable: 'Sol', fingering: 5, articulation: 'accent' },
+      { id: 'b2-2', midi: 66, noteName: 'Gb4', duration: 0.5, beat: 0.5, syllable: 'Solb', fingering: 4, articulation: 'staccato' },
+      { id: 'b2-3', midi: 65, noteName: 'F4', duration: 0.5, beat: 1.0, syllable: 'Fá', fingering: 3, articulation: 'staccato' },
+      { id: 'b2-4', midi: 64, noteName: 'E4', duration: 1.0, beat: 1.5, syllable: 'Mi', fingering: 2, articulation: 'normal' },
+      { id: 'b2-5', midi: 58, noteName: 'Bb3', duration: 0.5, beat: 2.5, syllable: 'Sib', fingering: 1, articulation: 'normal' },
+      { id: 'b2-6', midi: 59, noteName: 'B3', duration: 0.5, beat: 3.0, syllable: 'Si', fingering: 2, articulation: 'legato' },
+      { id: 'b2-7', midi: 60, noteName: 'C4', duration: 1.0, beat: 3.5, syllable: 'Dó', fingering: 1, articulation: 'tenuto' },
+    ],
+  },
+
+  // ── 2. JAZZ & BEBOP ────────────────────────────────────────────────────────
+  {
+    id: 'lick-jazz-1',
+    title: 'Cadência II-V-I Bebop de Charlie Parker',
+    genre: 'jazz',
+    genreLabel: 'Jazz',
+    description: 'Frase clássica de bebop sobre Dm7 - G7 - Cmaj7 com aproximação cromática inferior.',
+    key: 'C',
+    bpm: 120,
+    timeSignature: [4, 4],
+    difficulty: 'avancado',
+    pedagogicalTip: 'O bebop exige articulação ligada de duas em duas colcheias (legato swingado).',
+    notes: [
+      { id: 'j1-1', midi: 62, noteName: 'D4', duration: 0.5, beat: 0, syllable: 'Ré', fingering: 1, articulation: 'legato' },
+      { id: 'j1-2', midi: 65, noteName: 'F4', duration: 0.5, beat: 0.5, syllable: 'Fá', fingering: 2, articulation: 'normal' },
+      { id: 'j1-3', midi: 69, noteName: 'A4', duration: 0.5, beat: 1.0, syllable: 'Lá', fingering: 4, articulation: 'legato' },
+      { id: 'j1-4', midi: 72, noteName: 'C5', duration: 0.5, beat: 1.5, syllable: 'Dó', fingering: 5, articulation: 'normal' },
+      { id: 'j1-5', midi: 71, noteName: 'B4', duration: 0.5, beat: 2.0, syllable: 'Si', fingering: 4, articulation: 'normal' },
+      { id: 'j1-6', midi: 68, noteName: 'Ab4', duration: 0.5, beat: 2.5, syllable: 'Láb', fingering: 3, articulation: 'staccato' },
+      { id: 'j1-7', midi: 67, noteName: 'G4', duration: 0.5, beat: 3.0, syllable: 'Sol', fingering: 2, articulation: 'legato' },
+      { id: 'j1-8', midi: 64, noteName: 'E4', duration: 1.0, beat: 3.5, syllable: 'Mi', fingering: 1, articulation: 'accent' },
+    ],
+  },
+  {
+    id: 'lick-jazz-2',
+    title: 'Enclosure de 7ª Maior & Arpejo',
+    genre: 'jazz',
+    genreLabel: 'Jazz',
+    description: 'Técnica de cercamento (enclosure) contornando a terça maior (E4) a partir de notas vizinhas.',
+    key: 'C',
+    bpm: 110,
+    timeSignature: [4, 4],
+    difficulty: 'intermediario',
+    pedagogicalTip: 'Atenção ao semitom cromático Ré# que prepara o pouso suave no Mi.',
+    notes: [
+      { id: 'j2-1', midi: 65, noteName: 'F4', duration: 0.5, beat: 0, syllable: 'Fá', fingering: 3, articulation: 'normal' },
+      { id: 'j2-2', midi: 63, noteName: 'D#4', duration: 0.5, beat: 0.5, syllable: 'Ré#', fingering: 2, articulation: 'legato' },
+      { id: 'j2-3', midi: 64, noteName: 'E4', duration: 1.0, beat: 1.0, syllable: 'Mi', fingering: 3, articulation: 'tenuto' },
+      { id: 'j2-4', midi: 67, noteName: 'G4', duration: 0.5, beat: 2.0, syllable: 'Sol', fingering: 4, articulation: 'normal' },
+      { id: 'j2-5', midi: 71, noteName: 'B4', duration: 0.5, beat: 2.5, syllable: 'Si', fingering: 5, articulation: 'normal' },
+      { id: 'j2-6', midi: 72, noteName: 'C5', duration: 1.0, beat: 3.0, syllable: 'Dó', fingering: 5, articulation: 'accent' },
+    ],
+  },
+
+  // ── 3. BOSSA NOVA & MPB ───────────────────────────────────────────────────
+  {
+    id: 'lick-bossa-1',
+    title: 'Fraseado Lírico Tom Jobim (Garota de Ipanema)',
+    genre: 'bossa',
+    genreLabel: 'Bossa Nova',
+    description: 'Motivo sincopado característico com ênfase na 7M (B4) e 9ª (D5), com balanço suave.',
+    key: 'F',
+    bpm: 125,
+    timeSignature: [4, 4],
+    difficulty: 'iniciante',
+    pedagogicalTip: 'Toque com toque aveludado, deixando a nota sincopada flutuar sobre o contratempo.',
+    notes: [
+      { id: 'bo1-1', midi: 67, noteName: 'G4', duration: 0.5, beat: 0, syllable: 'O-lha', fingering: 2, articulation: 'legato' },
+      { id: 'bo1-2', midi: 69, noteName: 'A4', duration: 0.5, beat: 0.5, syllable: 'que', fingering: 3, articulation: 'normal' },
+      { id: 'bo1-3', midi: 72, noteName: 'C5', duration: 1.0, beat: 1.0, syllable: 'coi-', fingering: 5, articulation: 'tenuto' },
+      { id: 'bo1-4', midi: 69, noteName: 'A4', duration: 0.5, beat: 2.0, syllable: 'sa', fingering: 3, articulation: 'normal' },
+      { id: 'bo1-5', midi: 67, noteName: 'G4', duration: 0.5, beat: 2.5, syllable: 'mais', fingering: 2, articulation: 'normal' },
+      { id: 'bo1-6', midi: 65, noteName: 'F4', duration: 1.0, beat: 3.0, syllable: 'lin-da', fingering: 1, articulation: 'accent' },
+    ],
+  },
+  {
+    id: 'lick-bossa-2',
+    title: 'Descida Menor com Sétima Maior (Samba em Prelúdio)',
+    genre: 'bossa',
+    genreLabel: 'Bossa Nova',
+    description: 'O melancólico clichê harmônico de Baden Powell e Vinicius em Ré Menor.',
+    key: 'Dm',
+    bpm: 90,
+    timeSignature: [4, 4],
+    difficulty: 'intermediario',
+    pedagogicalTip: 'Sustente o Ré no baixo enquanto a melodia canta a escala menor melódica.',
+    notes: [
+      { id: 'bo2-1', midi: 74, noteName: 'D5', duration: 1.0, beat: 0, syllable: 'Eu', fingering: 5, articulation: 'tenuto' },
+      { id: 'bo2-2', midi: 73, noteName: 'C#5', duration: 1.0, beat: 1.0, syllable: 'sem', fingering: 4, articulation: 'legato' },
+      { id: 'bo2-3', midi: 72, noteName: 'C5', duration: 1.0, beat: 2.0, syllable: 'vo-', fingering: 3, articulation: 'normal' },
+      { id: 'bo2-4', midi: 71, noteName: 'B4', duration: 1.0, beat: 3.0, syllable: 'cê', fingering: 2, articulation: 'accent' },
+    ],
+  },
+
+  // ── 4. POP & R&B ──────────────────────────────────────────────────────────
+  {
+    id: 'lick-pop-1',
+    title: 'Hook Pentatônico Vocal R&B',
+    genre: 'pop',
+    genreLabel: 'Pop / R&B',
+    description: 'Desenho cantarolável moderno em Pentatônica Maior com salto expressivo de 6ª.',
+    key: 'C',
+    bpm: 100,
+    timeSignature: [4, 4],
+    difficulty: 'iniciante',
+    pedagogicalTip: 'Perfeito para introduções marcantes de baladas pop e canções de adoração.',
+    notes: [
+      { id: 'p1-1', midi: 64, noteName: 'E4', duration: 0.5, beat: 0, syllable: 'Te', fingering: 1, articulation: 'legato' },
+      { id: 'p1-2', midi: 67, noteName: 'G4', duration: 0.5, beat: 0.5, syllable: 'a-', fingering: 2, articulation: 'normal' },
+      { id: 'p1-3', midi: 69, noteName: 'A4', duration: 1.0, beat: 1.0, syllable: 'mar', fingering: 3, articulation: 'tenuto' },
+      { id: 'p1-4', midi: 72, noteName: 'C5', duration: 0.5, beat: 2.0, syllable: 'sem', fingering: 5, articulation: 'accent' },
+      { id: 'p1-5', midi: 69, noteName: 'A4', duration: 0.5, beat: 2.5, syllable: 'pre', fingering: 3, articulation: 'normal' },
+      { id: 'p1-6', midi: 67, noteName: 'G4', duration: 1.0, beat: 3.0, syllable: 'mais', fingering: 2, articulation: 'tenuto' },
+    ],
+  },
+  {
+    id: 'lick-pop-2',
+    title: 'Neo-Soul Lick com Sextas Paralelas',
+    genre: 'pop',
+    genreLabel: 'Pop / R&B',
+    description: 'Movimento contemporâneo em terças e sextas com fluidez rítmica.',
+    key: 'G',
+    bpm: 88,
+    timeSignature: [4, 4],
+    difficulty: 'intermediario',
+    pedagogicalTip: 'Mantenha os dedos 1 e 3 em forma de pinça ergonômica relaxada.',
+    notes: [
+      { id: 'p2-1', midi: 71, noteName: 'B4', duration: 0.5, beat: 0, syllable: 'Vem', fingering: 4, articulation: 'staccato' },
+      { id: 'p2-2', midi: 69, noteName: 'A4', duration: 0.5, beat: 0.5, syllable: 'sen-', fingering: 3, articulation: 'legato' },
+      { id: 'p2-3', midi: 67, noteName: 'G4', duration: 0.5, beat: 1.0, syllable: 'tir', fingering: 2, articulation: 'normal' },
+      { id: 'p2-4', midi: 64, noteName: 'E4', duration: 0.5, beat: 1.5, syllable: 'o', fingering: 1, articulation: 'normal' },
+      { id: 'p2-5', midi: 67, noteName: 'G4', duration: 1.0, beat: 2.0, syllable: 'som', fingering: 2, articulation: 'tenuto' },
+    ],
+  },
+
+  // ── 5. CLÁSSICO & BARROCO ─────────────────────────────────────────────────
+  {
+    id: 'lick-class-1',
+    title: 'Motivo Arpejado Barroco de J. S. Bach',
+    genre: 'classical',
+    genreLabel: 'Clássico',
+    description: 'Contorno de Prelúdio com arpejo quebrado em semicolcheias regulares e simetria harmônica.',
+    key: 'C',
+    bpm: 80,
+    timeSignature: [4, 4],
+    difficulty: 'iniciante',
+    pedagogicalTip: 'Toque com igualdade de peso absoluto entre os 5 dedos da mão.',
+    notes: [
+      { id: 'c1-1', midi: 60, noteName: 'C4', duration: 0.25, beat: 0, syllable: 'Dó', fingering: 1, articulation: 'legato' },
+      { id: 'c1-2', midi: 64, noteName: 'E4', duration: 0.25, beat: 0.25, syllable: 'Mi', fingering: 2, articulation: 'legato' },
+      { id: 'c1-3', midi: 67, noteName: 'G4', duration: 0.25, beat: 0.5, syllable: 'Sol', fingering: 3, articulation: 'legato' },
+      { id: 'c1-4', midi: 72, noteName: 'C5', duration: 0.25, beat: 0.75, syllable: 'Dó', fingering: 5, articulation: 'legato' },
+      { id: 'c1-5', midi: 67, noteName: 'G4', duration: 0.25, beat: 1.0, syllable: 'Sol', fingering: 3, articulation: 'legato' },
+      { id: 'c1-6', midi: 64, noteName: 'E4', duration: 0.25, beat: 1.25, syllable: 'Mi', fingering: 2, articulation: 'legato' },
+      { id: 'c1-7', midi: 67, noteName: 'G4', duration: 0.25, beat: 1.5, syllable: 'Sol', fingering: 3, articulation: 'legato' },
+      { id: 'c1-8', midi: 72, noteName: 'C5', duration: 0.5, beat: 1.75, syllable: 'Dó', fingering: 5, articulation: 'tenuto' },
+    ],
+  },
+  {
+    id: 'lick-class-2',
+    title: 'Tema Clássico Mozartiano (Sonata K.545)',
+    genre: 'classical',
+    genreLabel: 'Clássico',
+    description: 'Abertura límpida e nobre com arpejo ascendente e descida por graus conjuntos.',
+    key: 'C',
+    bpm: 112,
+    timeSignature: [4, 4],
+    difficulty: 'intermediario',
+    pedagogicalTip: 'Mão direita leve como pérolas sobre veludo, articulação semipesada.',
+    notes: [
+      { id: 'c2-1', midi: 60, noteName: 'C4', duration: 1.0, beat: 0, syllable: 'Dó', fingering: 1, articulation: 'tenuto' },
+      { id: 'c2-2', midi: 64, noteName: 'E4', duration: 0.5, beat: 1.0, syllable: 'Mi', fingering: 2, articulation: 'staccato' },
+      { id: 'c2-3', midi: 67, noteName: 'G4', duration: 0.5, beat: 1.5, syllable: 'Sol', fingering: 3, articulation: 'staccato' },
+      { id: 'c2-4', midi: 71, noteName: 'B4', duration: 1.0, beat: 2.0, syllable: 'Si', fingering: 5, articulation: 'legato' },
+      { id: 'c2-5', midi: 72, noteName: 'C5', duration: 0.5, beat: 3.0, syllable: 'Dó', fingering: 5, articulation: 'normal' },
+      { id: 'c2-6', midi: 62, noteName: 'D4', duration: 0.5, beat: 3.5, syllable: 'Ré', fingering: 1, articulation: 'accent' },
+    ],
+  },
+];

@@ -308,6 +308,20 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
               <span>🥁</span>
               <span className="hidden xl:inline">Arranjador</span>
             </button>
+
+            {/* Editor de Fraseados */}
+            <button
+              onClick={() => handleTabClick('phrase-editor')}
+              className={`h-7.5 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
+                activeTab === 'phrase-editor'
+                  ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
+                  : 'text-slate-300 hover:text-white hover:bg-white/5'
+              }`}
+              title="Editor de Fraseados & Text-to-Melody"
+            >
+              <span>🪄</span>
+              <span className="hidden xl:inline">Fraseador</span>
+            </button>
           </div>
 
           {/* Botão [⚙️ Mais...] (Wireframe 2: Telas Médias 1024px <= width < 1280px para abrir Drawer de Navegação) */}
@@ -677,6 +691,27 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
                       </div>
                       <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
                         PSR
+                      </span>
+                    </button>
+
+                    {/* Editor de Fraseados & Licks */}
+                    <button
+                      onClick={() => handleTabClick('phrase-editor')}
+                      className={`w-full p-3 rounded-2xl border text-left text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
+                        activeTab === 'phrase-editor'
+                          ? 'bg-purple-600/30 border-purple-500/50 text-white'
+                          : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-base">🪄</span>
+                        <div>
+                          <p className="font-bold text-white text-xs">Editor de Fraseados &amp; Licks</p>
+                          <p className="text-[11px] text-slate-400 font-normal">Text-to-Melody, Licks e Transposição</p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                        Novo
                       </span>
                     </button>
                   </div>

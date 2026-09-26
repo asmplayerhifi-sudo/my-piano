@@ -10,6 +10,7 @@ import { GuitarModule } from './components/guitar/GuitarModule';
 import { TheoryModule } from './components/theory/TheoryModule';
 import { RepertoireView } from './components/score/RepertoireView';
 import { ScoreEditor } from './components/score/ScoreEditor';
+import { PhraseEditorView } from './components/phrase/PhraseEditorView';
 import { OrientationPromptModal } from './components/layout/OrientationPromptModal';
 import { midiManager } from './core/midiManager';
 
@@ -23,6 +24,7 @@ const VALID_TABS: TabId[] = [
   'guitar',
   'score-editor',
   'arranger',
+  'phrase-editor',
 ];
 
 function getInitialTab(): TabId {
@@ -73,6 +75,7 @@ export const App: React.FC = () => {
         {activeTab === 'guitar' && <GuitarModule />}
         {activeTab === 'score-editor' && <ScoreEditor />}
         {activeTab === 'arranger' && <RhythmArranger />}
+        {activeTab === 'phrase-editor' && <PhraseEditorView />}
       </main>
 
       {/* 3. Rodapé Compacto Institucional */}
