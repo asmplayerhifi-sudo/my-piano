@@ -39,6 +39,8 @@ import {
   AlertCircle,
   Trophy,
   Mic2,
+  Waves,
+  Check,
 } from 'lucide-react';
 
 import {
@@ -65,6 +67,36 @@ export const RepertoireView: React.FC = () => {
   const [viewMode, setViewMode] = useState<'playback' | 'practice'>('playback');
   const [practiceType, setPracticeType] = useState<'wait' | 'flow'>('wait');
   const [isPracticing, setIsPracticing] = useState<boolean>(false);
+
+  // Estado do dropdown unificado dos 3 modos de execução (Reproduzir, Prática com Fluxo, Acompanhamento)
+  const [showModeDropdown, setShowModeDropdown] = useState<boolean>(false);
+  const modeDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Modo de execução unificado ativo: 'playback' | 'flow' | 'wait'
+  const currentExecutionMode: 'playback' | 'flow' | 'wait' =
+    viewMode === 'playback' ? 'playback' : practiceType === 'flow' ? 'flow' : 'wait';
+
+  // Fechamento suave do dropdown ao clicar fora ou pressionar Escape
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (modeDropdownRef.current && !modeDropdownRef.current.contains(e.target as Node)) {
+        setShowModeDropdown(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowModeDropdown(false);
+      }
+    };
+    if (showModeDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showModeDropdown]);
   const [practiceHits, setPracticeHits] = useState<number>(0);
   const [practiceErrors, setPracticeErrors] = useState<number>(0);
   const [practiceScore, setPracticeScore] = useState<number>(0);
@@ -223,6 +255,46 @@ export const RepertoireView: React.FC = () => {
     setViewMode(mode);
   };
 
+  /**
+   * Transiciona entre os 3 modos fundamentais de execução da partitura:
+   * 1. 'playback': Reprodução sonora automática Hi-Fi
+   * 2. 'flow': Prática com fluxo contínuo no andamento (BPM)
+   * 3. 'wait': Acompanhamento interativo passo a passo (aguarda as notas corretas)
+   */
+  const handleSetExecutionMode = async (mode: 'playback' | 'flow' | 'wait') => {
+    setShowModeDropdown(false);
+    if (
+      (mode === 'playback' && viewMode === 'playback') ||
+      (mode === 'flow' && viewMode === 'practice' && practiceType === 'flow') ||
+      (mode === 'wait' && viewMode === 'practice' && practiceType === 'wait')
+    ) {
+      return;
+    }
+
+    await soundEngine.ensureAudioReady();
+    soundEngine.stopAllNotes(0.025);
+    musicalPlaybackEngine.stop();
+    setIsPlaying(false);
+    setIsPracticing(false);
+    setActiveDemoMidi([]);
+    setCurrentNoteIdx(0);
+    setSatisfiedStepIndices(new Set());
+    setPracticeHits(0);
+    setPracticeErrors(0);
+    setPracticeScore(0);
+    setPracticeLastErrorMidi(null);
+
+    if (mode === 'playback') {
+      setViewMode('playback');
+    } else if (mode === 'flow') {
+      setViewMode('practice');
+      setPracticeType('flow');
+    } else {
+      setViewMode('practice');
+      setPracticeType('wait');
+    }
+  };
+
   const handleTogglePractice = async () => {
     await soundEngine.ensureAudioReady();
     if (isPracticing) {
@@ -245,27 +317,6 @@ export const RepertoireView: React.FC = () => {
         musicalPlaybackEngine.play(startBeat);
       } else {
         musicalPlaybackEngine.pause();
-      }
-    }
-  };
-
-  const handleSelectPracticeType = (type: 'wait' | 'flow') => {
-    if (type === practiceType) return;
-    setPracticeType(type);
-    setSatisfiedStepIndices(new Set());
-
-    if (isPracticing) {
-      if (type === 'wait') {
-        musicalPlaybackEngine.pause();
-      } else {
-        musicalPlaybackEngine.loadScore(sortedScoreTrack, activeSong.timeSignature, tempo);
-        musicalPlaybackEngine.setSustainMode(sustainOption);
-        musicalPlaybackEngine.setMetronomeEnabled(metronome.isPlaying);
-        musicalPlaybackEngine.setAudioEnabled(enableGuideAudio);
-        musicalPlaybackEngine.setLoopMode(playbackEndMode);
-        const startIdx = currentNoteIdx >= sortedScoreTrack.length ? 0 : currentNoteIdx;
-        const startBeat = noteOffsets[startIdx] ?? 0;
-        musicalPlaybackEngine.play(startBeat);
       }
     }
   };
@@ -606,24 +657,24 @@ export const RepertoireView: React.FC = () => {
           </div>
         </div>
 
-        {/* Lado Direito do Tier 1: Seletores de Alto Nível (Arranjo, Modo e Timbre) */}
-        <div className="flex flex-wrap items-center gap-2.5 self-start xl:self-auto">
+        {/* Lado Direito do Tier 1: Seletores de Alto Nível (Arranjo, Modo Unificado e Timbre) */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 self-start xl:self-auto">
           {/* Seletor de Modo de Arranjo: Teclado vs Violão no Teclado */}
           <div className="flex items-center bg-black/60 p-1 rounded-2xl border border-white/10 shadow-lg shrink-0">
             <button
               onClick={() => handleArrangementModeToggle('piano')}
-              className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`px-2.5 sm:px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
                 arrangementMode === 'piano'
                   ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-900/40 ring-1 ring-purple-400'
                   : 'text-slate-400 hover:text-white'
               }`}
               title="Arranjo Pianístico / Teclado Tradicional"
             >
-              <span>🎹 Arranjo Teclado</span>
+              <span>🎹 <span className="hidden sm:inline">Arranjo </span>Teclado</span>
             </button>
             <button
               onClick={() => handleArrangementModeToggle('guitar')}
-              className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`px-2.5 sm:px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
                 arrangementMode === 'guitar'
                   ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black shadow-md shadow-amber-900/40 ring-1 ring-amber-300'
                   : 'text-slate-400 hover:text-amber-300'
@@ -631,36 +682,117 @@ export const RepertoireView: React.FC = () => {
               title="Modo Arranjo de Violão no Teclado: Dedilhados (P-I-M-A), Baixarias de 7 Cordas e Batidas Rítmicas"
             >
               <Guitar className="w-3.5 h-3.5" />
-              <span>🎸 Arranjo Violão no Teclado</span>
+              <span><span className="hidden sm:inline">Arranjo </span>Violão<span className="hidden lg:inline"> no Teclado</span></span>
             </button>
           </div>
 
-          {/* Seletor de Modo: Ouvir Demonstração vs Modo Prática Interativo */}
-          <div className="flex items-center bg-black/60 p-1 rounded-2xl border border-white/10 shadow-lg shrink-0">
+          {/* Seletor Unificado dos 3 Modos de Execução: Reproduzir, Prática com Fluxo, Acompanhamento */}
+          <div className="relative shrink-0" ref={modeDropdownRef}>
             <button
-              onClick={() => handleSwitchViewMode('playback')}
-              className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
-                viewMode === 'playback'
-                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-900/40 ring-1 ring-emerald-400'
-                  : 'text-slate-400 hover:text-white'
+              type="button"
+              onClick={() => setShowModeDropdown((prev) => !prev)}
+              className={`px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-2xl font-bold text-xs flex items-center gap-2 border shadow-lg transition-all cursor-pointer active:scale-95 ${
+                currentExecutionMode === 'playback'
+                  ? 'bg-gradient-to-r from-emerald-600/30 to-teal-600/30 hover:from-emerald-600/40 hover:to-teal-600/40 text-emerald-200 border-emerald-500/40 shadow-emerald-950/30 ring-1 ring-emerald-500/30'
+                  : currentExecutionMode === 'flow'
+                  ? 'bg-gradient-to-r from-indigo-600/30 to-cyan-600/30 hover:from-indigo-600/40 hover:to-cyan-600/40 text-cyan-200 border-cyan-500/40 shadow-cyan-950/30 ring-1 ring-cyan-500/30'
+                  : 'bg-gradient-to-r from-purple-600/30 to-fuchsia-600/30 hover:from-purple-600/40 hover:to-fuchsia-600/40 text-purple-200 border-purple-500/40 shadow-purple-950/30 ring-1 ring-purple-500/30'
               }`}
-              title="Modo Demonstração Sonora: ouvir a obra musical com reprodução automática"
+              title="Alternar Modo de Execução (Reproduzir, Prática com Fluxo ou Acompanhamento)"
             >
-              <Play className="w-3.5 h-3.5 fill-current" />
-              <span>🎧 Reproduzir</span>
+              {currentExecutionMode === 'playback' && <Play className="w-3.5 h-3.5 fill-current text-emerald-400" />}
+              {currentExecutionMode === 'flow' && <Waves className="w-3.5 h-3.5 text-cyan-300" />}
+              {currentExecutionMode === 'wait' && <Sparkles className="w-3.5 h-3.5 text-purple-300" />}
+
+              <span className="font-black tracking-wide">
+                {currentExecutionMode === 'playback' && 'Modo: Reproduzir'}
+                {currentExecutionMode === 'flow' && 'Modo: Prática com Fluxo'}
+                {currentExecutionMode === 'wait' && 'Modo: Acompanhamento'}
+              </span>
+
+              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${showModeDropdown ? 'rotate-180' : ''}`} />
             </button>
-            <button
-              onClick={() => handleSwitchViewMode('practice')}
-              className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
-                viewMode === 'practice'
-                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-900/40 ring-1 ring-purple-400'
-                  : 'text-slate-400 hover:text-purple-300'
-              }`}
-              title="Modo Prática Interativo: toque você mesmo as notas e acordes no teclado MIDI ou instrumento acústico"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              <span>🎯 Modo Prática</span>
-            </button>
+
+            {/* Dropdown Menu com os 3 Modos */}
+            {showModeDropdown && (
+              <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 p-1.5 rounded-2xl bg-[#0f0b1e]/95 backdrop-blur-xl border border-white/10 shadow-2xl z-50 flex flex-col gap-1 animate-in fade-in zoom-in-95 duration-150">
+                <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-white/5">
+                  Modo de Execução
+                </div>
+
+                {/* 1. Reproduzir */}
+                <button
+                  type="button"
+                  onClick={() => handleSetExecutionMode('playback')}
+                  className={`w-full p-2.5 rounded-xl text-left flex items-start gap-2.5 transition-all cursor-pointer ${
+                    currentExecutionMode === 'playback'
+                      ? 'bg-emerald-500/20 text-emerald-100 border border-emerald-500/40'
+                      : 'hover:bg-white/5 text-slate-300 hover:text-white'
+                  }`}
+                >
+                  <div className={`p-1.5 rounded-lg mt-0.5 shrink-0 ${currentExecutionMode === 'playback' ? 'bg-emerald-500 text-slate-950 font-black' : 'bg-emerald-500/20 text-emerald-300'}`}>
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold">Reproduzir</span>
+                      {currentExecutionMode === 'playback' && <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">
+                      Demonstração sonora automática da obra com reprodução de áudio Hi-Fi.
+                    </p>
+                  </div>
+                </button>
+
+                {/* 2. Prática com Fluxo */}
+                <button
+                  type="button"
+                  onClick={() => handleSetExecutionMode('flow')}
+                  className={`w-full p-2.5 rounded-xl text-left flex items-start gap-2.5 transition-all cursor-pointer ${
+                    currentExecutionMode === 'flow'
+                      ? 'bg-cyan-500/20 text-cyan-100 border border-cyan-500/40'
+                      : 'hover:bg-white/5 text-slate-300 hover:text-white'
+                  }`}
+                >
+                  <div className={`p-1.5 rounded-lg mt-0.5 shrink-0 ${currentExecutionMode === 'flow' ? 'bg-cyan-400 text-slate-950 font-black' : 'bg-cyan-500/20 text-cyan-300'}`}>
+                    <Waves className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold">Prática com Fluxo</span>
+                      {currentExecutionMode === 'flow' && <Check className="w-3.5 h-3.5 text-cyan-400 shrink-0" />}
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">
+                      A partitura rola contínua no andamento (BPM) e avalia sua precisão rítmica.
+                    </p>
+                  </div>
+                </button>
+
+                {/* 3. Acompanhamento */}
+                <button
+                  type="button"
+                  onClick={() => handleSetExecutionMode('wait')}
+                  className={`w-full p-2.5 rounded-xl text-left flex items-start gap-2.5 transition-all cursor-pointer ${
+                    currentExecutionMode === 'wait'
+                      ? 'bg-purple-500/20 text-purple-100 border border-purple-500/40'
+                      : 'hover:bg-white/5 text-slate-300 hover:text-white'
+                  }`}
+                >
+                  <div className={`p-1.5 rounded-lg mt-0.5 shrink-0 ${currentExecutionMode === 'wait' ? 'bg-purple-500 text-white' : 'bg-purple-500/20 text-purple-300'}`}>
+                    <Sparkles className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold">Acompanhamento</span>
+                      {currentExecutionMode === 'wait' && <Check className="w-3.5 h-3.5 text-purple-400 shrink-0" />}
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">
+                      Passo a passo: a partitura aguarda você tocar cada nota/acorde correto para avançar.
+                    </p>
+                  </div>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Seletor de Timbre */}
@@ -668,193 +800,123 @@ export const RepertoireView: React.FC = () => {
         </div>
       </div>
 
-      {/* Tier 2: Controles de Execução (Play, BPM, Sustain e Metrônomo) */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-0.5">
-        {/* Lado Esquerdo do Tier 2: Ação Principal e BPM */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          {/* Controles de Ação Conforme o Modo Ativo */}
-          {viewMode === 'playback' ? (
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={handleTogglePlayPause}
-                className={`px-4 sm:px-5 py-2.5 rounded-2xl font-black font-display text-xs uppercase tracking-wider flex items-center gap-2 shadow-xl transition-all cursor-pointer active:scale-95 ${
-                  isPlaying
-                    ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/25 animate-pulse'
-                    : 'bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-black shadow-emerald-500/20'
-                }`}
-              >
-                {isPlaying ? (
-                  <>
-                    <Pause className="w-4 h-4 fill-current" />
-                    <span>Pausar</span>
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-4 h-4 fill-current" />
-                    <span>Reproduzir</span>
-                  </>
-                )}
-              </button>
+      {/* Tier 2: Controles de Execução (Ação, Reiniciar, Modificador, Sustain e BPM/Metrônomo Unificados) */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3 pt-0.5">
+        {/* Lado Esquerdo do Tier 2: Ação Principal, Reiniciar e Modificador do Modo */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Botão de Ação Primário (Adaptativo ao Modo Ativo) */}
+          <button
+            onClick={currentExecutionMode === 'playback' ? handleTogglePlayPause : handleTogglePractice}
+            className={`px-4 sm:px-5 py-2.5 rounded-2xl font-black font-display text-xs uppercase tracking-wider flex items-center gap-2 shadow-xl transition-all cursor-pointer active:scale-95 ${
+              (currentExecutionMode === 'playback' ? isPlaying : isPracticing)
+                ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/25 animate-pulse'
+                : currentExecutionMode === 'playback'
+                ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-black shadow-emerald-500/20'
+                : currentExecutionMode === 'flow'
+                ? 'bg-gradient-to-r from-cyan-500 to-indigo-500 hover:from-cyan-400 hover:to-indigo-400 text-white font-black shadow-cyan-500/20'
+                : 'bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 text-white font-black shadow-purple-500/20'
+            }`}
+            title={
+              (currentExecutionMode === 'playback' ? isPlaying : isPracticing)
+                ? 'Pausar execução'
+                : currentExecutionMode === 'playback'
+                ? 'Iniciar reprodução automática'
+                : currentExecutionMode === 'flow'
+                ? 'Iniciar prática contínua no andamento'
+                : 'Iniciar prática passo a passo (acompanhamento)'
+            }
+          >
+            {(currentExecutionMode === 'playback' ? isPlaying : isPracticing) ? (
+              <>
+                <Pause className="w-4 h-4 fill-current" />
+                <span>Pausar</span>
+              </>
+            ) : (
+              <>
+                <Play className="w-4 h-4 fill-current" />
+                <span>
+                  {currentExecutionMode === 'playback'
+                    ? 'Reproduzir'
+                    : currentExecutionMode === 'flow'
+                    ? 'Iniciar Fluxo'
+                    : 'Iniciar Prática'}
+                </span>
+              </>
+            )}
+          </button>
 
-              {/* Alternador de Modo de Fim vs Repetição */}
-              <button
-                onClick={() => {
-                  const nextMode = playbackEndMode === 'end' ? 'repeat' : 'end';
-                  setPlaybackEndMode(nextMode);
-                  musicalPlaybackEngine.setLoopMode(nextMode);
-                }}
-                className={`px-3 py-2 rounded-2xl border text-xs font-bold font-mono flex items-center gap-1.5 transition-all cursor-pointer ${
-                  playbackEndMode === 'repeat'
-                    ? 'bg-purple-600/30 border-purple-500/50 text-purple-200'
-                    : 'bg-white/5 border-white/10 text-slate-300 hover:text-white'
-                }`}
-                title={playbackEndMode === 'repeat' ? 'Modo Repetição (Loop contínuo após o fim)' : 'Modo Fim (Cessa após a última nota)'}
-              >
-                {playbackEndMode === 'repeat' ? (
-                  <>
-                    <Repeat className="w-3.5 h-3.5 text-purple-400" />
-                    <span className="hidden xl:inline">Repetição</span>
-                  </>
-                ) : (
-                  <>
-                    <Square className="w-3.5 h-3.5 text-amber-400" />
-                    <span className="hidden xl:inline">Modo Fim</span>
-                  </>
-                )}
-              </button>
+          {/* Botão Reiniciar */}
+          <button
+            onClick={currentExecutionMode === 'playback' ? handleResetPlayback : handleResetPractice}
+            className="p-2.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/5 cursor-pointer transition-colors"
+            title="Reiniciar do início (Compasso 1)"
+          >
+            <RotateCcw className="w-4 h-4" />
+          </button>
 
-              <button
-                onClick={handleResetPlayback}
-                className="p-2.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/5 cursor-pointer transition-colors"
-                title="Reiniciar música do início"
-              >
-                <RotateCcw className="w-4 h-4" />
-              </button>
-            </div>
+          {/* Modificador Secundário: Modo Fim/Repetição no Playback OU Áudio Guia na Prática */}
+          {currentExecutionMode === 'playback' ? (
+            <button
+              onClick={() => {
+                const nextMode = playbackEndMode === 'end' ? 'repeat' : 'end';
+                setPlaybackEndMode(nextMode);
+                musicalPlaybackEngine.setLoopMode(nextMode);
+              }}
+              className={`px-3 py-2 rounded-2xl border text-xs font-bold font-mono flex items-center gap-1.5 transition-all cursor-pointer ${
+                playbackEndMode === 'repeat'
+                  ? 'bg-purple-600/30 border-purple-500/50 text-purple-200'
+                  : 'bg-white/5 border-white/10 text-slate-300 hover:text-white'
+              }`}
+              title={playbackEndMode === 'repeat' ? 'Modo Repetição (Loop contínuo após o fim)' : 'Modo Fim (Cessa após a última nota)'}
+            >
+              {playbackEndMode === 'repeat' ? (
+                <>
+                  <Repeat className="w-3.5 h-3.5 text-purple-400" />
+                  <span className="hidden sm:inline">Repetição</span>
+                </>
+              ) : (
+                <>
+                  <Square className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="hidden sm:inline">Modo Fim</span>
+                </>
+              )}
+            </button>
           ) : (
-            <div className="flex items-center gap-1.5">
-              {/* Seletor de Tipo de Prática: Modo Espera vs Modo Fluido */}
-              <div className="flex items-center bg-black/60 p-1 rounded-2xl border border-white/10 text-xs shrink-0">
-                <button
-                  onClick={() => handleSelectPracticeType('wait')}
-                  className={`px-2.5 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
-                    practiceType === 'wait'
-                      ? 'bg-purple-600 text-white shadow-md'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                  title="Modo Espera: a partitura aguarda você tocar as notas e acordes corretos para avançar"
-                >
-                  Modo Espera
-                </button>
-                <button
-                  onClick={() => handleSelectPracticeType('flow')}
-                  className={`px-2.5 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
-                    practiceType === 'flow'
-                      ? 'bg-indigo-600 text-white shadow-md'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                  title="Modo Fluido: a partitura rola no andamento (BPM) e avalia sua precisão rítmica"
-                >
-                  Modo Fluido
-                </button>
-              </div>
-
-              {/* Iniciar / Pausar Prática */}
-              <button
-                onClick={handleTogglePractice}
-                className={`px-4 sm:px-5 py-2.5 rounded-2xl font-black font-display text-xs uppercase tracking-wider flex items-center gap-2 shadow-xl transition-all cursor-pointer active:scale-95 ${
-                  isPracticing
-                    ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/25 animate-pulse'
-                    : 'bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 text-white font-black shadow-purple-500/20'
-                }`}
-              >
-                {isPracticing ? (
-                  <>
-                    <Pause className="w-4 h-4 fill-current" />
-                    <span>Pausar</span>
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-4 h-4 fill-current" />
-                    <span>Praticar</span>
-                  </>
-                )}
-              </button>
-
-              <button
-                onClick={handleResetPractice}
-                className="p-2.5 rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/5 cursor-pointer transition-colors"
-                title="Reiniciar prática do início (Compasso 1)"
-              >
-                <RotateCcw className="w-4 h-4" />
-              </button>
-
-              {/* Alternador de Áudio Guia da Partitura na Prática */}
-              <button
-                onClick={() => {
-                  const next = !enableGuideAudio;
-                  setEnableGuideAudio(next);
-                  musicalPlaybackEngine.setAudioEnabled(next);
-                }}
-                className={`px-3 py-2 rounded-2xl border text-xs font-bold font-mono flex items-center gap-1.5 transition-all cursor-pointer ${
-                  enableGuideAudio
-                    ? 'bg-purple-600/30 border-purple-500/50 text-purple-200'
-                    : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
-                }`}
-                title={enableGuideAudio ? 'Áudio Guia Ativo: a partitura soa no andamento para você tocar junto' : 'Áudio Guia Silenciado: apenas o som do seu instrumento e metrônomo'}
-              >
-                {enableGuideAudio ? (
-                  <>
-                    <Volume2 className="w-3.5 h-3.5 text-purple-400" />
-                    <span className="hidden xl:inline">Áudio Guia</span>
-                  </>
-                ) : (
-                  <>
-                    <VolumeX className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="hidden xl:inline">Mudo</span>
-                  </>
-                )}
-              </button>
-            </div>
+            <button
+              onClick={() => {
+                const next = !enableGuideAudio;
+                setEnableGuideAudio(next);
+                musicalPlaybackEngine.setAudioEnabled(next);
+              }}
+              className={`px-3 py-2 rounded-2xl border text-xs font-bold font-mono flex items-center gap-1.5 transition-all cursor-pointer ${
+                enableGuideAudio
+                  ? 'bg-purple-600/30 border-purple-500/50 text-purple-200'
+                  : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
+              }`}
+              title={enableGuideAudio ? 'Áudio Guia Ativo: a partitura soa no andamento para você tocar junto' : 'Áudio Guia Silenciado: apenas o som do seu instrumento e metrônomo'}
+            >
+              {enableGuideAudio ? (
+                <>
+                  <Volume2 className="w-3.5 h-3.5 text-purple-400" />
+                  <span className="hidden sm:inline">Áudio Guia</span>
+                </>
+              ) : (
+                <>
+                  <VolumeX className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="hidden sm:inline">Mudo</span>
+                </>
+              )}
+            </button>
           )}
-
-          {/* Ajuste de Andamento (BPM) */}
-          <div className="flex items-center gap-1.5 bg-black/40 px-2.5 py-1.5 rounded-2xl border border-white/5">
-            <span className="text-[10px] text-slate-400 font-mono flex items-center gap-1">
-              <Gauge className="w-3 h-3 text-purple-400" />
-              <span>BPM:</span>
-            </span>
-
-            <button
-              onClick={() => handleTempoChange(tempo - 5)}
-              className="w-5 h-5 rounded-md bg-white/5 hover:bg-white/10 text-white font-mono font-bold text-xs flex items-center justify-center cursor-pointer"
-              title="-5 BPM"
-            >
-              -
-            </button>
-
-            <span className="text-xs font-bold font-mono text-purple-300 w-12 text-center">
-              {tempo}
-            </span>
-
-            <button
-              onClick={() => handleTempoChange(tempo + 5)}
-              className="w-5 h-5 rounded-md bg-white/5 hover:bg-white/10 text-white font-mono font-bold text-xs flex items-center justify-center cursor-pointer"
-              title="+5 BPM"
-            >
-              +
-            </button>
-          </div>
-
         </div>
 
-        {/* Lado Direito do Tier 2: Sustain e Metrônomo */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          {/* Controle Real de Sustain (Exclusivo na Tela de Repertório / Modo Reprodução) */}
+        {/* Lado Direito do Tier 2: Sustain e Grupo Unificado (BPM + Metrônomo) */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+          {/* Controle Real de Sustain */}
           <div className="flex items-center bg-black/50 p-1 rounded-2xl border border-white/10 text-xs">
             <button
               onClick={() => handleSustainOptionChange('all')}
-              className={`px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1 ${
+              className={`px-2 sm:px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1 ${
                 sustainOption === 'all'
                   ? 'bg-amber-500 text-slate-950 font-black shadow-[0_0_12px_rgba(245,158,11,0.5)] ring-1 ring-amber-300'
                   : 'text-slate-400 hover:text-white'
@@ -867,7 +929,7 @@ export const RepertoireView: React.FC = () => {
 
             <button
               onClick={() => handleSustainOptionChange('notes')}
-              className={`px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1 ${
+              className={`px-2 sm:px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1 ${
                 sustainOption === 'notes'
                   ? 'bg-indigo-600 text-white shadow-md'
                   : 'text-slate-400 hover:text-white'
@@ -879,7 +941,7 @@ export const RepertoireView: React.FC = () => {
 
             <button
               onClick={() => handleSustainOptionChange('chords')}
-              className={`px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1 ${
+              className={`px-2 sm:px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1 ${
                 sustainOption === 'chords'
                   ? 'bg-purple-600 text-white shadow-md'
                   : 'text-slate-400 hover:text-white'
@@ -891,7 +953,7 @@ export const RepertoireView: React.FC = () => {
 
             <button
               onClick={() => handleSustainOptionChange('off')}
-              className={`px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1 ${
+              className={`px-2 sm:px-2.5 py-1 rounded-xl font-bold transition-all cursor-pointer flex items-center gap-1 ${
                 sustainOption === 'off'
                   ? 'bg-slate-700 text-white shadow-md'
                   : 'text-slate-400 hover:text-white'
@@ -902,69 +964,103 @@ export const RepertoireView: React.FC = () => {
             </button>
           </div>
 
-          {/* Metrônomo Musical Integrado com Visualizador de Pulsos */}
-          <div className="flex flex-wrap items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-2xl border border-white/10 text-xs">
-            <button
-              onClick={handleToggleMetronome}
-              className={`p-1.5 px-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 font-bold ${
-                metronome.isPlaying
-                  ? 'bg-amber-500 text-slate-950 font-black shadow-[0_0_15px_rgba(245,158,11,0.5)] ring-2 ring-amber-300'
-                  : 'text-slate-400 hover:text-white bg-white/5'
-              }`}
-              title={metronome.isPlaying ? 'Metrônomo Ativo (Clique para Desligar)' : 'Ligar Metrônomo Sonoro'}
-            >
-              {metronome.isPlaying ? <Volume2 className="w-3.5 h-3.5 animate-pulse" /> : <VolumeX className="w-3.5 h-3.5" />}
-              <span>{metronome.isPlaying ? 'Metrônomo ON' : 'Metrônomo'}</span>
-            </button>
+          {/* Grupo Unificado de Andamento & Tempo: BPM + Metrônomo */}
+          <div className="flex items-center bg-black/50 p-1 rounded-2xl border border-white/10 shadow-lg text-xs shrink-0">
+            {/* Ajuste de Andamento (BPM) */}
+            <div className="flex items-center gap-1.5 px-2 py-0.5">
+              <span className="text-[10px] text-slate-400 font-mono flex items-center gap-1">
+                <Gauge className="w-3 h-3 text-purple-400" />
+                <span className="hidden sm:inline">BPM:</span>
+              </span>
 
-            {/* LEDs de Batidas */}
-            <div className="flex items-center gap-1 px-1">
-              {Array.from({ length: metronome.beatsPerMeasure }, (_, i) => i + 1).map((b) => {
-                const isCurrent = metronome.isPlaying && metronome.currentBeat === b;
-                const isDown = b === 1;
-                return (
-                  <span
-                    key={b}
-                    className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[8px] font-mono font-bold transition-all duration-75 ${
-                      isCurrent
-                        ? isDown
-                          ? 'bg-amber-400 text-slate-950 scale-125 shadow-[0_0_10px_#fbbf24]'
-                          : 'bg-indigo-400 text-slate-950 scale-110 shadow-[0_0_8px_#818cf8]'
-                        : 'bg-white/10 text-slate-500'
-                    }`}
-                  >
-                    {b}
-                  </span>
-                );
-              })}
+              <button
+                onClick={() => handleTempoChange(tempo - 5)}
+                className="w-5 h-5 rounded-md bg-white/5 hover:bg-white/10 text-white font-mono font-bold text-xs flex items-center justify-center cursor-pointer active:scale-95 transition-all"
+                title="-5 BPM"
+              >
+                -
+              </button>
+
+              <span className="text-xs font-bold font-mono text-purple-300 w-8 sm:w-9 text-center">
+                {tempo}
+              </span>
+
+              <button
+                onClick={() => handleTempoChange(tempo + 5)}
+                className="w-5 h-5 rounded-md bg-white/5 hover:bg-white/10 text-white font-mono font-bold text-xs flex items-center justify-center cursor-pointer active:scale-95 transition-all"
+                title="+5 BPM"
+              >
+                +
+              </button>
             </div>
 
-            {metronome.isPlaying && (
-              <>
-                <select
-                  value={metronome.soundType}
-                  onChange={(e) => metronomeEngine.setSoundType(e.target.value as MetronomeSoundType)}
-                  className="bg-black/60 text-[10px] text-amber-200 border border-white/10 rounded-lg px-1.5 py-0.5 font-mono cursor-pointer outline-none"
-                  title="Timbre Musical do Metrônomo"
-                >
-                  {METRONOME_SOUND_OPTIONS.map((opt) => (
-                    <option key={opt.id} value={opt.id}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
+            {/* Divisor vertical sutil entre BPM e Metrônomo */}
+            <div className="w-[1px] h-5 bg-white/15 mx-1" />
 
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={metronome.volume}
-                  onChange={(e) => metronomeEngine.setVolume(parseInt(e.target.value, 10))}
-                  className="w-12 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
-                  title={`Volume: ${metronome.volume}%`}
-                />
-              </>
-            )}
+            {/* Metrônomo Musical Integrado com Visualizador de Pulsos */}
+            <div className="flex items-center gap-1.5 px-1 py-0.5">
+              <button
+                onClick={handleToggleMetronome}
+                className={`px-2 sm:px-2.5 py-1 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 font-bold ${
+                  metronome.isPlaying
+                    ? 'bg-amber-500 text-slate-950 font-black shadow-[0_0_12px_rgba(245,158,11,0.5)] ring-1 ring-amber-300'
+                    : 'text-slate-400 hover:text-white bg-white/5'
+                }`}
+                title={metronome.isPlaying ? 'Metrônomo Ativo (Clique para Desligar)' : 'Ligar Metrônomo Sonoro'}
+              >
+                {metronome.isPlaying ? <Volume2 className="w-3.5 h-3.5 animate-pulse" /> : <VolumeX className="w-3.5 h-3.5" />}
+                <span className="hidden sm:inline">{metronome.isPlaying ? 'Metrônomo ON' : 'Metrônomo'}</span>
+              </button>
+
+              {/* LEDs de Batidas */}
+              <div className="flex items-center gap-1 px-1">
+                {Array.from({ length: metronome.beatsPerMeasure }, (_, i) => i + 1).map((b) => {
+                  const isCurrent = metronome.isPlaying && metronome.currentBeat === b;
+                  const isDown = b === 1;
+                  return (
+                    <span
+                      key={b}
+                      className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[8px] font-mono font-bold transition-all duration-75 ${
+                        isCurrent
+                          ? isDown
+                            ? 'bg-amber-400 text-slate-950 scale-125 shadow-[0_0_10px_#fbbf24]'
+                            : 'bg-indigo-400 text-slate-950 scale-110 shadow-[0_0_8px_#818cf8]'
+                          : 'bg-white/10 text-slate-500'
+                      }`}
+                    >
+                      {b}
+                    </span>
+                  );
+                })}
+              </div>
+
+              {metronome.isPlaying && (
+                <>
+                  <select
+                    value={metronome.soundType}
+                    onChange={(e) => metronomeEngine.setSoundType(e.target.value as MetronomeSoundType)}
+                    className="bg-black/60 text-[10px] text-amber-200 border border-white/10 rounded-lg px-1.5 py-0.5 font-mono cursor-pointer outline-none"
+                    title="Timbre Musical do Metrônomo"
+                  >
+                    {METRONOME_SOUND_OPTIONS.map((opt) => (
+                      <option key={opt.id} value={opt.id}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={metronome.volume}
+                    onChange={(e) => metronomeEngine.setVolume(parseInt(e.target.value, 10))}
+                    className="w-12 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                    title={`Volume: ${metronome.volume}%`}
+                  />
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>

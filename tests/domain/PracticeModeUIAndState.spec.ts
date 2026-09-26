@@ -83,4 +83,32 @@ describe('PracticeModeUIAndState - Testes de Interface, Estado e Apresentação 
     expect(sig.denominator).toBe(4);
     expect(sig.beatsPerMeasure).toBe(4);
   });
+
+  it('deve mapear os 3 modos de execução da partitura (Reproduzir, Fluxo, Acompanhamento) com seus respectivos estados', () => {
+    type ExecutionMode = 'playback' | 'flow' | 'wait';
+
+    const resolveExecutionState = (mode: ExecutionMode) => {
+      if (mode === 'playback') {
+        return { viewMode: 'playback' as const, practiceType: 'wait' as const, label: 'Modo: Reproduzir' };
+      }
+      if (mode === 'flow') {
+        return { viewMode: 'practice' as const, practiceType: 'flow' as const, label: 'Modo: Prática com Fluxo' };
+      }
+      return { viewMode: 'practice' as const, practiceType: 'wait' as const, label: 'Modo: Acompanhamento' };
+    };
+
+    const playback = resolveExecutionState('playback');
+    expect(playback.viewMode).toBe('playback');
+    expect(playback.label).toBe('Modo: Reproduzir');
+
+    const flow = resolveExecutionState('flow');
+    expect(flow.viewMode).toBe('practice');
+    expect(flow.practiceType).toBe('flow');
+    expect(flow.label).toBe('Modo: Prática com Fluxo');
+
+    const wait = resolveExecutionState('wait');
+    expect(wait.viewMode).toBe('practice');
+    expect(wait.practiceType).toBe('wait');
+    expect(wait.label).toBe('Modo: Acompanhamento');
+  });
 });
