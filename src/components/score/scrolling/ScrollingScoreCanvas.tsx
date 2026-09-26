@@ -260,13 +260,27 @@ export const ScrollingScoreCanvas: React.FC<ScrollingScoreProps> = ({
         const currentBeat = musicalPlaybackEngine.getCurrentBeat();
         playback.scrollOffsetRef.current = currentBeat * pixelsPerBeat;
 
-        // Atualiza nota alvo atual na partitura
-        const foundIdx = timeline.noteOffsets.findIndex(b => Math.abs(b - currentBeat) <= 0.15 || b > currentBeat);
-        if (foundIdx !== -1 && foundIdx !== playback.currentIndex) {
-          if (!isDemoMode && foundIdx > playback.currentIndex) {
-            playback.handleStepMissed?.(playback.currentIndex);
+        // Identifica o passo atual baseado no tempo musical exato (lookahead de 0.15 beats)
+        let stepStartIdx = 0;
+        for (let i = 0; i < timeline.noteOffsets.length; i++) {
+          const noteOffset = timeline.noteOffsets[i] ?? 0;
+          if (noteOffset <= currentBeat + 0.15) {
+            const prevOffset = timeline.noteOffsets[stepStartIdx] ?? 0;
+            if (noteOffset > prevOffset + 0.05) {
+              stepStartIdx = i;
+            }
+          } else {
+            break;
           }
-          playback.setCurrentIndex(foundIdx);
+        }
+
+        if (stepStartIdx !== playback.currentIndex) {
+          if (!isDemoMode && stepStartIdx > playback.currentIndex) {
+            for (let missed = playback.currentIndex; missed < stepStartIdx; missed++) {
+              playback.handleStepMissed?.(missed);
+            }
+          }
+          playback.setCurrentIndex(stepStartIdx);
         }
       } else if (!isFlowing) {
         // MODO ESPERA: a partitura se alinha suavemente com a nota/acorde atual e aguarda a execução

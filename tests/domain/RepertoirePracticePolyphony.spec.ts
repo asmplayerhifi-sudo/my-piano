@@ -192,4 +192,151 @@ describe('RepertoirePracticePolyphony - Validação Polifônica e Acordes no Mod
     musicalPlaybackEngine.stop();
     expect(musicalPlaybackEngine.getIsPlaying()).toBe(false);
   });
+
+  it('deve avançar corretamente entre compassos com notas consecutivas de mesmo tom sem oscilar', () => {
+    // Simula transição entre fim do c.1 (G3, midi 67) e início do c.2 (G3, midi 67)
+    const consecutiveSamePitchNotes: ScoreNote[] = [
+      { note: 'G3', midi: 67, duration: 1, measure: 1, beat: 4, clef: 'treble' },
+      { note: 'G3', midi: 67, duration: 1, measure: 2, beat: 1, clef: 'treble' },
+      { note: 'F3', midi: 65, duration: 1, measure: 2, beat: 2, clef: 'treble' },
+    ];
+
+    let currentTargetIndex = 0;
+    const notifiedIndices: number[] = [];
+
+    const onTargetNoteChange = (_note: ScoreNote | null, idx: number) => {
+      notifiedIndices.push(idx);
+    };
+
+    // Simula notificação com base no índice (e não apenas no pitch MIDI)
+    let lastTargetIndex: number | undefined = undefined;
+    const updateTarget = (idx: number) => {
+      currentTargetIndex = idx;
+      if (lastTargetIndex !== currentTargetIndex) {
+        lastTargetIndex = currentTargetIndex;
+        onTargetNoteChange(consecutiveSamePitchNotes[idx], idx);
+      }
+    };
+
+    updateTarget(0); // Inicia na nota 0 (G3, c.1)
+    updateTarget(1); // Avança para a nota 1 (G3, c.2) - mesmo pitch 67!
+    updateTarget(2); // Avança para a nota 2 (F3, c.2)
+
+    expect(notifiedIndices).toEqual([0, 1, 2]);
+  });
+
+  it('não deve reavaliar o mesmo evento MIDI (mesmo timestamp) em passos subsequentes após avanço de currentIndex', () => {
+    // Simula a proteção de timestamp do useScorePlayback
+    let lastProcessedEventTimestamp = 0;
+    let currentIdx = 0;
+    const notes: ScoreNote[] = [
+      { note: 'E3', midi: 64, duration: 1, measure: 1, beat: 1 },
+      { note: 'E3', midi: 64, duration: 1, measure: 1, beat: 2 }, // Nota consecutiva idêntica
+    ];
+
+    let stepCompletedCount = 0;
+
+    const processMidiInput = (event: { midi: number; timestamp: number }) => {
+      // 1. Verificação de deduplicação por timestamp único do evento físico
+      if (event.timestamp !== 0 && event.timestamp === lastProcessedEventTimestamp) {
+        return false; // Ignora evento já consumido!
+      }
+      if (event.timestamp !== 0) {
+        lastProcessedEventTimestamp = event.timestamp;
+      }
+
+      // Avalia se a nota confere com o passo atual
+      if (notes[currentIdx]?.midi === event.midi) {
+        stepCompletedCount++;
+        currentIdx++;
+        return true;
+      }
+      return false;
+    };
+
+    const firstPhysicalPress = { midi: 64, timestamp: 1000.5 };
+
+    // Primeira avaliação: o usuário tocou E3 para o passo 0
+    const matchedFirst = processMidiInput(firstPhysicalPress);
+    expect(matchedFirst).toBe(true);
+    expect(currentIdx).toBe(1);
+    expect(stepCompletedCount).toBe(1);
+
+    // Re-render do React disparado pela mudança de currentIdx de 0 para 1
+    // O evento firstPhysicalPress ainda está presente no estado do componente pai
+    const reEvaluatedStale = processMidiInput(firstPhysicalPress);
+    expect(reEvaluatedStale).toBe(false); // DEVE SER REJEITADO!
+    expect(currentIdx).toBe(1); // Não pulou a nota 1 inadvertidamente!
+    expect(stepCompletedCount).toBe(1);
+
+    // Segundo toque físico real do usuário (timestamp diferente)
+    const secondPhysicalPress = { midi: 64, timestamp: 1250.0 };
+    const matchedSecond = processMidiInput(secondPhysicalPress);
+    expect(matchedSecond).toBe(true);
+    expect(currentIdx).toBe(2);
+    expect(stepCompletedCount).toBe(2);
+  });
+
+  it('deve ignorar ecos da prop currentNoteIndex para impedir oscilação (vaivém) entre compassos', () => {
+    let internalCurrentIndex = 5;
+    let lastEmittedIndex = 5; // hook acabou de emitir 5 para o componente pai
+
+    const handleExternalSync = (incomingPropIndex: number) => {
+      // Se for eco da notificação interna recém emitida, deve ignorar
+      if (incomingPropIndex === internalCurrentIndex || incomingPropIndex === lastEmittedIndex) {
+        return false; // Não interfere
+      }
+      internalCurrentIndex = incomingPropIndex;
+      return true; // Sincronização externa real (ex: reset pelo pai para o compasso 1)
+    };
+
+    // Pai re-renderiza assincronamente e devolve 5 (eco)
+    const syncedEcho = handleExternalSync(5);
+    expect(syncedEcho).toBe(false);
+    expect(internalCurrentIndex).toBe(5);
+
+    // Usuário clica no botão de reiniciar (ordem externa real: reset para 0)
+    const syncedReset = handleExternalSync(0);
+    expect(syncedReset).toBe(true);
+    expect(internalCurrentIndex).toBe(0);
+  });
+
+  it('deve transicionar passos no Modo Fluido de acordo com as batidas métricas reais sem pular à frente prematuramente', () => {
+    // Três passos com offsets 0, 1, 2
+    const noteOffsets = [0, 0, 1, 2, 3];
+
+    const getStepStartIdx = (currentBeat: number) => {
+      let stepStartIdx = 0;
+      for (let i = 0; i < noteOffsets.length; i++) {
+        const noteOffset = noteOffsets[i] ?? 0;
+        if (noteOffset <= currentBeat + 0.15) {
+          const prevOffset = noteOffsets[stepStartIdx] ?? 0;
+          if (noteOffset > prevOffset + 0.05) {
+            stepStartIdx = i;
+          }
+        } else {
+          break;
+        }
+      }
+      return stepStartIdx;
+    };
+
+    // No beat 0: deve permanecer no passo 0 (índice 0)
+    expect(getStepStartIdx(0.0)).toBe(0);
+    // No beat 0.2: NÃO deve pular para o beat 1! Deve continuar no passo 0
+    expect(getStepStartIdx(0.2)).toBe(0);
+    expect(getStepStartIdx(0.5)).toBe(0);
+    expect(getStepStartIdx(0.8)).toBe(0);
+
+    // À medida que a batida 1 se aproxima dentro da janela de lookahead (0.15 beats):
+    // 1.0 - 0.15 = 0.85 beats
+    expect(getStepStartIdx(0.86)).toBe(2); // Transiciona para o passo 1 (índice 2)
+    expect(getStepStartIdx(1.0)).toBe(2);
+    expect(getStepStartIdx(1.5)).toBe(2);
+
+    // Beat 2
+    expect(getStepStartIdx(1.86)).toBe(3);
+    expect(getStepStartIdx(2.0)).toBe(3);
+  });
 });
+

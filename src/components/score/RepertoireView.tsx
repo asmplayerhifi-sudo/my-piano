@@ -15,7 +15,6 @@ import { useOctaveStandard, octaveConfigStore } from '../../core/octaveConfigSto
 import { computeNoteOffsets } from './scrolling/scoreGeometry';
 import { useFullscreen } from '../../hooks/useFullscreen';
 import type { ScoreSustainMode, DetailedMidiInput } from './scrolling/types';
-import { midiManager, type MidiEventPayload } from '../../core/midiManager';
 import {
   Music,
   Play,
@@ -61,7 +60,7 @@ export const RepertoireView: React.FC = () => {
 
   // Modo de Execução: 'playback' (Ouvir Demonstração Sonora) vs 'practice' (Modo Prática Interativo)
   const [viewMode, setViewMode] = useState<'playback' | 'practice'>('playback');
-  const [practiceType, setPracticeType] = useState<'wait' | 'flow'>('flow');
+  const [practiceType, setPracticeType] = useState<'wait' | 'flow'>('wait');
   const [isPracticing, setIsPracticing] = useState<boolean>(false);
   const [practiceHits, setPracticeHits] = useState<number>(0);
   const [practiceErrors, setPracticeErrors] = useState<number>(0);
@@ -274,27 +273,6 @@ export const RepertoireView: React.FC = () => {
       timestamp: performance.now(),
     });
   }, []);
-
-  // Escuta entradas MIDI diretas do teclado físico externo (USB / OTG / Bluetooth)
-  useEffect(() => {
-    const unsub = midiManager.subscribe((payload: MidiEventPayload) => {
-      if (payload.isDown) {
-        setActiveMidiKeys((prev) => {
-          const next = new Set(prev);
-          next.add(payload.midi);
-          handleNoteInput(payload.midi, Array.from(next), payload.noteName);
-          return next;
-        });
-      } else {
-        setActiveMidiKeys((prev) => {
-          const next = new Set(prev);
-          next.delete(payload.midi);
-          return next;
-        });
-      }
-    });
-    return unsub;
-  }, [handleNoteInput]);
 
   // Garante que o scoreTrack esteja SEMPRE estritamente ordenado por compasso e tempo
   const sortedScoreTrack = useMemo(() => {
@@ -1234,8 +1212,8 @@ export const RepertoireView: React.FC = () => {
         <MicrophonePitchBar
           disabled={viewMode === 'playback' && isPlaying}
           disabledMessage="Demonstração em reprodução: escuta do microfone e avaliação de performance desativadas (apenas demonstração sonora da obra)."
-          onNoteDetected={(midi) => {
-            handleNoteInput(midi, [midi]);
+          onNoteDetected={(midi, noteName) => {
+            handleNoteInput(midi, [midi], noteName);
           }}
           onNoteHold={(midi) => {
             setMicHearingMidi(midi);
@@ -1247,9 +1225,10 @@ export const RepertoireView: React.FC = () => {
             setMicAcousticNotes(notes);
           }}
           onActiveNotesChange={(notes) => {
+            setActiveMidiKeys(new Set(notes));
             setMicAcousticNotes(notes);
-            if (notes.length > 0) {
-              handleNoteInput(notes[0], notes);
+            if (notes.length === 0) {
+              setLastMidiEvent(null);
             }
           }}
         />
