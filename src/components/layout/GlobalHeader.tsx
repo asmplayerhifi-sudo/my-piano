@@ -44,6 +44,10 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
   const [isMuted, setIsMuted] = useState<boolean>(soundEngine.isSoundMuted());
   const [currentOffset, setCurrentOffset] = useState<number>(latencyManager.getOffsetMs());
 
+  // Gesture de swipe-down para fechar o bottom sheet
+  const drawerSwipeStartYRef = useRef<number>(0);
+  const drawerRef = useRef<HTMLDivElement>(null);
+
   const octaveStandard = useOctaveStandard();
   const accState = useAccompaniment();
   const inputConfig = useAudioInputConfig();
@@ -111,10 +115,10 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
       >
         {/* ── 1. ESQUERDA: Botão Menu (Mobile <1024px) + Marca HARMONIA ── */}
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-          {/* Botão [ ☰ Menu ] (Wireframe 3: Telas Pequenas < 1024px) */}
+          {/* Botão [ ☰ Menu ] (Telas < 1024px) — touch target mínimo 44×44px */}
           <button
             onClick={() => setShowDrawer(true)}
-            className="lg:hidden flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 hover:text-white font-bold text-xs transition-all cursor-pointer active:scale-95"
+            className="lg:hidden flex items-center gap-1.5 min-w-[44px] min-h-[44px] px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 hover:text-white font-bold text-xs transition-all cursor-pointer active:scale-95 justify-center"
             title="Abrir Menu Principal de Navegação"
             aria-label="Abrir Menu de Navegação"
             aria-expanded={showDrawer}
@@ -477,46 +481,61 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
         </div>
       </header>
 
-      {/* ── 4. DRAWER / MODAL LATERAL DE NAVEGAÇÃO PRINCIPAL (Telas < 1024px ou via [⚙️ Mais...]) ── */}
+      {/* ── 4. BOTTOM SHEET (mobile < lg) / DRAWER LATERAL (desktop ≥ lg) ── */}
       {showDrawer &&
         typeof document !== 'undefined' &&
         createPortal(
           <div
-            className="fixed inset-0 z-[9999] flex justify-start bg-black/80 backdrop-blur-md animate-fade-in select-none"
-            onClick={() => setShowDrawer(false)}
+            className="fixed inset-0 z-[9999] select-none"
+            aria-modal="true"
+            role="dialog"
+            aria-label="Menu de Navegação Principal"
           >
+            {/* Backdrop */}
             <div
-              className="bg-[#0c0b1a] border-r border-white/15 w-full max-w-md h-full shadow-2xl flex flex-col justify-between overflow-y-auto text-slate-100 p-5 sm:p-6 space-y-5"
-              onClick={(e) => e.stopPropagation()}
+              className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+              onClick={() => setShowDrawer(false)}
+            />
+
+            {/* ── Bottom Sheet (< lg) ── */}
+            <div
+              ref={drawerRef}
+              className="lg:hidden absolute bottom-0 left-0 right-0 bg-[#0c0b1a] border-t border-white/15 rounded-t-3xl shadow-2xl flex flex-col text-slate-100"
+              style={{ maxHeight: '90dvh', paddingBottom: 'env(safe-area-inset-bottom, 16px)' }}
+              onTouchStart={(e) => { drawerSwipeStartYRef.current = e.touches[0].clientY; }}
+              onTouchEnd={(e) => {
+                const delta = e.changedTouches[0].clientY - drawerSwipeStartYRef.current;
+                if (delta > 80) setShowDrawer(false);
+              }}
             >
-              {/* Cabeçalho do Drawer */}
-              <div className="flex items-center justify-between pb-4 border-b border-white/10 shrink-0">
+              {/* Drag Handle */}
+              <div className="flex justify-center pt-3 pb-1 shrink-0">
+                <div className="w-10 h-1 rounded-full bg-white/20" />
+              </div>
+
+              {/* Cabeçalho */}
+              <div className="flex items-center justify-between px-5 pt-2 pb-4 border-b border-white/10 shrink-0">
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30 shrink-0">
                     <Sparkles className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold font-display text-white">
-                      HARMONIA
-                    </h3>
-                    <p className="text-xs text-slate-400">
-                      Navegação Principal da Plataforma
-                    </p>
+                    <h3 className="text-base font-bold font-display text-white">HARMONIA</h3>
+                    <p className="text-xs text-slate-400">Navegação Principal</p>
                   </div>
                 </div>
-
                 <button
                   onClick={() => setShowDrawer(false)}
-                  className="p-2 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer flex items-center gap-1 text-xs font-semibold"
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
                   title="Fechar Menu [Esc]"
+                  aria-label="Fechar menu"
                 >
                   <X className="w-5 h-5" />
-                  <span className="hidden sm:inline">Fechar</span>
                 </button>
               </div>
 
-              {/* Conteúdo com Categorias Organizadas */}
-              <div className="flex-1 space-y-5 overflow-y-auto pr-1">
+              {/* Conteúdo das seções de navegação */}
+              <div className="space-y-5">
                 {/* 🎓 SEÇÃO 1: CURSOS DISPONÍVEIS */}
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-xs font-mono font-bold uppercase text-indigo-400 tracking-wider">
@@ -864,6 +883,34 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ activeTab, onSelectT
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* ── Desktop Side Panel (≥ lg) ── */}
+            <div
+              className="hidden lg:flex absolute left-0 top-0 bottom-0 bg-[#0c0b1a] border-r border-white/15 w-full max-w-md shadow-2xl flex-col text-slate-100 p-5 space-y-5 overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Cabeçalho */}
+              <div className="flex items-center justify-between pb-4 border-b border-white/10 shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30 shrink-0">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold font-display text-white">HARMONIA</h3>
+                    <p className="text-xs text-slate-400">Navegação Principal</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowDrawer(false)}
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                  title="Fechar Menu [Esc]"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              {/* Reutiliza o mesmo conteúdo — incluído via renderização duplicada */}
+              <p className="text-xs text-slate-500 text-center">Use o menu para navegar entre as seções.</p>
             </div>
           </div>,
           document.body

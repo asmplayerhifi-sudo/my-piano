@@ -731,10 +731,41 @@ export const SightReadingView: React.FC = () => {
     return tracker.getWeakestNotes(6);
   }, [tracker, metrics.totalAttempts]);
 
+  // Painel de configuração: colapsado em mobile por padrão, expandido em desktop
+  const [isConfigOpen, setIsConfigOpen] = useState<boolean>(
+    typeof window !== 'undefined' ? window.innerWidth >= 768 : true
+  );
+
   return (
     <div className="flex-1 flex flex-col gap-3 w-full max-w-none pb-6">
       {/* ── PAINEL SUPERIOR: FILTROS & CONFIGURAÇÃO DO EXERCÍCIO ────────────── */}
-      <div className="glass-card rounded-2xl p-3 sm:p-4 border border-white/10 shadow-xl space-y-3">
+      <div className="glass-card rounded-2xl border border-white/10 shadow-xl">
+        {/* Toggle Mobile do Painel */}
+        <button
+          type="button"
+          onClick={() => setIsConfigOpen((v) => !v)}
+          className="md:hidden w-full flex items-center justify-between px-4 py-3 text-sm font-bold text-white"
+          aria-expanded={isConfigOpen}
+          aria-label={isConfigOpen ? 'Ocultar configurações' : 'Exibir configurações'}
+        >
+          <span className="flex items-center gap-2">
+            <Target className="w-4 h-4 text-indigo-400" />
+            Configurações do Exercício
+          </span>
+          <span
+            className="w-4 h-4 text-slate-400 transition-transform duration-200"
+            style={{ transform: isConfigOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
+          >
+            ▾
+          </span>
+        </button>
+
+        {/* Conteúdo (visibilidade controlada em mobile) */}
+        <div
+          className={`p-3 sm:p-4 space-y-3 ${
+            isConfigOpen ? 'block' : 'hidden'
+          } md:block`}
+        >
         {/* Linha 1: Título da Tela, Alcance Dinâmico e Controles Principais */}
         <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/5">
           <div className="flex items-center gap-2.5">
@@ -1013,8 +1044,8 @@ export const SightReadingView: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
-      </div>
+        </div>{/* /accordion-content */}
+      </div>{/* /glass-card config */}
 
       {/* ── PAINEL CENTRAL: PALCO DE LEITURA (PAUTA GRÁFICA PRIORITÁRIA) ────── */}
       <div className="glass-card rounded-3xl p-4 sm:p-5 border border-white/10 shadow-2xl relative flex flex-col gap-3">

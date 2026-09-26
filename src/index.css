@@ -84,3 +84,71 @@
   -webkit-user-select: none;
   user-select: none;
 }
+
+/* ── Mobile UX Utilities ────────────────────────────────────────────────── */
+
+/* Safe-area insets for notched devices */
+.safe-area-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.safe-area-top    { padding-top:    env(safe-area-inset-top,    0px); }
+
+/* Minimum touch target (WCAG 2.5.5 / Apple HIG: 44×44px) */
+.touch-target {
+  min-width:  44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Touch-action: prevent scroll interference on interactive elements */
+.touch-pan-y  { touch-action: pan-y; }
+.touch-none   { touch-action: none;  }
+.touch-manipulate { touch-action: manipulation; }
+
+/* Score canvas minimum legible height on mobile */
+.score-canvas-mobile {
+  min-height: clamp(160px, 28vh, 260px);
+}
+
+/* Bottom sheet slide-up animation */
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.animate-slide-up {
+  animation: slideUp 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Fade-in for overlays */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Accordion collapse */
+.accordion-content {
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.25s ease;
+}
+.accordion-content[data-open="true"]  { max-height: 1000px; opacity: 1; }
+.accordion-content[data-open="false"] { max-height: 0;      opacity: 0; }
+
+/* Horizontal scroll with gradient fade indicator */
+.scroll-fade-x {
+  position: relative;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+.scroll-fade-x > * { scroll-snap-align: start; }
+
+/* Hide scrollbar but keep scroll functionality */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Prevent scroll on body when modal is open */
+body.modal-open { overflow: hidden; }
